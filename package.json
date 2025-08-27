@@ -1,0 +1,47 @@
+{
+  "name": "sc-orgs",
+  "version": "1.0.0",
+  "description": "Star Citizen Organization Platform - Recruitment and Discovery Hub",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared",
+    "infrastructure"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn dev:backend\" \"yarn dev:frontend\"",
+    "dev:backend": "yarn workspace @sc-orgs/backend dev",
+    "dev:frontend": "yarn workspace @sc-orgs/frontend dev --port 3000",
+    "build": "yarn workspace @sc-orgs/backend build && yarn workspace @sc-orgs/frontend build",
+    "test": "yarn workspace @sc-orgs/backend test && yarn workspace @sc-orgs/frontend test",
+    "test:coverage": "yarn workspace @sc-orgs/backend test:coverage && yarn workspace @sc-orgs/frontend test:coverage",
+    "lint": "yarn workspace @sc-orgs/backend lint && yarn workspace @sc-orgs/frontend lint",
+    "lint:fix": "yarn workspace @sc-orgs/backend lint:fix && yarn workspace @sc-orgs/frontend lint:fix",
+    "format": "yarn workspace @sc-orgs/backend format && yarn workspace @sc-orgs/frontend format && yarn workspace @sc-orgs/shared format",
+    "db:migrate": "yarn workspace @sc-orgs/backend db:migrate",
+    "db:seed": "yarn workspace @sc-orgs/backend db:seed",
+    "db:reset": "yarn workspace @sc-orgs/backend db:reset",
+    "install:all": "yarn install && yarn workspace @sc-orgs/backend install && yarn workspace @sc-orgs/frontend install",
+    "deploy": "cd infrastructure && ./deploy.sh",
+    "deploy:destroy": "cd infrastructure && cdk destroy ScOrgsEc2Stack",
+    "deploy:status": "cd infrastructure && cdk list"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.34.0",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "packageManager": "yarn@4.0.2+sha512.4e502bea682e7d8004561f916f1da2dfbe6f718024f6aa50bf8cd86f38ea3a94a7f1bf854a9ca666dd8eafcfb8d44baaa91bf5c7876e79a7aeac952c332f0e88",
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
+    "date-fns": "^4.1.0"
+  }
+}

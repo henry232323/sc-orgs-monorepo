@@ -1,0 +1,666 @@
+@import 'tailwindcss';
+
+/* ========================================
+   SC-ORGS DESIGN SYSTEM THEME VARIABLES
+======================================== */
+
+@theme {
+  /* ===== COLOR SYSTEM ===== */
+  
+  /* Background Gradients - Theme Options */
+  --color-bg-primary: linear-gradient(to bottom right, rgb(17 24 39), rgb(31 41 55), rgb(0 0 0));
+  --color-bg-secondary: linear-gradient(135deg, rgb(17 24 39) 0%, rgb(31 41 55) 50%, rgb(0 0 0) 100%);
+  --color-bg-card: linear-gradient(145deg, rgba(255 255 255 / 0.08) 0%, rgba(255 255 255 / 0.02) 100%);
+  
+  /* Alternative Background Themes */
+  --color-bg-dark: linear-gradient(to bottom right, rgb(0 0 0), rgb(10 10 10), rgb(20 20 20));
+  --color-bg-cyberpunk: linear-gradient(to bottom right, rgb(0 0 0), rgb(10 10 10), rgb(20 20 20));
+  --color-bg-natural: url('https://cdnb.artstation.com/p/assets/images/images/018/686/569/large/paul-chadeisson-chadeisson-abandonedbladerunner-07b.jpg?1560326862');
+  --color-bg-space: url('https://cdnb.artstation.com/p/assets/images/images/042/274/007/large/paul-chadeisson-asset.jpg?1634054676');
+  
+  /* Glass Morphism Colors */
+  --color-glass-bg: rgba(255 255 255 / 0.05);
+  --color-glass-bg-hover: rgba(255 255 255 / 0.1);
+  --color-glass-bg-elevated: rgba(255 255 255 / 0.08);
+  --color-glass-bg-dark: rgba(0 0 0 / 0.5);
+  --color-glass-border: rgba(255 255 255 / 0.1);
+  --color-glass-border-hover: rgba(255 255 255 / 0.2);
+  --color-glass-border-focus: rgba(255 255 255 / 0.3);
+  
+  /* Text Colors */
+  --color-text-primary: rgb(255 255 255);
+  --color-text-secondary: rgba(255 255 255 / 0.8);
+  --color-text-tertiary: rgba(255 255 255 / 0.6);
+  --color-text-muted: rgba(255 255 255 / 0.4);
+  --color-text-disabled: rgba(255 255 255 / 0.25);
+  
+  /* Cyberpunk Accent Colors - Based on https://www.color-hex.com/color-palette/14887 */
+  --color-accent-cyan: rgb(0 255 159);      /* #00ff9f - Cyberpunk Green/Cyan */
+  --color-accent-cyan-bg: rgba(0 255 159 / 0.1);
+  --color-accent-cyan-border: rgba(0 255 159 / 0.2);
+  
+  --color-accent-blue: rgb(0 184 255);      /* #00b8ff - Cyberpunk Blue */
+  --color-accent-blue-bg: rgba(0 184 255 / 0.1);
+  --color-accent-blue-border: rgba(0 184 255 / 0.2);
+  
+  --color-accent-electric: rgb(0 30 255);   /* #001eff - Electric Blue */
+  --color-accent-electric-bg: rgba(0 30 255 / 0.1);
+  --color-accent-electric-border: rgba(0 30 255 / 0.2);
+  
+  --color-accent-purple: rgb(189 0 255);    /* #bd00ff - Cyberpunk Purple */
+  --color-accent-purple-bg: rgba(189 0 255 / 0.1);
+  --color-accent-purple-border: rgba(189 0 255 / 0.2);
+  
+  --color-accent-magenta: rgb(214 0 255);   /* #d600ff - Cyberpunk Magenta */
+  --color-accent-magenta-bg: rgba(214 0 255 / 0.1);
+  --color-accent-magenta-border: rgba(214 0 255 / 0.2);
+  
+  /* Semantic Color Aliases (Primary = Magenta, Secondary = Blue) */
+  --color-brand-primary: var(--color-accent-magenta);
+  --color-brand-primary-bg: var(--color-accent-magenta-bg);
+  --color-brand-primary-border: var(--color-accent-magenta-border);
+  
+  --color-brand-secondary: var(--color-accent-blue);
+  --color-brand-secondary-bg: var(--color-accent-blue-bg);
+  --color-brand-secondary-border: var(--color-accent-blue-border);
+  
+  /* Status Colors */
+  --color-success: rgb(34 197 94);
+  --color-success-bg: rgba(34 197 94 / 0.1);
+  --color-success-border: rgba(34 197 94 / 0.2);
+  
+  --color-warning: rgb(251 191 36);
+  --color-warning-bg: rgba(251 191 36 / 0.1);
+  --color-warning-border: rgba(251 191 36 / 0.2);
+  
+  --color-error: rgb(239 68 68);
+  --color-error-bg: rgba(239 68 68 / 0.1);
+  --color-error-border: rgba(239 68 68 / 0.2);
+  
+  --color-info: rgb(59 130 246);
+  --color-info-bg: rgba(59 130 246 / 0.1);
+  --color-info-border: rgba(59 130 246 / 0.2);
+  
+  /* ===== SPACING SYSTEM ===== */
+  
+  /* Card & Container Spacing */
+  --spacing-card-sm: 0.75rem;     /* 12px - Small cards */
+  --spacing-card-md: 1rem;        /* 16px - Default cards */
+  --spacing-card-lg: 1.5rem;      /* 24px - Large cards */
+  --spacing-card-xl: 2rem;        /* 32px - Extra large cards */
+  
+  /* Layout Spacing */
+  --spacing-section: 3rem;        /* 48px - Between major sections */
+  --spacing-component: 1.5rem;    /* 24px - Between components */
+  --spacing-element: 1rem;        /* 16px - Between elements */
+  --spacing-tight: 0.5rem;        /* 8px - Tight spacing */
+  --spacing-loose: 2rem;          /* 32px - Loose spacing */
+  
+  /* Grid Gaps */
+  --gap-grid-sm: 1rem;           /* 16px - Small grids */
+  --gap-grid-md: 1.5rem;         /* 24px - Medium grids */
+  --gap-grid-lg: 2rem;           /* 32px - Large grids */
+  
+  /* ===== GLASS MORPHISM SYSTEM ===== */
+  
+  /* Backdrop Blur Levels */
+  --blur-glass-subtle: 4px;      /* Subtle glass effect */
+  --blur-glass-medium: 8px;      /* Standard glass effect */
+  --blur-glass-strong: 12px;     /* Strong glass effect */
+  
+  /* Glass Shadows */
+  --shadow-glass-sm: 0 4px 6px rgba(0 0 0 / 0.1), 0 1px 3px rgba(0 0 0 / 0.08);
+  --shadow-glass-md: 0 10px 15px rgba(0 0 0 / 0.1), 0 4px 6px rgba(0 0 0 / 0.05);
+  --shadow-glass-lg: 0 20px 25px rgba(0 0 0 / 0.15), 0 8px 10px rgba(0 0 0 / 0.1);
+  --shadow-glass-xl: 0 25px 50px rgba(0 0 0 / 0.25), 0 16px 30px rgba(0 0 0 / 0.15);
+  
+  /* Inner Shadows for Depth */
+  --shadow-glass-inset: inset 0 1px 0 rgba(255 255 255 / 0.1);
+  --shadow-glass-inset-strong: inset 0 2px 4px rgba(255 255 255 / 0.1);
+  
+  /* ===== BORDER RADIUS SYSTEM ===== */
+  
+  /* Base Radius Scale */
+  --radius-xs: 0.25rem;          /* 4px - Minimal rounding */
+  --radius-sm: 0.5rem;           /* 8px - Small rounding */
+  --radius-md: 0.75rem;          /* 12px - Medium rounding */
+  --radius-lg: 1rem;             /* 16px - Large rounding */
+  --radius-xl: 1.25rem;          /* 20px - Extra large rounding */
+  --radius-2xl: 1.5rem;          /* 24px - Very large rounding */
+  
+  /* ===== SEMANTIC RADIUS PRESETS ===== */
+  
+  /* Interactive Elements */
+  --radius-button: var(--radius-sm);           /* Buttons, clickable elements */
+  --radius-input: var(--radius-md);            /* Form inputs, text fields */
+  --radius-chip: var(--radius-sm);             /* Tags, badges, pills */
+  --radius-toggle: var(--radius-lg);           /* Switches, toggles */
+  
+  /* Layout Elements */
+  --radius-paper: var(--radius-xl);            /* Cards, papers, content containers */
+  --radius-modal: var(--radius-xl);            /* Modals, dialogs, overlays */
+  --radius-panel: var(--radius-lg);            /* Side panels, drawers */
+  --radius-section: var(--radius-2xl);         /* Major page sections */
+  
+  /* Navigation Elements */
+  --radius-nav: var(--radius-md);              /* Navigation items, menu items */
+  --radius-dropdown: var(--radius-lg);         /* Dropdown menus, select boxes */
+  --radius-tooltip: var(--radius-sm);          /* Tooltips, popovers */
+  
+  /* Content Elements */
+  --radius-image: var(--radius-md);            /* Images, avatars */
+  --radius-media: var(--radius-lg);            /* Video players, media containers */
+  --radius-code: var(--radius-sm);             /* Code blocks, inline code */
+  
+  /* ===== TYPOGRAPHY SYSTEM ===== */
+  
+  /* Font Sizes */
+  --text-xs: 0.75rem;       /* 12px */
+  --text-sm: 0.875rem;      /* 14px */
+  --text-base: 1rem;        /* 16px */
+  --text-lg: 1.125rem;      /* 18px */
+  --text-xl: 1.25rem;       /* 20px */
+  --text-2xl: 1.5rem;       /* 24px */
+  --text-3xl: 1.875rem;     /* 30px */
+  --text-4xl: 2.25rem;      /* 36px */
+  --text-5xl: 3rem;         /* 48px */
+  --text-6xl: 3.75rem;      /* 60px */
+  
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  
+  /* ===== SEMANTIC TYPOGRAPHY PRESETS ===== */
+  
+  /* Page-Level Headers */
+  --text-page-title: var(--text-4xl);          /* 36px - Main page titles */
+  --text-page-subtitle: var(--text-lg);        /* 18px - Page subtitles/descriptions */
+  
+  /* Section Headers */
+  --text-section-title: var(--text-2xl);       /* 24px - Major section headers */
+  --text-section-subtitle: var(--text-base);   /* 16px - Section descriptions */
+  
+  /* Paper/Card Headers */
+  --text-paper-title: var(--text-xl);          /* 20px - Card/paper titles */
+  --text-paper-subtitle: var(--text-sm);       /* 14px - Card/paper subtitles */
+  
+  /* Component Headers */
+  --text-component-title: var(--text-lg);      /* 18px - Small component titles */
+  --text-component-subtitle: var(--text-sm);   /* 14px - Small component subtitles */
+  
+  /* Navigation & UI */
+  --text-nav-title: var(--text-2xl);           /* 24px - App/brand title */
+  --text-nav-item: var(--text-base);           /* 16px - Navigation items */
+  --text-button: var(--text-sm);               /* 14px - Button text */
+  --text-caption: var(--text-xs);              /* 12px - Captions, labels */
+  
+  /* Stats & Numbers */
+  --text-stat-large: var(--text-3xl);          /* 30px - Large statistics */
+  --text-stat-medium: var(--text-xl);          /* 20px - Medium statistics */
+  --text-stat-small: var(--text-lg);           /* 18px - Small statistics */
+  
+  /* ===== PAGE LAYOUT SYSTEM ===== */
+  
+  /* Page Container Widths */
+  --page-width-sm: 42rem;          /* 672px - Small pages (settings, profile) */
+  --page-width-md: 56rem;          /* 896px - Medium pages (forms) */
+  --page-width-lg: 72rem;          /* 1152px - Large pages (lists, dashboards) */
+  --page-width-xl: 80rem;          /* 1280px - Extra large pages (analytics) */
+  --page-width-full: 100%;         /* Full width pages */
+  
+  /* Page Padding */
+  --page-padding-x: 1.5rem;        /* 24px - Horizontal page padding */
+  --page-padding-y: 1.5rem;        /* 24px - Vertical page padding */
+  --page-padding-top: 1.5rem;      /* 24px - Top page padding */
+  --page-padding-bottom: 1.5rem;   /* 24px - Bottom page padding */
+  
+  /* Responsive Page Padding */
+  --page-padding-mobile: 1rem;     /* 16px - Mobile padding */
+  --page-padding-tablet: 1.5rem;   /* 24px - Tablet padding */
+  --page-padding-desktop: 2rem;    /* 32px - Desktop padding */
+  
+  /* Page Spacing */
+  --page-header-margin: 2rem;      /* 32px - Space after page header */
+  --page-section-gap: 2rem;        /* 32px - Space between page sections */
+  
+  /* ===== ANIMATION SYSTEM ===== */
+  
+  /* Transition Durations */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+  
+  /* Transition Easings */
+  --ease-glass: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Interactive Transform Scales */
+  --scale-hover: 1.02;
+  --scale-active: 0.98;
+  --scale-button-hover: 1.01;
+  --scale-button-active: 0.99;
+  
+  /* ===== COMPONENT-SPECIFIC VARIABLES ===== */
+  
+  /* Button System */
+  --button-padding-sm: 0.5rem 0.75rem;
+  --button-padding-md: 0.75rem 1rem;
+  --button-padding-lg: 1rem 1.5rem;
+  
+  /* Input System */
+  --input-padding: 0.75rem 1rem;
+  --input-bg: rgba(255 255 255 / 0.05);
+  --input-border: rgba(255 255 255 / 0.1);
+  --input-focus-border: rgba(255 255 255 / 0.3);
+  
+  /* Navigation */
+  --nav-item-padding: 0.75rem 1rem;
+  --nav-item-hover-bg: rgba(255 255 255 / 0.08);
+  
+  /* ===== RESPONSIVE BREAKPOINTS ===== */
+  
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* ========================================
+   BASE STYLES WITH THEME VARIABLES
+======================================== */
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg-primary);
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-smooth: antialiased;
+    background: var(--color-bg-primary);
+    height: 100%;
+    overflow: auto;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    margin: 0;
+    padding: 0;
+    color: var(--color-text-primary);
+  }
+}
+
+/* ========================================
+   GLASS MORPHISM UTILITY CLASSES
+======================================== */
+
+@layer utilities {
+  /* Glass Base Styles */
+  .glass {
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(var(--blur-glass-medium));
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass-md);
+  }
+  
+  .glass-subtle {
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(var(--blur-glass-subtle));
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass-sm);
+  }
+  
+  .glass-strong {
+    background: var(--color-glass-bg-elevated);
+    backdrop-filter: blur(var(--blur-glass-strong));
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass-lg);
+  }
+  
+  .glass-elevated {
+    background: var(--color-glass-bg-elevated);
+    backdrop-filter: blur(var(--blur-glass-medium));
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass-xl);
+  }
+  
+  /* Interactive Glass States */
+  .glass-interactive {
+    transition: all var(--duration-normal) var(--ease-glass);
+  }
+  
+  .glass-interactive:hover {
+    background: var(--color-glass-bg-hover);
+    border-color: var(--color-glass-border-hover);
+    transform: scale(var(--scale-hover));
+  }
+  
+  .glass-interactive:active {
+    transform: scale(var(--scale-active));
+  }
+  
+  /* Glass Button Variants */
+  .glass-button {
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(var(--blur-glass-medium));
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-button);
+    box-shadow: var(--shadow-glass-sm), var(--shadow-glass-inset);
+    transition: all var(--duration-normal) var(--ease-glass);
+  }
+  
+  .glass-button:hover {
+    background: var(--color-glass-bg-hover);
+    border-color: var(--color-glass-border-hover);
+    transform: scale(var(--scale-button-hover));
+    box-shadow: var(--shadow-glass-md), var(--shadow-glass-inset);
+  }
+  
+  .glass-button:active {
+    transform: scale(var(--scale-button-active));
+  }
+  
+  /* Glass Card Variants */
+  .glass-card {
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(var(--blur-glass-medium));
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-paper);
+    box-shadow: var(--shadow-glass-md);
+    padding: var(--spacing-card-md);
+  }
+  
+  .glass-card-sm {
+    padding: var(--spacing-card-sm);
+    border-radius: var(--radius-paper);
+  }
+  
+  .glass-card-lg {
+    padding: var(--spacing-card-lg);
+    border-radius: var(--radius-paper);
+  }
+  
+  .glass-card-xl {
+    padding: var(--spacing-card-xl);
+    border-radius: var(--radius-section);
+  }
+  
+  /* Vote Highlighting Utilities */
+  .vote-highlight-support {
+    background-color: rgba(34 197 94 / 0.5) !important;
+    border: 2px solid rgb(34 197 94) !important;
+    color: rgb(220 252 231) !important;
+  }
+  
+  .vote-highlight-dispute {
+    background-color: rgba(239 68 68 / 0.5) !important;
+    border: 2px solid rgb(239 68 68) !important;
+    color: rgb(254 226 226) !important;
+  }
+  
+  .vote-highlight-neutral {
+    background-color: rgba(234 179 8 / 0.5) !important;
+    border: 2px solid rgb(234 179 8) !important;
+    color: rgb(254 249 195) !important;
+  }
+  
+  /* Interactive Element Cursors */
+  button,
+  [role='button'],
+  .cursor-pointer {
+    cursor: pointer !important;
+  }
+
+  button:disabled,
+  .cursor-not-allowed {
+    cursor: not-allowed !important;
+  }
+  
+  /* Smooth Animations */
+  .animate-glass {
+    transition: all var(--duration-normal) var(--ease-glass);
+  }
+  
+  .animate-bounce-subtle {
+    transition: transform var(--duration-normal) var(--ease-bounce);
+  }
+  
+  /* Text Color Utilities */
+  .text-primary { color: var(--color-text-primary); }
+  .text-secondary { color: var(--color-text-secondary); }
+  .text-tertiary { color: var(--color-text-tertiary); }
+  
+  /* Brand Color Utilities */
+  .text-brand-primary { color: var(--color-brand-primary); }
+  .text-brand-secondary { color: var(--color-brand-secondary); }
+  .bg-brand-primary { background-color: var(--color-brand-primary-bg); }
+  .bg-brand-secondary { background-color: var(--color-brand-secondary-bg); }
+  .border-brand-primary { border-color: var(--color-brand-primary-border); }
+  .border-brand-secondary { border-color: var(--color-brand-secondary-border); }
+  
+  .hover\:text-brand-primary:hover { color: var(--color-brand-primary); }
+  .hover\:text-brand-secondary:hover { color: var(--color-brand-secondary); }
+  .hover\:bg-brand-primary:hover { background-color: var(--color-brand-primary-bg); }
+  .hover\:bg-brand-secondary:hover { background-color: var(--color-brand-secondary-bg); }
+  
+  /* Scrollbar utilities */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+  .text-muted { color: var(--color-text-muted); }
+  .text-disabled { color: var(--color-text-disabled); }
+  
+  /* Background Utilities */
+  .bg-glass { background: var(--color-glass-bg); }
+  .bg-glass-hover { background: var(--color-glass-bg-hover); }
+  .bg-glass-elevated { background: var(--color-glass-bg-elevated); }
+  .bg-dark-glass { background: var(--color-glass-bg-dark); }
+  
+  /* Theme Background Utilities */
+  .theme-gray { background: var(--color-bg-primary); }
+  .theme-dark { 
+    position: relative;
+    overflow: auto;
+    background: transparent;
+  }
+  
+  .theme-dark::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    display: block;
+    background: 
+      radial-gradient(ellipse 700px 350px at 90% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 70%),
+      radial-gradient(circle 450px at 20% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 60%),
+      radial-gradient(circle 380px at 50% 5%, rgba(255, 255, 255, 0.05) 0%, transparent 65%),
+      radial-gradient(ellipse 600px 280px at 15% 50%, rgba(255, 255, 255, 0.07) 0%, transparent 70%),
+      radial-gradient(circle 320px at 85% 85%, rgba(255, 255, 255, 0.06) 0%, transparent 65%),
+      var(--color-bg-dark);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100%;
+    filter: blur(8px);
+  }
+  
+  .theme-cyberpunk { 
+    position: relative;
+    overflow: auto;
+    background: transparent;
+  }
+  
+  .theme-cyberpunk::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    display: block;
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(138, 43, 226, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(0, 184, 255, 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 60% 80%, rgba(214, 0, 255, 0.25) 0%, transparent 50%),
+      radial-gradient(circle at 10% 70%, rgba(0, 255, 159, 0.2) 0%, transparent 50%),
+      var(--color-bg-cyberpunk);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100%;
+    filter: blur(12px);
+  }
+  .theme-natural { 
+    position: relative;
+    overflow: auto;
+      background: transparent;
+  }
+  
+  .theme-natural::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    display: block;
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4)),
+      var(--color-bg-natural);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100%;
+    filter: blur(8px);
+  }
+  
+  .theme-space { 
+    position: relative;
+    overflow: auto;
+    background: transparent;
+  }
+  
+  .theme-space::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    display: block;
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3)),
+      var(--color-bg-space);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100%;
+    filter: blur(8px);
+  }
+  
+  /* Border Utilities */
+  .border-glass { border-color: var(--color-glass-border); }
+  .border-glass-hover { border-color: var(--color-glass-border-hover); }
+  .border-glass-focus { border-color: var(--color-glass-border-focus); }
+  
+  /* Status Color Utilities */
+  .text-success { color: var(--color-success); }
+  .bg-success { background: var(--color-success-bg); }
+  .border-success { border-color: var(--color-success-border); }
+  
+  .text-warning { color: var(--color-warning); }
+  .bg-warning { background: var(--color-warning-bg); }
+  .border-warning { border-color: var(--color-warning-border); }
+  
+  .text-error { color: var(--color-error); }
+  .bg-error { background: var(--color-error-bg); }
+  .border-error { border-color: var(--color-error-border); }
+  
+  .text-info { color: var(--color-info); }
+  .bg-info { background: var(--color-info-bg); }
+  .border-info { border-color: var(--color-info-border); }
+}
+
+/* ========================================
+   COMPONENT-SPECIFIC STYLES
+======================================== */
+
+@layer components {
+  /* Enhanced Glass Navigation */
+  .nav-glass {
+    background: var(--color-glass-bg-elevated);
+    backdrop-filter: blur(var(--blur-glass-strong));
+    border-bottom: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass-lg);
+  }
+  
+  /* Glass Form Elements */
+  .input-glass {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    backdrop-filter: blur(var(--blur-glass-subtle));
+    padding: var(--input-padding);
+    border-radius: var(--radius-input);
+    color: var(--color-text-primary);
+    transition: all var(--duration-normal) var(--ease-smooth);
+  }
+  
+  .input-glass:focus {
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 0 3px rgba(255 255 255 / 0.1);
+    outline: none;
+  }
+  
+  .input-glass::placeholder {
+    color: var(--color-text-muted);
+  }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN HELPERS
+======================================== */
+
+@layer utilities {
+  /* Responsive Glass Effects */
+  @media (max-width: 768px) {
+    .glass-mobile-reduced {
+      backdrop-filter: blur(var(--blur-glass-subtle));
+      box-shadow: var(--shadow-glass-sm);
+    }
+  }
+  
+  /* Performance Optimizations */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-interactive,
+    .glass-button,
+    .animate-glass {
+      transition: none;
+    }
+    
+    .glass-interactive:hover,
+    .glass-button:hover {
+      transform: none;
+    }
+  }
+}

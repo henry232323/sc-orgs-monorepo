@@ -1,0 +1,20 @@
+export const APP_NAME = 'SC-Orgs';
+export const APP_VERSION = '1.0.0';
+
+export const VERIFICATION_SENTINEL_PREFIX = 'SCORGS:';
+export const VERIFICATION_CODE_LENGTH = 12;
+
+export const MAX_ORGANIZATION_NAME_LENGTH = 100;
+export const MAX_ORGANIZATION_DESCRIPTION_LENGTH = 1000;
+export const MAX_TAG_LENGTH = 50;
+
+export const UPVOTE_COOLDOWN_DAYS = 7;
+
+export const PAGINATION_DEFAULT_LIMIT = 20;
+export const PAGINATION_MAX_LIMIT = 100;
+
+export const API_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+export const API_RATE_LIMIT_MAX_REQUESTS = 100;
+
+export const SESSION_TOKEN_EXPIRY_HOURS = 24;
+export const REFRESH_TOKEN_EXPIRY_DAYS = 30;
