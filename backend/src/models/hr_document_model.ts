@@ -1,0 +1,467 @@
+import db from '../config/database';
+
+export interface HRDocument {
+  id: string;
+  organization_id: string;
+  title: string;
+  description?: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  folder_path: string;
+  version: number;
+  requires_acknowledgment: boolean;
+  access_roles: string[];
+  uploaded_by: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateHRDocumentData {
+  organization_id: string;
+  title: string;
+  description?: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  folder_path?: string;
+  requires_acknowledgment?: boolean;
+  access_roles?: string[];
+  uploaded_by: string;
+}
+
+export interface UpdateHRDocumentData {
+  title?: string;
+  description?: string;
+  folder_path?: string;
+  requires_acknowledgment?: boolean;
+  access_roles?: string[];
+  version?: number;
+}
+
+export interface HRDocumentAcknowledgment {
+  id: string;
+  document_id: string;
+  user_id: string;
+  acknowledged_at: Date;
+  ip_address?: string;
+}
+
+export interface CreateHRDocumentAcknowledgmentData {
+  document_id: string;
+  user_id: string;
+  ip_address?: string;
+}
+
+export class HRDocumentModel {
+  // Document methods
+  async createDocument(documentData: CreateHRDocumentData): Promise<HRDocument> {
+    const insertData = {
+      ...documentData,
+      folder_path: documentData.folder_path || '/',
+      version: 1,
+      requires_acknowledgment: documentData.requires_acknowledgment || false,
+      access_roles: documentData.access_roles || [],
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    const [document] = await db('hr_documents')
+      .insert(insertData)
+      .returning('*');
+
+    return document;
+  }
+
+  async findDocumentById(id: string): Promise<HRDocument | null> {
+    const document = await db('hr_documents').where({ id }).first();
+    return document || null;
+  }
+
+  async updateDocument(id: string, updateData: UpdateHRDocumentData): Promise<HRDocument | null> {
+    const [document] = await db('hr_documents')
+      .where({ id })
+      .update({
+        ...updateData,
+        updated_at: new Date(),
+      })
+      .returning('*');
+
+    return document || null;
+  }
+
+  async deleteDocument(id: string): Promise<boolean> {
+    const deleted = await db('hr_documents').where({ id }).del();
+    return deleted > 0;
+  }
+
+  async listDocuments(
+    organizationId: string,
+    filters: {
+      folder_path?: string;
+      file_type?: string;
+      requires_acknowledgment?: boolean;
+      user_roles?: string[];
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<{ data: HRDocument[]; total: number }> {
+    let query = db('hr_documents').where({ organization_id: organizationId });
+
+    if (filters.folder_path) {
+      query = query.where({ folder_path: filters.folder_path });
+    }
+
+    if (filters.file_type) {
+      query = query.where({ file_type: filters.file_type });
+    }
+
+    if (filters.requires_acknowledgment !== undefined) {
+      query = query.where({ requires_acknowledgment: filters.requires_acknowledgment });
+    }
+
+    // Filter by user roles if provided
+    if (filters.user_roles && filters.user_roles.length > 0) {
+      query = query.where(function() {
+        // Documents with empty access_roles are accessible to all
+        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        
+        // Or documents where user has at least one matching role
+        filters.user_roles!.forEach(role => {
+          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+        });
+      });
+    }
+
+    // Get total count
+    const countQuery = query.clone().count('* as count');
+    const totalResult = await countQuery.first();
+    const total = parseInt(totalResult?.count as string) || 0;
+
+    // Apply pagination
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    if (filters.offset) {
+      query = query.offset(filters.offset);
+    }
+
+    const documents = await query.orderBy('folder_path', 'asc').orderBy('title', 'asc');
+
+    return { data: documents, total };
+  }
+
+  async getDocumentsWithUploaderInfo(
+    organizationId: string,
+    filters: {
+      folder_path?: string;
+      file_type?: string;
+      requires_acknowledgment?: boolean;
+      user_roles?: string[];
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<{ data: any[]; total: number }> {
+    let query = db('hr_documents')
+      .join('users', 'hr_documents.uploaded_by', 'users.id')
+      .where({ 'hr_documents.organization_id': organizationId })
+      .select(
+        'hr_documents.*',
+        'users.rsi_handle as uploaded_by_rsi_handle',
+        'users.discord_username as uploaded_by_discord_username'
+      );
+
+    if (filters.folder_path) {
+      query = query.where({ 'hr_documents.folder_path': filters.folder_path });
+    }
+
+    if (filters.file_type) {
+      query = query.where({ 'hr_documents.file_type': filters.file_type });
+    }
+
+    if (filters.requires_acknowledgment !== undefined) {
+      query = query.where({ 'hr_documents.requires_acknowledgment': filters.requires_acknowledgment });
+    }
+
+    // Filter by user roles if provided
+    if (filters.user_roles && filters.user_roles.length > 0) {
+      query = query.where(function() {
+        // Documents with empty access_roles are accessible to all
+        this.whereRaw('jsonb_array_length(hr_documents.access_roles) = 0');
+        
+        // Or documents where user has at least one matching role
+        filters.user_roles!.forEach(role => {
+          this.orWhereRaw('hr_documents.access_roles @> ?', [JSON.stringify([role])]);
+        });
+      });
+    }
+
+    // Get total count
+    const countQuery = query.clone().clearSelect().count('hr_documents.id as count');
+    const totalResult = await countQuery.first();
+    const total = parseInt(totalResult?.count as string) || 0;
+
+    // Apply pagination
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    if (filters.offset) {
+      query = query.offset(filters.offset);
+    }
+
+    const documents = await query
+      .orderBy('hr_documents.folder_path', 'asc')
+      .orderBy('hr_documents.title', 'asc');
+
+    return { data: documents, total };
+  }
+
+  async searchDocuments(
+    organizationId: string,
+    searchTerm: string,
+    filters: {
+      user_roles?: string[];
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<{ data: HRDocument[]; total: number }> {
+    let query = db('hr_documents')
+      .where({ organization_id: organizationId })
+      .where(function() {
+        this.where('title', 'ilike', `%${searchTerm}%`)
+          .orWhere('description', 'ilike', `%${searchTerm}%`);
+      });
+
+    // Filter by user roles if provided
+    if (filters.user_roles && filters.user_roles.length > 0) {
+      query = query.where(function() {
+        // Documents with empty access_roles are accessible to all
+        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        
+        // Or documents where user has at least one matching role
+        filters.user_roles!.forEach(role => {
+          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+        });
+      });
+    }
+
+    // Get total count
+    const countQuery = query.clone().count('* as count');
+    const totalResult = await countQuery.first();
+    const total = parseInt(totalResult?.count as string) || 0;
+
+    // Apply pagination
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    if (filters.offset) {
+      query = query.offset(filters.offset);
+    }
+
+    const documents = await query.orderBy('title', 'asc');
+
+    return { data: documents, total };
+  }
+
+  async getFolderStructure(organizationId: string, userRoles?: string[]): Promise<string[]> {
+    let query = db('hr_documents')
+      .where({ organization_id: organizationId })
+      .distinct('folder_path');
+
+    // Filter by user roles if provided
+    if (userRoles && userRoles.length > 0) {
+      query = query.where(function() {
+        // Documents with empty access_roles are accessible to all
+        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        
+        // Or documents where user has at least one matching role
+        userRoles.forEach(role => {
+          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+        });
+      });
+    }
+
+    const results = await query.orderBy('folder_path', 'asc');
+    return results.map(result => result.folder_path);
+  }
+
+  // Acknowledgment methods
+  async createAcknowledgment(
+    acknowledgmentData: CreateHRDocumentAcknowledgmentData
+  ): Promise<HRDocumentAcknowledgment> {
+    const insertData = {
+      ...acknowledgmentData,
+      acknowledged_at: new Date(),
+    };
+
+    const [acknowledgment] = await db('hr_document_acknowledgments')
+      .insert(insertData)
+      .returning('*');
+
+    return acknowledgment;
+  }
+
+  async findAcknowledgment(documentId: string, userId: string): Promise<HRDocumentAcknowledgment | null> {
+    const acknowledgment = await db('hr_document_acknowledgments')
+      .where({ document_id: documentId, user_id: userId })
+      .first();
+    return acknowledgment || null;
+  }
+
+  async deleteAcknowledgment(documentId: string, userId: string): Promise<boolean> {
+    const deleted = await db('hr_document_acknowledgments')
+      .where({ document_id: documentId, user_id: userId })
+      .del();
+    return deleted > 0;
+  }
+
+  async getDocumentAcknowledgments(
+    documentId: string,
+    filters: {
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<{ data: any[]; total: number }> {
+    let query = db('hr_document_acknowledgments')
+      .join('users', 'hr_document_acknowledgments.user_id', 'users.id')
+      .where({ 'hr_document_acknowledgments.document_id': documentId })
+      .select(
+        'hr_document_acknowledgments.*',
+        'users.rsi_handle as user_rsi_handle',
+        'users.discord_username as user_discord_username'
+      );
+
+    // Get total count
+    const countQuery = query.clone().clearSelect().count('hr_document_acknowledgments.id as count');
+    const totalResult = await countQuery.first();
+    const total = parseInt(totalResult?.count as string) || 0;
+
+    // Apply pagination
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    if (filters.offset) {
+      query = query.offset(filters.offset);
+    }
+
+    const acknowledgments = await query.orderBy('hr_document_acknowledgments.acknowledged_at', 'desc');
+
+    return { data: acknowledgments, total };
+  }
+
+  async getUserAcknowledgments(
+    userId: string,
+    organizationId: string
+  ): Promise<any[]> {
+    return db('hr_document_acknowledgments')
+      .join('hr_documents', 'hr_document_acknowledgments.document_id', 'hr_documents.id')
+      .where({ 'hr_document_acknowledgments.user_id': userId })
+      .where({ 'hr_documents.organization_id': organizationId })
+      .select(
+        'hr_document_acknowledgments.*',
+        'hr_documents.title as document_title',
+        'hr_documents.folder_path as document_folder_path'
+      )
+      .orderBy('hr_document_acknowledgments.acknowledged_at', 'desc');
+  }
+
+  async getPendingAcknowledgments(
+    organizationId: string,
+    userId: string,
+    userRoles: string[]
+  ): Promise<HRDocument[]> {
+    // Get documents that require acknowledgment and are accessible to the user
+    const accessibleDocuments = await db('hr_documents')
+      .where({ organization_id: organizationId, requires_acknowledgment: true })
+      .where(function() {
+        // Documents with empty access_roles are accessible to all
+        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        
+        // Or documents where user has at least one matching role
+        userRoles.forEach(role => {
+          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+        });
+      });
+
+    // Filter out documents that have already been acknowledged
+    const pendingDocuments = [];
+    for (const document of accessibleDocuments) {
+      const acknowledgment = await this.findAcknowledgment(document.id, userId);
+      if (!acknowledgment) {
+        pendingDocuments.push(document);
+      }
+    }
+
+    return pendingDocuments;
+  }
+
+  async getComplianceReport(organizationId: string): Promise<{
+    total_documents: number;
+    documents_requiring_acknowledgment: number;
+    total_acknowledgments: number;
+    compliance_rate: number;
+    pending_acknowledgments: number;
+  }> {
+    const [docStats, ackStats] = await Promise.all([
+      // Document statistics
+      db('hr_documents')
+        .where({ organization_id: organizationId })
+        .select(
+          db.raw('COUNT(*) as total_documents'),
+          db.raw('COUNT(CASE WHEN requires_acknowledgment = true THEN 1 END) as documents_requiring_acknowledgment')
+        )
+        .first(),
+
+      // Acknowledgment statistics
+      db('hr_document_acknowledgments')
+        .join('hr_documents', 'hr_document_acknowledgments.document_id', 'hr_documents.id')
+        .where({ 'hr_documents.organization_id': organizationId })
+        .count('* as total_acknowledgments')
+        .first(),
+    ]);
+
+    const totalDocuments = parseInt(docStats?.total_documents as string) || 0;
+    const documentsRequiringAcknowledgment = parseInt(docStats?.documents_requiring_acknowledgment as string) || 0;
+    const totalAcknowledgments = parseInt(ackStats?.total_acknowledgments as string) || 0;
+
+    // Get organization member count for compliance calculation
+    const memberCount = await db('organization_members')
+      .where({ organization_id: organizationId, is_active: true })
+      .count('* as count')
+      .first();
+
+    const activeMemberCount = parseInt(memberCount?.count as string) || 0;
+    const expectedAcknowledgments = documentsRequiringAcknowledgment * activeMemberCount;
+    const complianceRate = expectedAcknowledgments > 0 ? (totalAcknowledgments / expectedAcknowledgments) * 100 : 100;
+    const pendingAcknowledgments = Math.max(0, expectedAcknowledgments - totalAcknowledgments);
+
+    return {
+      total_documents: totalDocuments,
+      documents_requiring_acknowledgment: documentsRequiringAcknowledgment,
+      total_acknowledgments: totalAcknowledgments,
+      compliance_rate: complianceRate,
+      pending_acknowledgments: pendingAcknowledgments,
+    };
+  }
+
+  async getVersionHistory(documentId: string): Promise<any[]> {
+    // This would require a separate document_versions table for full version history
+    // For now, return the current document as the only version
+    const document = await this.findDocumentById(documentId);
+    if (!document) return [];
+
+    return [
+      {
+        version: document.version,
+        created_at: document.updated_at,
+        uploaded_by: document.uploaded_by,
+        file_size: document.file_size,
+        file_path: document.file_path,
+      },
+    ];
+  }
+}

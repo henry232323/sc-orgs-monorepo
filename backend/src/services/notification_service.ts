@@ -190,6 +190,34 @@ export class NotificationService {
     }
   }
 
+  // Generic notification creation method
+  async createNotification(data: {
+    user_id: string;
+    entity_type: NotificationEntityType;
+    entity_id: string;
+    title: string;
+    message: string;
+    custom_data?: Record<string, any>;
+    actor_id?: string;
+  }): Promise<void> {
+    try {
+      const notificationData: CreateNotificationObjectData = {
+        entity_type: data.entity_type,
+        entity_id: data.entity_id,
+        actor_id: data.actor_id || 'system',
+        notifier_ids: [data.user_id],
+      };
+
+      await this.notificationModel.createCompleteNotification(notificationData);
+      logger.info(
+        `Created notification: ${data.entity_type} for user ${data.user_id}`
+      );
+    } catch (error) {
+      logger.error('Error creating notification:', error);
+      throw error;
+    }
+  }
+
   // Helper method to get notification message based on entity type and data
   static getNotificationMessage(
     entityType: NotificationEntityType,

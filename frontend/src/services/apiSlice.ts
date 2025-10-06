@@ -93,6 +93,13 @@ export const apiSlice = createApi({
     'OrganizationReportCorroboration',
     'AltAccountReportCorroboration',
     'AffiliatedPeopleReportCorroboration',
+    // HR system tags
+    'Application',
+    'OnboardingProgress',
+    'PerformanceReview',
+    'Skill',
+    'Document',
+    'HRAnalytics',
   ],
   // Configure serialization to handle non-serializable data
   serializeQueryArgs: ({ queryArgs, endpointName }) => {
@@ -1644,6 +1651,587 @@ export const apiSlice = createApi({
       }
     ),
 
+    // HR System endpoints
+    
+    // HR Analytics endpoints
+    getHRAnalytics: builder.query<
+      import('../types/hr').HRAnalytics,
+      { organizationId: string; startDate?: string; endDate?: string }
+    >({
+      query: ({ organizationId, startDate, endDate }) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        const queryString = params.toString();
+        return `/api/organizations/${organizationId}/hr-analytics/dashboard${queryString ? `?${queryString}` : ''}`;
+      },
+      transformResponse: (response: import('../types/hr').HRAnalyticsResponse) =>
+        response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
+    }),
+
+    getHRReports: builder.query<
+      import('../types/hr').HRAnalytics,
+      { organizationId: string; reportType?: string; startDate?: string; endDate?: string }
+    >({
+      query: ({ organizationId, reportType, startDate, endDate }) => {
+        const params = new URLSearchParams();
+        if (reportType) params.append('report_type', reportType);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        const queryString = params.toString();
+        return `/api/organizations/${organizationId}/hr-analytics/reports${queryString ? `?${queryString}` : ''}`;
+      },
+      transformResponse: (response: import('../types/hr').HRAnalyticsResponse) =>
+        response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'HRAnalytics', id: `${organizationId}-reports` },
+      ],
+      keepUnusedDataFor: 180, // Cache for 3 minutes (reports change more frequently)
+    }),
+
+    // Application Management endpoints
+    getApplications: builder.query<
+      import('../types').ListResponse<import('../types/hr').Application>,
+      { 
+        organizationId: string; 
+        page?: number; 
+        limit?: number; 
+        filters?: import('../types/hr').ApplicationFilters;
+      }
+    >({
+      query: ({ organizationId, page = 1, limit = 20, filters = {} }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined) {
+            params.append(key, value.toString());
+          }
+        });
+        
+        return `/api/organizations/${organizationId}/applications?${params.toString()}`;
+      },
+      transformResponse: (response: import('../types/hr').ApplicationListResponse) => ({
+        data: response.data.data,
+        total: response.data.total,
+        page: response.data.pagination.page,
+        limit: response.data.pagination.limit,
+      }),
+      providesTags: (result, _, { organizationId }) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: 'Application' as const,
+                id,
+              })),
+              { type: 'Application', id: organizationId },
+            ]
+          : [{ type: 'Application', id: organizationId }],
+      keepUnusedDataFor: 120, // Cache for 2 minutes (applications change frequently)
+    }),
+
+    createApplication: builder.mutation<
+      import('../types/hr').Application,
+      { organizationId: string; data: import('../types/hr').CreateApplicationData }
+    >({
+      query: ({ organizationId, data }) => ({
+        url: `/api/organizations/${organizationId}/applications`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').Application>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Application', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    updateApplicationStatus: builder.mutation<
+      import('../types/hr').Application,
+      { 
+        organizationId: string; 
+        applicationId: string; 
+        data: import('../types/hr').UpdateApplicationStatusData;
+      }
+    >({
+      query: ({ organizationId, applicationId, data }) => ({
+        url: `/api/organizations/${organizationId}/applications/${applicationId}/status`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').Application>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId, applicationId }) => [
+        { type: 'Application', id: applicationId },
+        { type: 'Application', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    bulkUpdateApplications: builder.mutation<
+      { updated_count: number },
+      { 
+        organizationId: string; 
+        applicationIds: string[]; 
+        data: import('../types/hr').UpdateApplicationStatusData;
+      }
+    >({
+      query: ({ organizationId, applicationIds, data }) => ({
+        url: `/api/organizations/${organizationId}/applications/bulk`,
+        method: 'PUT',
+        body: { application_ids: applicationIds, ...data },
+      }),
+      transformResponse: (response: ApiSuccessResponse<{ updated_count: number }>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Application', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    // Onboarding Management endpoints
+    getOnboardingTemplates: builder.query<
+      import('../types/hr').OnboardingTemplate[],
+      { organizationId: string }
+    >({
+      query: ({ organizationId }) => `/api/organizations/${organizationId}/onboarding/templates`,
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').OnboardingTemplate[]>) =>
+        response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'OnboardingProgress', id: `${organizationId}-templates` },
+      ],
+      keepUnusedDataFor: 600, // Cache for 10 minutes (templates don't change often)
+    }),
+
+    createOnboardingTemplate: builder.mutation<
+      import('../types/hr').OnboardingTemplate,
+      { organizationId: string; data: import('../types/hr').CreateOnboardingTemplateData }
+    >({
+      query: ({ organizationId, data }) => ({
+        url: `/api/organizations/${organizationId}/onboarding/templates`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').OnboardingTemplate>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'OnboardingProgress', id: `${organizationId}-templates` },
+      ],
+    }),
+
+    getOnboardingProgress: builder.query<
+      import('../types').ListResponse<import('../types/hr').OnboardingProgress>,
+      { 
+        organizationId: string; 
+        page?: number; 
+        limit?: number; 
+        filters?: import('../types/hr').OnboardingFilters;
+      }
+    >({
+      query: ({ organizationId, page = 1, limit = 20, filters = {} }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined) {
+            params.append(key, value.toString());
+          }
+        });
+        
+        return `/api/organizations/${organizationId}/onboarding/progress?${params.toString()}`;
+      },
+      transformResponse: (response: import('../types/hr').OnboardingProgressListResponse) => ({
+        data: response.data.data,
+        total: response.data.total,
+        page: response.data.pagination.page,
+        limit: response.data.pagination.limit,
+      }),
+      providesTags: (result, _, { organizationId }) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: 'OnboardingProgress' as const,
+                id,
+              })),
+              { type: 'OnboardingProgress', id: organizationId },
+            ]
+          : [{ type: 'OnboardingProgress', id: organizationId }],
+      keepUnusedDataFor: 180, // Cache for 3 minutes
+    }),
+
+    updateOnboardingProgress: builder.mutation<
+      import('../types/hr').OnboardingProgress,
+      { 
+        organizationId: string; 
+        userId: string; 
+        data: import('../types/hr').UpdateOnboardingProgressData;
+      }
+    >({
+      query: ({ organizationId, userId, data }) => ({
+        url: `/api/organizations/${organizationId}/onboarding/progress/${userId}`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').OnboardingProgress>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId, userId }) => [
+        { type: 'OnboardingProgress', id: userId },
+        { type: 'OnboardingProgress', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    completeOnboardingTask: builder.mutation<
+      import('../types/hr').OnboardingProgress,
+      { organizationId: string; taskId: string }
+    >({
+      query: ({ organizationId, taskId }) => ({
+        url: `/api/organizations/${organizationId}/onboarding/tasks/${taskId}/complete`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').OnboardingProgress>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'OnboardingProgress', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    // Performance Review endpoints
+    getPerformanceReviews: builder.query<
+      import('../types').ListResponse<import('../types/hr').PerformanceReview>,
+      { 
+        organizationId: string; 
+        page?: number; 
+        limit?: number; 
+        filters?: import('../types/hr').PerformanceReviewFilters;
+      }
+    >({
+      query: ({ organizationId, page = 1, limit = 20, filters = {} }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined) {
+            params.append(key, value.toString());
+          }
+        });
+        
+        return `/api/organizations/${organizationId}/performance/reviews?${params.toString()}`;
+      },
+      transformResponse: (response: import('../types/hr').PerformanceReviewListResponse) => ({
+        data: response.data.data,
+        total: response.data.total,
+        page: response.data.pagination.page,
+        limit: response.data.pagination.limit,
+      }),
+      providesTags: (result, _, { organizationId }) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: 'PerformanceReview' as const,
+                id,
+              })),
+              { type: 'PerformanceReview', id: organizationId },
+            ]
+          : [{ type: 'PerformanceReview', id: organizationId }],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
+    }),
+
+    createPerformanceReview: builder.mutation<
+      import('../types/hr').PerformanceReview,
+      { organizationId: string; data: import('../types/hr').CreatePerformanceReviewData }
+    >({
+      query: ({ organizationId, data }) => ({
+        url: `/api/organizations/${organizationId}/performance/reviews`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').PerformanceReview>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'PerformanceReview', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    updatePerformanceReview: builder.mutation<
+      import('../types/hr').PerformanceReview,
+      { 
+        organizationId: string; 
+        reviewId: string; 
+        data: Partial<import('../types/hr').CreatePerformanceReviewData>;
+      }
+    >({
+      query: ({ organizationId, reviewId, data }) => ({
+        url: `/api/organizations/${organizationId}/performance/reviews/${reviewId}`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').PerformanceReview>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId, reviewId }) => [
+        { type: 'PerformanceReview', id: reviewId },
+        { type: 'PerformanceReview', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    getPerformanceAnalytics: builder.query<
+      import('../types/hr').HRAnalytics['metrics']['performance'],
+      { organizationId: string; startDate?: string; endDate?: string }
+    >({
+      query: ({ organizationId, startDate, endDate }) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        const queryString = params.toString();
+        return `/api/organizations/${organizationId}/performance/analytics${queryString ? `?${queryString}` : ''}`;
+      },
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').HRAnalytics['metrics']['performance']>) =>
+        response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'HRAnalytics', id: `${organizationId}-performance` },
+      ],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
+    }),
+
+    // Skills Management endpoints
+    getSkills: builder.query<
+      import('../types').ListResponse<import('../types/hr').Skill>,
+      { 
+        organizationId: string; 
+        page?: number; 
+        limit?: number; 
+        filters?: import('../types/hr').SkillFilters;
+      }
+    >({
+      query: ({ organizationId, page = 1, limit = 20, filters = {} }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined) {
+            params.append(key, value.toString());
+          }
+        });
+        
+        return `/api/organizations/${organizationId}/skills?${params.toString()}`;
+      },
+      transformResponse: (response: import('../types/hr').SkillListResponse) => ({
+        data: response.data.data,
+        total: response.data.total,
+        page: response.data.pagination.page,
+        limit: response.data.pagination.limit,
+      }),
+      providesTags: (result, _, { organizationId }) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: 'Skill' as const,
+                id,
+              })),
+              { type: 'Skill', id: organizationId },
+            ]
+          : [{ type: 'Skill', id: organizationId }],
+      keepUnusedDataFor: 600, // Cache for 10 minutes (skills don't change often)
+    }),
+
+    createSkill: builder.mutation<
+      import('../types/hr').Skill,
+      { organizationId: string; data: import('../types/hr').CreateSkillData }
+    >({
+      query: ({ organizationId, data }) => ({
+        url: `/api/organizations/${organizationId}/skills`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').Skill>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Skill', id: organizationId },
+      ],
+    }),
+
+    addUserSkill: builder.mutation<
+      import('../types/hr').UserSkill,
+      { organizationId: string; data: import('../types/hr').CreateUserSkillData }
+    >({
+      query: ({ organizationId, data }) => ({
+        url: `/api/organizations/${organizationId}/skills/user`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').UserSkill>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Skill', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    verifySkill: builder.mutation<
+      import('../types/hr').UserSkill,
+      { 
+        organizationId: string; 
+        skillId: string; 
+        data: import('../types/hr').VerifySkillData;
+      }
+    >({
+      query: ({ organizationId, skillId, data }) => ({
+        url: `/api/organizations/${organizationId}/skills/${skillId}/verify`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').UserSkill>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId, skillId }) => [
+        { type: 'Skill', id: skillId },
+        { type: 'Skill', id: organizationId },
+        { type: 'HRAnalytics', id: organizationId },
+      ],
+    }),
+
+    getSkillsAnalytics: builder.query<
+      import('../types/hr').HRAnalytics['metrics']['skills'],
+      { organizationId: string }
+    >({
+      query: ({ organizationId }) => `/api/organizations/${organizationId}/skills/analytics`,
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').HRAnalytics['metrics']['skills']>) =>
+        response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'HRAnalytics', id: `${organizationId}-skills` },
+      ],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
+    }),
+
+    // Document Management endpoints
+    getDocuments: builder.query<
+      import('../types').ListResponse<import('../types/hr').Document>,
+      { 
+        organizationId: string; 
+        page?: number; 
+        limit?: number; 
+        filters?: import('../types/hr').DocumentFilters;
+      }
+    >({
+      query: ({ organizationId, page = 1, limit = 20, filters = {} }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined) {
+            if (Array.isArray(value)) {
+              params.append(key, value.join(','));
+            } else {
+              params.append(key, value.toString());
+            }
+          }
+        });
+        
+        return `/api/organizations/${organizationId}/documents?${params.toString()}`;
+      },
+      transformResponse: (response: import('../types/hr').DocumentListResponse) => ({
+        data: response.data.data,
+        total: response.data.total,
+        page: response.data.pagination.page,
+        limit: response.data.pagination.limit,
+      }),
+      providesTags: (result, _, { organizationId }) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: 'Document' as const,
+                id,
+              })),
+              { type: 'Document', id: organizationId },
+            ]
+          : [{ type: 'Document', id: organizationId }],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
+    }),
+
+    uploadDocument: builder.mutation<
+      import('../types/hr').Document,
+      { organizationId: string; data: FormData }
+    >({
+      query: ({ organizationId, data }) => ({
+        url: `/api/organizations/${organizationId}/documents`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').Document>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Document', id: organizationId },
+      ],
+    }),
+
+    acknowledgeDocument: builder.mutation<
+      import('../types/hr').DocumentAcknowledgment,
+      { organizationId: string; documentId: string }
+    >({
+      query: ({ organizationId, documentId }) => ({
+        url: `/api/organizations/${organizationId}/documents/${documentId}/acknowledge`,
+        method: 'PUT',
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').DocumentAcknowledgment>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId, documentId }) => [
+        { type: 'Document', id: documentId },
+        { type: 'Document', id: organizationId },
+      ],
+    }),
+
+    searchDocuments: builder.query<
+      import('../types').ListResponse<import('../types/hr').Document>,
+      { organizationId: string; query: string; page?: number; limit?: number }
+    >({
+      query: ({ organizationId, query, page = 1, limit = 20 }) => {
+        const params = new URLSearchParams({
+          q: query,
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        
+        return `/api/organizations/${organizationId}/documents/search?${params.toString()}`;
+      },
+      transformResponse: (response: import('../types/hr').DocumentListResponse) => ({
+        data: response.data.data,
+        total: response.data.total,
+        page: response.data.pagination.page,
+        limit: response.data.pagination.limit,
+      }),
+      providesTags: (result, _, { organizationId }) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: 'Document' as const,
+                id,
+              })),
+              { type: 'Document', id: `${organizationId}-search` },
+            ]
+          : [{ type: 'Document', id: `${organizationId}-search` }],
+      keepUnusedDataFor: 120, // Cache search results for 2 minutes
+    }),
+
     // Reputation System endpoints
     searchPlayers: builder.query<
       import('../types/reputation').PlayerSearchResponse,
@@ -2246,4 +2834,42 @@ export const {
   useRemoveOrganizationReportVoteMutation,
   useRemoveAltAccountReportVoteMutation,
   useRemoveAffiliatedPeopleReportVoteMutation,
+
+  // HR System hooks
+  
+  // HR Analytics hooks
+  useGetHRAnalyticsQuery,
+  useGetHRReportsQuery,
+  
+  // Application Management hooks
+  useGetApplicationsQuery,
+  useCreateApplicationMutation,
+  useUpdateApplicationStatusMutation,
+  useBulkUpdateApplicationsMutation,
+  
+  // Onboarding Management hooks
+  useGetOnboardingTemplatesQuery,
+  useCreateOnboardingTemplateMutation,
+  useGetOnboardingProgressQuery,
+  useUpdateOnboardingProgressMutation,
+  useCompleteOnboardingTaskMutation,
+  
+  // Performance Review hooks
+  useGetPerformanceReviewsQuery,
+  useCreatePerformanceReviewMutation,
+  useUpdatePerformanceReviewMutation,
+  useGetPerformanceAnalyticsQuery,
+  
+  // Skills Management hooks
+  useGetSkillsQuery,
+  useCreateSkillMutation,
+  useAddUserSkillMutation,
+  useVerifySkillMutation,
+  useGetSkillsAnalyticsQuery,
+  
+  // Document Management hooks
+  useGetDocumentsQuery,
+  useUploadDocumentMutation,
+  useAcknowledgeDocumentMutation,
+  useSearchDocumentsQuery,
 } = apiSlice;

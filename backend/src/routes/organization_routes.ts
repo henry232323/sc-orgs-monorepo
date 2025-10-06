@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { OrganizationController } from '../controllers/organization_controller';
 import { EventReviewController } from '../controllers/event_review_controller';
 import { AnalyticsController } from '../controllers/analytics_controller';
+import { HRAnalyticsController } from '../controllers/hr_analytics_controller';
 import { requireLogin } from '../middleware/auth';
 import { requireOrganizationPermission, requireOrganizationAnalyticsPermission } from '../middleware/permissions';
 import { recordOrganizationView } from '../middleware/view_tracking';
@@ -12,6 +13,7 @@ const router: Router = Router();
 const organizationController = new OrganizationController();
 const eventReviewController = new EventReviewController();
 const analyticsController = new AnalyticsController();
+const hrAnalyticsController = new HRAnalyticsController();
 
 // Public routes (no authentication required)
 router.get('/',
@@ -1521,6 +1523,3738 @@ router.get('/:rsi_org_id/analytics/events',
   resolveOrganization,
   requireOrganizationAnalyticsPermission,
   analyticsController.getOrganizationEventAnalytics.bind(analyticsController)
+);
+
+// HR Analytics routes (require HR_MANAGER or VIEW_ANALYTICS permission)
+router.get('/:id/hr-analytics/dashboard',
+  oapi.path({
+    tags: ['HR Analytics'],
+    summary: 'Get HR analytics dashboard',
+    description: 'Get main HR analytics dashboard metrics',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'period_days',
+        in: 'query',
+        schema: { type: 'string' as const, default: '30' },
+        description: 'Analytics period in days'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR analytics dashboard data',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                metrics: { type: 'object' as const },
+                period: { type: 'object' as const },
+                trends: { type: 'object' as const },
+                calculated_at: { type: 'string' as const, format: 'date-time' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.getDashboardMetrics.bind(hrAnalyticsController)
+);
+
+router.get('/:id/hr-analytics/reports',
+  oapi.path({
+    tags: ['HR Analytics'],
+    summary: 'Get detailed HR analytics reports',
+    description: 'Get detailed HR analytics reports with filtering options',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'period_start',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date' as const },
+        description: 'Report period start date'
+      },
+      {
+        name: 'period_end',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date' as const },
+        description: 'Report period end date'
+      },
+      {
+        name: 'metrics',
+        in: 'query',
+        schema: { type: 'string' as const, default: 'all' },
+        description: 'Comma-separated list of metrics to include'
+      },
+      {
+        name: 'comparison_period',
+        in: 'query',
+        schema: { type: 'string' as const, enum: ['true', 'false'], default: 'false' },
+        description: 'Include comparison with previous period'
+      },
+      {
+        name: 'format',
+        in: 'query',
+        schema: { type: 'string' as const, enum: ['json', 'csv', 'pdf'], default: 'json' },
+        description: 'Export format'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR analytics report data',
+        content: {
+          'application/json': {
+            schema: { type: 'object' as const }
+          },
+          'text/csv': {
+            schema: { type: 'string' as const }
+          },
+          'application/pdf': {
+            schema: { type: 'string' as const, format: 'binary' as const }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.getDetailedReports.bind(hrAnalyticsController)
+);
+
+router.get('/:id/hr-analytics/trends',
+  oapi.path({
+    tags: ['HR Analytics'],
+    summary: 'Get HR analytics trends',
+    description: 'Get trend analysis for specific HR metrics',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'metric_name',
+        in: 'query',
+        required: true,
+        schema: { 
+          type: 'string' as const,
+          enum: ['applications_received', 'onboarding_completion_rate', 'average_performance_rating', 'turnover_rate']
+        },
+        description: 'Metric name for trend analysis'
+      },
+      {
+        name: 'period_months',
+        in: 'query',
+        schema: { type: 'string' as const, default: '12' },
+        description: 'Number of months for trend analysis'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR analytics trend data',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                metric_name: { type: 'string' as const },
+                period_months: { type: 'integer' as const },
+                trend_data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      period: { type: 'string' as const },
+                      value: { type: 'number' as const },
+                      change_percentage: { type: 'number' as const }
+                    }
+                  }
+                },
+                generated_at: { type: 'string' as const, format: 'date-time' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.getTrendAnalysis.bind(hrAnalyticsController)
+);
+
+router.get('/:id/hr-analytics/alerts',
+  oapi.path({
+    tags: ['HR Analytics'],
+    summary: 'Get HR analytics alerts',
+    description: 'Get current alerts based on metric thresholds',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR analytics alerts',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                alerts: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      metric_name: { type: 'string' as const },
+                      current_value: { type: 'number' as const },
+                      threshold_value: { type: 'number' as const },
+                      alert_level: { type: 'string' as const, enum: ['info', 'warning', 'critical'] },
+                      message: { type: 'string' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' as const }
+                    }
+                  }
+                },
+                thresholds_checked: { type: 'integer' as const },
+                generated_at: { type: 'string' as const, format: 'date-time' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.getAlerts.bind(hrAnalyticsController)
+);
+
+router.post('/:id/hr-analytics/export',
+  oapi.path({
+    tags: ['HR Analytics'],
+    summary: 'Export HR analytics data',
+    description: 'Export analytics data in various formats',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              format: { type: 'string' as const, enum: ['json', 'csv', 'pdf', 'excel'], default: 'json' },
+              period_start: { type: 'string' as const, format: 'date' as const },
+              period_end: { type: 'string' as const, format: 'date' as const },
+              metrics: { type: 'string' as const, default: 'all' },
+              include_trends: { type: 'boolean' as const, default: false }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Exported analytics data',
+        content: {
+          'application/json': { schema: { type: 'object' as const } },
+          'text/csv': { schema: { type: 'string' as const } },
+          'application/pdf': { schema: { type: 'string' as const, format: 'binary' as const } },
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { 
+            schema: { type: 'string' as const, format: 'binary' as const } 
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.exportAnalytics.bind(hrAnalyticsController)
+);
+
+router.get('/:id/hr-analytics/summary',
+  oapi.path({
+    tags: ['HR Analytics'],
+    summary: 'Get HR analytics summary',
+    description: 'Get high-level summary metrics for quick overview',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR analytics summary',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                active_members: { type: 'integer' as const },
+                applications_received: { type: 'integer' as const },
+                approval_rate: { type: 'number' as const },
+                onboarding_completion_rate: { type: 'number' as const },
+                average_performance_rating: { type: 'number' as const },
+                skill_verification_rate: { type: 'number' as const },
+                document_compliance_rate: { type: 'number' as const },
+                member_turnover_rate: { type: 'number' as const },
+                period: { type: 'object' as const },
+                calculated_at: { type: 'string' as const, format: 'date-time' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.getSummaryMetrics.bind(hrAnalyticsController)
+);
+
+router.post('/:id/hr-analytics/refresh-cache',
+  oapi.path({
+    tags: ['HR Analytics'],
+    summary: 'Refresh HR analytics cache',
+    description: 'Manually refresh analytics cache',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Cache refresh result',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                message: { type: 'string' as const },
+                periods_refreshed: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      period: { type: 'string' as const },
+                      days: { type: 'integer' as const },
+                      cached_at: { type: 'string' as const, format: 'date-time' as const }
+                    }
+                  }
+                },
+                refreshed_at: { type: 'string' as const, format: 'date-time' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.refreshCache.bind(hrAnalyticsController)
+);
+
+// HR Onboarding routes
+import { HROnboardingController } from '../controllers/hr_onboarding_controller';
+// HR Performance routes
+import { HRPerformanceController } from '../controllers/hr_performance_controller';
+// HR Skills routes
+import { HRSkillController } from '../controllers/hr_skill_controller';
+// HR Document routes
+import { HRDocumentController } from '../controllers/hr_document_controller';
+
+const hrOnboardingController = new HROnboardingController();
+const hrPerformanceController = new HRPerformanceController();
+const hrSkillController = new HRSkillController();
+const hrDocumentController = new HRDocumentController();
+
+// Onboarding template management
+router.get('/:id/onboarding/templates',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Get onboarding templates',
+    description: 'Get onboarding templates for an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'is_active',
+        in: 'query',
+        schema: { type: 'boolean' as const },
+        description: 'Filter by active status'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      },
+      {
+        name: 'offset',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 0, default: 0 },
+        description: 'Number of items to skip'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Onboarding templates',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/OnboardingTemplate' }
+                },
+                pagination: { $ref: '#/components/schemas/Pagination' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.getTemplates.bind(hrOnboardingController)
+);
+
+router.post('/:id/onboarding/templates',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Create onboarding template',
+    description: 'Create a new onboarding template for an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CreateOnboardingTemplateRequest' }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Onboarding template created',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingTemplate' },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      409: {
+        description: 'Template already exists for this role',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/Error' }
+          }
+        }
+      },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.createTemplate.bind(hrOnboardingController)
+);
+
+router.get('/:id/onboarding/templates/:templateId',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Get onboarding template',
+    description: 'Get a specific onboarding template',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'templateId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Template ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Onboarding template',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingTemplate' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.getTemplate.bind(hrOnboardingController)
+);
+
+router.put('/:id/onboarding/templates/:templateId',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Update onboarding template',
+    description: 'Update an existing onboarding template',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'templateId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Template ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/UpdateOnboardingTemplateRequest' }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Onboarding template updated',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingTemplate' },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.updateTemplate.bind(hrOnboardingController)
+);
+
+router.delete('/:id/onboarding/templates/:templateId',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Delete onboarding template',
+    description: 'Delete an onboarding template',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'templateId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Template ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Onboarding template deleted',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.deleteTemplate.bind(hrOnboardingController)
+);
+
+// Onboarding progress management
+router.get('/:id/onboarding/progress',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Get all onboarding progress',
+    description: 'Get onboarding progress for all users in an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'status',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['not_started', 'in_progress', 'completed', 'overdue']
+        },
+        description: 'Filter by status'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      },
+      {
+        name: 'offset',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 0, default: 0 },
+        description: 'Number of items to skip'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Onboarding progress list',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/OnboardingProgressWithUser' }
+                },
+                pagination: { $ref: '#/components/schemas/Pagination' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.getAllProgress.bind(hrOnboardingController)
+);
+
+router.get('/:id/onboarding/progress/:userId',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Get user onboarding progress',
+    description: 'Get onboarding progress for a specific user',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'userId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'User ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'User onboarding progress',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingProgressDetailed' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.getProgress.bind(hrOnboardingController)
+);
+
+router.put('/:id/onboarding/progress/:userId',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Update user onboarding progress',
+    description: 'Update onboarding progress for a specific user',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'userId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'User ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/UpdateOnboardingProgressRequest' }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Onboarding progress updated',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingProgress' },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.updateProgress.bind(hrOnboardingController)
+);
+
+router.post('/:id/onboarding/progress',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Create onboarding progress',
+    description: 'Create onboarding progress for a user',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CreateOnboardingProgressRequest' }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Onboarding progress created',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingProgress' },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      409: {
+        description: 'Onboarding progress already exists',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/Error' }
+          }
+        }
+      },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.createProgress.bind(hrOnboardingController)
+);
+
+// Task completion
+router.post('/:id/onboarding/tasks/:taskId/complete',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Complete onboarding task',
+    description: 'Mark an onboarding task as completed',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'taskId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Task ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              user_id: { type: 'string' as const }
+            },
+            required: ['user_id']
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Task completed',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingProgress' },
+                message: { type: 'string' as const },
+                onboarding_complete: { type: 'boolean' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.completeTask.bind(hrOnboardingController)
+);
+
+// Analytics and reporting
+router.get('/:id/onboarding/analytics',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Get onboarding analytics',
+    description: 'Get onboarding analytics and statistics',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Onboarding analytics',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/OnboardingAnalytics' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.getAnalytics.bind(hrOnboardingController)
+);
+
+router.get('/:id/onboarding/overdue',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Get overdue onboarding progress',
+    description: 'Get list of overdue onboarding progress',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Overdue onboarding progress',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/OnboardingProgress' }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.getOverdueProgress.bind(hrOnboardingController)
+);
+
+router.post('/:id/onboarding/mark-overdue',
+  oapi.path({
+    tags: ['HR Onboarding'],
+    summary: 'Mark overdue onboarding progress',
+    description: 'Mark onboarding progress as overdue (system operation)',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Overdue progress marked',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    updated_count: { type: 'integer' as const }
+                  }
+                },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrOnboardingController.markOverdueProgress.bind(hrOnboardingController)
+);
+
+// HR Performance Review routes
+
+// Create performance review
+router.post('/:id/performance/reviews',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Create performance review',
+    description: 'Create a new performance review for an organization member',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              reviewee_id: { type: 'string' as const },
+              review_period_start: { type: 'string' as const, format: 'date-time' as const },
+              review_period_end: { type: 'string' as const, format: 'date-time' as const },
+              ratings: {
+                type: 'object' as const,
+                additionalProperties: {
+                  type: 'object' as const,
+                  properties: {
+                    score: { type: 'number' as const, minimum: 1, maximum: 5 },
+                    comments: { type: 'string' as const }
+                  }
+                }
+              },
+              overall_rating: { type: 'number' as const, minimum: 1, maximum: 5 },
+              strengths: { type: 'string' as const },
+              areas_for_improvement: { type: 'string' as const }
+            },
+            required: ['reviewee_id', 'review_period_start', 'review_period_end']
+          }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Performance review created',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    organization_id: { type: 'string' as const },
+                    reviewee_id: { type: 'string' as const },
+                    reviewer_id: { type: 'string' as const },
+                    review_period_start: { type: 'string' as const, format: 'date-time' as const },
+                    review_period_end: { type: 'string' as const, format: 'date-time' as const },
+                    status: { type: 'string' as const, enum: ['draft', 'submitted', 'acknowledged'] },
+                    ratings: { type: 'object' as const },
+                    overall_rating: { type: 'number' as const },
+                    strengths: { type: 'string' as const },
+                    areas_for_improvement: { type: 'string' as const },
+                    goals: { 
+                      type: 'array' as const,
+                      items: { type: 'object' as const }
+                    },
+                    created_at: { type: 'string' as const, format: 'date-time' as const },
+                    updated_at: { type: 'string' as const, format: 'date-time' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrPerformanceController.createReview.bind(hrPerformanceController)
+);
+
+// List performance reviews
+router.get('/:id/performance/reviews',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'List performance reviews',
+    description: 'Get performance reviews for an organization with filtering and pagination',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'reviewee_id',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by reviewee ID'
+      },
+      {
+        name: 'reviewer_id',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by reviewer ID'
+      },
+      {
+        name: 'status',
+        in: 'query',
+        schema: { type: 'string' as const, enum: ['draft', 'submitted', 'acknowledged'] },
+        description: 'Filter by status'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      },
+      {
+        name: 'include_user_info',
+        in: 'query',
+        schema: { type: 'string' as const, enum: ['true', 'false'], default: 'false' },
+        description: 'Include user information in response'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Performance reviews list',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      organization_id: { type: 'string' as const },
+                      reviewee_id: { type: 'string' as const },
+                      reviewer_id: { type: 'string' as const },
+                      review_period_start: { type: 'string' as const, format: 'date-time' as const },
+                      review_period_end: { type: 'string' as const, format: 'date-time' as const },
+                      status: { type: 'string' as const },
+                      overall_rating: { type: 'number' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' as const }
+                    }
+                  }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrPerformanceController.listReviews.bind(hrPerformanceController)
+);
+
+// Get specific performance review
+router.get('/:id/performance/reviews/:reviewId',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Get performance review',
+    description: 'Get a specific performance review by ID',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'reviewId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Performance review ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Performance review details',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    organization_id: { type: 'string' as const },
+                    reviewee_id: { type: 'string' as const },
+                    reviewer_id: { type: 'string' as const },
+                    review_period_start: { type: 'string' as const, format: 'date-time' as const },
+                    review_period_end: { type: 'string' as const, format: 'date-time' as const },
+                    status: { type: 'string' as const },
+                    ratings: { type: 'object' as const },
+                    overall_rating: { type: 'number' as const },
+                    strengths: { type: 'string' as const },
+                    areas_for_improvement: { type: 'string' as const },
+                    goals: { 
+                      type: 'array' as const,
+                      items: { type: 'object' as const }
+                    },
+                    created_at: { type: 'string' as const, format: 'date-time' as const },
+                    updated_at: { type: 'string' as const, format: 'date-time' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrPerformanceController.getReview.bind(hrPerformanceController)
+);
+
+// Update performance review
+router.put('/:id/performance/reviews/:reviewId',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Update performance review',
+    description: 'Update a performance review',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'reviewId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Performance review ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              status: { type: 'string' as const, enum: ['draft', 'submitted', 'acknowledged'] },
+              ratings: {
+                type: 'object' as const,
+                additionalProperties: {
+                  type: 'object' as const,
+                  properties: {
+                    score: { type: 'number' as const, minimum: 1, maximum: 5 },
+                    comments: { type: 'string' as const }
+                  }
+                }
+              },
+              overall_rating: { type: 'number' as const, minimum: 1, maximum: 5 },
+              strengths: { type: 'string' as const },
+              areas_for_improvement: { type: 'string' as const },
+              goals: { 
+                type: 'array' as const,
+                items: { type: 'object' as const }
+              }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Performance review updated',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    status: { type: 'string' as const },
+                    updated_at: { type: 'string' as const, format: 'date-time' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrPerformanceController.updateReview.bind(hrPerformanceController)
+);
+
+// Get performance analytics
+router.get('/:id/performance/analytics',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Get performance analytics',
+    description: 'Get performance analytics for an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Performance analytics',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    total_reviews: { type: 'integer' as const },
+                    average_rating: { type: 'number' as const },
+                    reviews_by_status: {
+                      type: 'object' as const,
+                      properties: {
+                        draft: { type: 'integer' as const },
+                        submitted: { type: 'integer' as const },
+                        acknowledged: { type: 'integer' as const }
+                      }
+                    },
+                    goals_completion_rate: { type: 'number' as const },
+                    improvement_plans_active: { type: 'integer' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrPerformanceController.getAnalytics.bind(hrPerformanceController)
+);
+
+// Get performance trends
+router.get('/:id/performance/trends',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Get performance trends',
+    description: 'Get performance trends over time for an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'period_months',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 24, default: 12 },
+        description: 'Number of months to analyze'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Performance trends',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      period: { type: 'string' as const },
+                      average_rating: { type: 'number' as const },
+                      total_reviews: { type: 'integer' as const }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrPerformanceController.getTrends.bind(hrPerformanceController)
+);
+
+// Get due reviews
+router.get('/:id/performance/due-reviews',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Get due reviews',
+    description: 'Get upcoming performance reviews that are due',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'days_ahead',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 90, default: 30 },
+        description: 'Number of days ahead to look for due reviews'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Due reviews',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      user_id: { type: 'string' as const },
+                      rsi_handle: { type: 'string' as const },
+                      discord_username: { type: 'string' as const },
+                      due_date: { type: 'string' as const, format: 'date-time' as const },
+                      days_until_due: { type: 'integer' as const }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrPerformanceController.getDueReviews.bind(hrPerformanceController)
+);
+
+// Performance Goal Management
+
+// Create performance goal
+router.post('/:id/performance/goals',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Create performance goal',
+    description: 'Create a new performance goal',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              review_id: { type: 'string' as const },
+              user_id: { type: 'string' as const },
+              title: { type: 'string' as const },
+              description: { type: 'string' as const },
+              target_date: { type: 'string' as const, format: 'date-time' as const }
+            },
+            required: ['review_id', 'user_id', 'title']
+          }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Performance goal created',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    review_id: { type: 'string' as const },
+                    user_id: { type: 'string' as const },
+                    title: { type: 'string' as const },
+                    description: { type: 'string' as const },
+                    target_date: { type: 'string' as const, format: 'date-time' as const },
+                    status: { type: 'string' as const },
+                    progress_percentage: { type: 'integer' as const },
+                    created_at: { type: 'string' as const, format: 'date-time' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrPerformanceController.createGoal.bind(hrPerformanceController)
+);
+
+// Update performance goal
+router.put('/:id/performance/goals/:goalId',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Update performance goal',
+    description: 'Update a performance goal',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'goalId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Performance goal ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              title: { type: 'string' as const },
+              description: { type: 'string' as const },
+              target_date: { type: 'string' as const, format: 'date-time' as const },
+              status: { type: 'string' as const, enum: ['not_started', 'in_progress', 'completed', 'cancelled'] },
+              progress_percentage: { type: 'integer' as const, minimum: 0, maximum: 100 }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Performance goal updated',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    title: { type: 'string' as const },
+                    status: { type: 'string' as const },
+                    progress_percentage: { type: 'integer' as const },
+                    updated_at: { type: 'string' as const, format: 'date-time' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrPerformanceController.updateGoal.bind(hrPerformanceController)
+);
+
+// Update goal progress
+router.put('/:id/performance/goals/:goalId/progress',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Update goal progress',
+    description: 'Update progress for a performance goal',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'goalId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Performance goal ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              progress_percentage: { type: 'integer' as const, minimum: 0, maximum: 100 },
+              notes: { type: 'string' as const }
+            },
+            required: ['progress_percentage']
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Goal progress updated',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    progress_percentage: { type: 'integer' as const },
+                    status: { type: 'string' as const },
+                    updated_at: { type: 'string' as const, format: 'date-time' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrPerformanceController.updateGoalProgress.bind(hrPerformanceController)
+);
+
+// Get overdue goals
+router.get('/:id/performance/goals/overdue',
+  oapi.path({
+    tags: ['HR Performance'],
+    summary: 'Get overdue goals',
+    description: 'Get overdue performance goals for an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Overdue goals',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      title: { type: 'string' as const },
+                      target_date: { type: 'string' as const, format: 'date-time' as const },
+                      status: { type: 'string' as const },
+                      progress_percentage: { type: 'integer' as const },
+                      reviewee_rsi_handle: { type: 'string' as const },
+                      reviewee_discord_username: { type: 'string' as const }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrPerformanceController.getOverdueGoals.bind(hrPerformanceController)
+);
+
+// HR Skills routes
+
+// List all available skills
+router.get('/:id/skills',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'List skills',
+    description: 'Get a list of all available skills with optional filtering',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'category',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['pilot', 'engineer', 'medic', 'security', 'logistics', 'leadership']
+        },
+        description: 'Filter by skill category'
+      },
+      {
+        name: 'verification_required',
+        in: 'query',
+        schema: { type: 'boolean' as const },
+        description: 'Filter by verification requirement'
+      },
+      {
+        name: 'search',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Search skills by name or description'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 50 },
+        description: 'Number of items per page'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'List of skills',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/Skill' }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrSkillController.listSkills.bind(hrSkillController)
+);
+
+// Create a new skill (admin only)
+router.post('/:id/skills',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Create skill',
+    description: 'Create a new skill (admin only)',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            required: ['name', 'category'],
+            properties: {
+              name: { type: 'string' as const },
+              category: { 
+                type: 'string' as const,
+                enum: ['pilot', 'engineer', 'medic', 'security', 'logistics', 'leadership']
+              },
+              description: { type: 'string' as const },
+              verification_required: { type: 'boolean' as const, default: false }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Skill created successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/Skill' }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      409: { $ref: '#/components/responses/Conflict' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrSkillController.createSkill.bind(hrSkillController)
+);
+
+// Get organization skills
+router.get('/:id/skills/organization',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Get organization skills',
+    description: 'Get skills for organization members with filtering',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'category',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['pilot', 'engineer', 'medic', 'security', 'logistics', 'leadership']
+        },
+        description: 'Filter by skill category'
+      },
+      {
+        name: 'verified',
+        in: 'query',
+        schema: { type: 'boolean' as const },
+        description: 'Filter by verification status'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 50 },
+        description: 'Number of items per page'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Organization skills',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/UserSkillWithDetails' }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillController.getOrganizationSkills.bind(hrSkillController)
+);
+
+// Add skill to user
+router.post('/:id/skills/user',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Add user skill',
+    description: 'Add a skill to the current user',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            required: ['skill_id', 'proficiency_level'],
+            properties: {
+              skill_id: { type: 'string' as const },
+              proficiency_level: { 
+                type: 'string' as const,
+                enum: ['beginner', 'intermediate', 'advanced', 'expert']
+              },
+              notes: { type: 'string' as const }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'User skill added successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/UserSkill' }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      404: { $ref: '#/components/responses/NotFound' },
+      409: { $ref: '#/components/responses/Conflict' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrSkillController.addUserSkill.bind(hrSkillController)
+);
+
+// Get user skills
+router.get('/:id/skills/user/:userId?',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Get user skills',
+    description: 'Get skills for a specific user (or current user if no userId provided)',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'userId',
+        in: 'path',
+        required: false,
+        schema: { type: 'string' as const },
+        description: 'User ID (optional, defaults to current user)'
+      },
+      {
+        name: 'category',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['pilot', 'engineer', 'medic', 'security', 'logistics', 'leadership']
+        },
+        description: 'Filter by skill category'
+      },
+      {
+        name: 'verified',
+        in: 'query',
+        schema: { type: 'boolean' as const },
+        description: 'Filter by verification status'
+      },
+      {
+        name: 'proficiency_level',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['beginner', 'intermediate', 'advanced', 'expert']
+        },
+        description: 'Filter by proficiency level'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'User skills',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/UserSkillWithDetails' }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrSkillController.getUserSkills.bind(hrSkillController)
+);
+
+// Verify user skill
+router.put('/:id/skills/:skillId/verify',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Verify user skill',
+    description: 'Verify a user\'s skill (requires appropriate permissions)',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'skillId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'User skill ID'
+      }
+    ],
+    requestBody: {
+      required: false,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              notes: { type: 'string' as const }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Skill verified successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/UserSkill' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrSkillController.verifyUserSkill.bind(hrSkillController)
+);
+
+// Update user skill
+router.put('/:id/skills/user/:userSkillId',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Update user skill',
+    description: 'Update a user\'s skill',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'userSkillId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'User skill ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              proficiency_level: { 
+                type: 'string' as const,
+                enum: ['beginner', 'intermediate', 'advanced', 'expert']
+              },
+              notes: { type: 'string' as const }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'User skill updated successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/UserSkill' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrSkillController.updateUserSkill.bind(hrSkillController)
+);
+
+// Remove user skill
+router.delete('/:id/skills/user/:userSkillId',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Remove user skill',
+    description: 'Remove a user\'s skill',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'userSkillId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'User skill ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Skill removed successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrSkillController.removeUserSkill.bind(hrSkillController)
+);
+
+// Get skill analytics
+router.get('/:id/skills/analytics',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Get skill analytics',
+    description: 'Get skill analytics for the organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Skill analytics',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/SkillAnalytics' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrSkillController.getSkillAnalytics.bind(hrSkillController)
+);
+
+// Certification routes
+
+// Create certification
+router.post('/:id/skills/certifications',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Create certification',
+    description: 'Create a new certification',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            required: ['user_id', 'name', 'issued_date'],
+            properties: {
+              user_id: { type: 'string' as const },
+              name: { type: 'string' as const },
+              description: { type: 'string' as const },
+              issued_date: { type: 'string' as const, format: 'date' },
+              expiration_date: { type: 'string' as const, format: 'date' },
+              certificate_url: { type: 'string' as const }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Certification created successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/Certification' }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrSkillController.createCertification.bind(hrSkillController)
+);
+
+// Get organization certifications
+router.get('/:id/skills/certifications',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Get organization certifications',
+    description: 'Get certifications for the organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'user_id',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by user ID'
+      },
+      {
+        name: 'expiring_soon',
+        in: 'query',
+        schema: { type: 'boolean' as const },
+        description: 'Filter certifications expiring soon'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 50 },
+        description: 'Number of items per page'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Organization certifications',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/CertificationWithDetails' }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillController.getOrganizationCertifications.bind(hrSkillController)
+);
+
+// Get user certifications
+router.get('/:id/skills/certifications/user/:userId?',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Get user certifications',
+    description: 'Get certifications for a specific user',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'userId',
+        in: 'path',
+        required: false,
+        schema: { type: 'string' as const },
+        description: 'User ID (optional, defaults to current user)'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'User certifications',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/CertificationWithDetails' }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrSkillController.getUserCertifications.bind(hrSkillController)
+);
+
+// Get expiring certifications
+router.get('/:id/skills/certifications/expiring',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Get expiring certifications',
+    description: 'Get certifications expiring soon',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'days_ahead',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 30 },
+        description: 'Number of days ahead to check for expiring certifications'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Expiring certifications',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { $ref: '#/components/schemas/CertificationWithDetails' }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillController.getExpiringCertifications.bind(hrSkillController)
+);
+
+// Update certification
+router.put('/:id/skills/certifications/:certificationId',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Update certification',
+    description: 'Update a certification',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'certificationId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Certification ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              name: { type: 'string' as const },
+              description: { type: 'string' as const },
+              issued_date: { type: 'string' as const, format: 'date' },
+              expiration_date: { type: 'string' as const, format: 'date' },
+              certificate_url: { type: 'string' as const }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Certification updated successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { $ref: '#/components/schemas/Certification' }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrSkillController.updateCertification.bind(hrSkillController)
+);
+
+// Delete certification
+router.delete('/:id/skills/certifications/:certificationId',
+  oapi.path({
+    tags: ['HR Skills'],
+    summary: 'Delete certification',
+    description: 'Delete a certification',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'certificationId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Certification ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Certification deleted successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrSkillController.deleteCertification.bind(hrSkillController)
+);
+
+// HR Document Management routes
+
+// Upload document
+router.post('/:id/documents',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Upload document',
+    description: 'Upload a new document to an organization',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            required: ['title', 'file_path', 'file_type', 'file_size'],
+            properties: {
+              title: { type: 'string' as const, minLength: 1, maxLength: 255 },
+              description: { type: 'string' as const, maxLength: 1000 },
+              file_path: { type: 'string' as const, minLength: 1 },
+              file_type: { type: 'string' as const, minLength: 1 },
+              file_size: { type: 'integer' as const, minimum: 1 },
+              folder_path: { type: 'string' as const, default: '/' },
+              requires_acknowledgment: { type: 'boolean' as const, default: false },
+              access_roles: {
+                type: 'array' as const,
+                items: { type: 'string' as const },
+                default: []
+              }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Document uploaded successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    organization_id: { type: 'string' as const },
+                    title: { type: 'string' as const },
+                    description: { type: 'string' as const },
+                    file_path: { type: 'string' as const },
+                    file_type: { type: 'string' as const },
+                    file_size: { type: 'integer' as const },
+                    folder_path: { type: 'string' as const },
+                    version: { type: 'integer' as const },
+                    requires_acknowledgment: { type: 'boolean' as const },
+                    access_roles: {
+                      type: 'array' as const,
+                      items: { type: 'string' as const }
+                    },
+                    uploaded_by: { type: 'string' as const },
+                    created_at: { type: 'string' as const, format: 'date-time' },
+                    updated_at: { type: 'string' as const, format: 'date-time' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrDocumentController.uploadDocument.bind(hrDocumentController)
+);
+
+// List documents
+router.get('/:id/documents',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'List documents',
+    description: 'Get documents for an organization with filtering and pagination',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'folder_path',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by folder path'
+      },
+      {
+        name: 'file_type',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by file type'
+      },
+      {
+        name: 'requires_acknowledgment',
+        in: 'query',
+        schema: { type: 'boolean' as const },
+        description: 'Filter by acknowledgment requirement'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      },
+      {
+        name: 'include_uploader_info',
+        in: 'query',
+        schema: { type: 'boolean' as const, default: false },
+        description: 'Include uploader information'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Documents retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      organization_id: { type: 'string' as const },
+                      title: { type: 'string' as const },
+                      description: { type: 'string' as const },
+                      file_path: { type: 'string' as const },
+                      file_type: { type: 'string' as const },
+                      file_size: { type: 'integer' as const },
+                      folder_path: { type: 'string' as const },
+                      version: { type: 'integer' as const },
+                      requires_acknowledgment: { type: 'boolean' as const },
+                      access_roles: {
+                        type: 'array' as const,
+                        items: { type: 'string' as const }
+                      },
+                      uploaded_by: { type: 'string' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' },
+                      updated_at: { type: 'string' as const, format: 'date-time' }
+                    }
+                  }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.listDocuments.bind(hrDocumentController)
+);
+
+// Get specific document
+router.get('/:id/documents/:documentId',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Get document',
+    description: 'Get a specific document by ID',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'documentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Document ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Document retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    organization_id: { type: 'string' as const },
+                    title: { type: 'string' as const },
+                    description: { type: 'string' as const },
+                    file_path: { type: 'string' as const },
+                    file_type: { type: 'string' as const },
+                    file_size: { type: 'integer' as const },
+                    folder_path: { type: 'string' as const },
+                    version: { type: 'integer' as const },
+                    requires_acknowledgment: { type: 'boolean' as const },
+                    access_roles: {
+                      type: 'array' as const,
+                      items: { type: 'string' as const }
+                    },
+                    uploaded_by: { type: 'string' as const },
+                    created_at: { type: 'string' as const, format: 'date-time' },
+                    updated_at: { type: 'string' as const, format: 'date-time' },
+                    user_acknowledged: { type: 'boolean' as const },
+                    acknowledged_at: { type: 'string' as const, format: 'date-time' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.getDocument.bind(hrDocumentController)
+);
+
+// Update document
+router.put('/:id/documents/:documentId',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Update document',
+    description: 'Update document metadata',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'documentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Document ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              title: { type: 'string' as const, minLength: 1, maxLength: 255 },
+              description: { type: 'string' as const, maxLength: 1000 },
+              folder_path: { type: 'string' as const },
+              requires_acknowledgment: { type: 'boolean' as const },
+              access_roles: {
+                type: 'array' as const,
+                items: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Document updated successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    organization_id: { type: 'string' as const },
+                    title: { type: 'string' as const },
+                    description: { type: 'string' as const },
+                    file_path: { type: 'string' as const },
+                    file_type: { type: 'string' as const },
+                    file_size: { type: 'integer' as const },
+                    folder_path: { type: 'string' as const },
+                    version: { type: 'integer' as const },
+                    requires_acknowledgment: { type: 'boolean' as const },
+                    access_roles: {
+                      type: 'array' as const,
+                      items: { type: 'string' as const }
+                    },
+                    uploaded_by: { type: 'string' as const },
+                    created_at: { type: 'string' as const, format: 'date-time' },
+                    updated_at: { type: 'string' as const, format: 'date-time' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrDocumentController.updateDocument.bind(hrDocumentController)
+);
+
+// Delete document
+router.delete('/:id/documents/:documentId',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Delete document',
+    description: 'Delete a document',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'documentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Document ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Document deleted successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrDocumentController.deleteDocument.bind(hrDocumentController)
+);
+
+// Acknowledge document
+router.put('/:id/documents/:documentId/acknowledge',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Acknowledge document',
+    description: 'Acknowledge a document that requires acknowledgment',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'documentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Document ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Document acknowledged successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    document_id: { type: 'string' as const },
+                    user_id: { type: 'string' as const },
+                    acknowledged_at: { type: 'string' as const, format: 'date-time' },
+                    ip_address: { type: 'string' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.acknowledgeDocument.bind(hrDocumentController)
+);
+
+// Search documents
+router.get('/:id/documents/search',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Search documents',
+    description: 'Search documents by title and description',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'q',
+        in: 'query',
+        required: true,
+        schema: { type: 'string' as const, minLength: 1 },
+        description: 'Search term'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Search results retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      organization_id: { type: 'string' as const },
+                      title: { type: 'string' as const },
+                      description: { type: 'string' as const },
+                      file_path: { type: 'string' as const },
+                      file_type: { type: 'string' as const },
+                      file_size: { type: 'integer' as const },
+                      folder_path: { type: 'string' as const },
+                      version: { type: 'integer' as const },
+                      requires_acknowledgment: { type: 'boolean' as const },
+                      access_roles: {
+                        type: 'array' as const,
+                        items: { type: 'string' as const }
+                      },
+                      uploaded_by: { type: 'string' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' },
+                      updated_at: { type: 'string' as const, format: 'date-time' }
+                    }
+                  }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const },
+                search_term: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.searchDocuments.bind(hrDocumentController)
+);
+
+// Get document version history
+router.get('/:id/documents/:documentId/history',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Get document history',
+    description: 'Get version history for a document',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'documentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Document ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Document history retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      version: { type: 'integer' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' },
+                      uploaded_by: { type: 'string' as const },
+                      file_size: { type: 'integer' as const },
+                      file_path: { type: 'string' as const }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.getDocumentHistory.bind(hrDocumentController)
+);
+
+// Get folder structure
+router.get('/:id/documents/folders',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Get folder structure',
+    description: 'Get folder structure for the organization',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Folder structure retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: { type: 'string' as const }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.getFolderStructure.bind(hrDocumentController)
+);
+
+// Get document acknowledgments
+router.get('/:id/documents/:documentId/acknowledgments',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Get document acknowledgments',
+    description: 'Get acknowledgments for a document (admin only)',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'documentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Document ID'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Document acknowledgments retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      document_id: { type: 'string' as const },
+                      user_id: { type: 'string' as const },
+                      acknowledged_at: { type: 'string' as const, format: 'date-time' },
+                      ip_address: { type: 'string' as const },
+                      user_rsi_handle: { type: 'string' as const },
+                      user_discord_username: { type: 'string' as const }
+                    }
+                  }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrDocumentController.getDocumentAcknowledgments.bind(hrDocumentController)
+);
+
+// Get compliance report
+router.get('/:id/documents/compliance-report',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Get compliance report',
+    description: 'Get compliance report for the organization (admin only)',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Compliance report retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    total_documents: { type: 'integer' as const },
+                    documents_requiring_acknowledgment: { type: 'integer' as const },
+                    total_acknowledgments: { type: 'integer' as const },
+                    compliance_rate: { type: 'number' as const },
+                    pending_acknowledgments: { type: 'integer' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrDocumentController.getComplianceReport.bind(hrDocumentController)
+);
+
+// Get pending acknowledgments for current user
+router.get('/:id/documents/pending-acknowledgments',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Get pending acknowledgments',
+    description: 'Get pending acknowledgments for the current user',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Pending acknowledgments retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      organization_id: { type: 'string' as const },
+                      title: { type: 'string' as const },
+                      description: { type: 'string' as const },
+                      file_path: { type: 'string' as const },
+                      file_type: { type: 'string' as const },
+                      file_size: { type: 'integer' as const },
+                      folder_path: { type: 'string' as const },
+                      version: { type: 'integer' as const },
+                      requires_acknowledgment: { type: 'boolean' as const },
+                      access_roles: {
+                        type: 'array' as const,
+                        items: { type: 'string' as const }
+                      },
+                      uploaded_by: { type: 'string' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' },
+                      updated_at: { type: 'string' as const, format: 'date-time' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.getPendingAcknowledgments.bind(hrDocumentController)
 );
 
 export default router;

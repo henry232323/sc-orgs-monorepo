@@ -14,7 +14,7 @@
     "dev:backend": "yarn workspace @sc-orgs/backend dev",
     "dev:frontend": "yarn workspace @sc-orgs/frontend dev --port 3000",
     "build": "yarn workspace @sc-orgs/backend build && yarn workspace @sc-orgs/frontend build",
-    "test": "yarn workspace @sc-orgs/backend test && yarn workspace @sc-orgs/frontend test",
+    "test": "yarn workspace @sc-orgs/backend test --test-force-exit && yarn workspace @sc-orgs/frontend test --test-force-exit",
     "test:coverage": "yarn workspace @sc-orgs/backend test:coverage && yarn workspace @sc-orgs/frontend test:coverage",
     "lint": "yarn workspace @sc-orgs/backend lint && yarn workspace @sc-orgs/frontend lint",
     "lint:fix": "yarn workspace @sc-orgs/backend lint:fix && yarn workspace @sc-orgs/frontend lint:fix",

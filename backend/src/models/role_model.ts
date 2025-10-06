@@ -568,4 +568,326 @@ export class RoleModel {
       await db('organization_permissions').insert(permissionInserts);
     }
   }
+
+  // HR-specific permission checking methods
+
+  /**
+   * Check if user has HR Manager permissions
+   */
+  async userIsHRManager(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.HR_MANAGER
+    );
+  }
+
+  /**
+   * Check if user has Recruiter permissions
+   */
+  async userIsRecruiter(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.HR_RECRUITER
+    );
+  }
+
+  /**
+   * Check if user has Supervisor permissions
+   */
+  async userIsSupervisor(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.HR_SUPERVISOR
+    );
+  }
+
+  /**
+   * Check if user has any HR role (Manager, Recruiter, or Supervisor)
+   */
+  async userHasHRRole(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    const isHRManager = await this.userIsHRManager(organizationId, userId);
+    const isRecruiter = await this.userIsRecruiter(organizationId, userId);
+    const isSupervisor = await this.userIsSupervisor(organizationId, userId);
+    
+    return isHRManager || isRecruiter || isSupervisor;
+  }
+
+  /**
+   * Check if user can manage HR applications
+   */
+  async userCanManageHRApplications(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.MANAGE_HR_APPLICATIONS
+    );
+  }
+
+  /**
+   * Check if user can view HR applications
+   */
+  async userCanViewHRApplications(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.VIEW_HR_APPLICATIONS
+    );
+  }
+
+  /**
+   * Check if user can process HR applications
+   */
+  async userCanProcessHRApplications(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.PROCESS_HR_APPLICATIONS
+    );
+  }
+
+  /**
+   * Check if user can manage HR onboarding
+   */
+  async userCanManageHROnboarding(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.MANAGE_HR_ONBOARDING
+    );
+  }
+
+  /**
+   * Check if user can view HR onboarding
+   */
+  async userCanViewHROnboarding(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.VIEW_HR_ONBOARDING
+    );
+  }
+
+  /**
+   * Check if user can manage HR performance reviews
+   */
+  async userCanManageHRPerformance(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.MANAGE_HR_PERFORMANCE
+    );
+  }
+
+  /**
+   * Check if user can conduct performance reviews
+   */
+  async userCanConductPerformanceReviews(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.CONDUCT_PERFORMANCE_REVIEWS
+    );
+  }
+
+  /**
+   * Check if user can manage HR skills
+   */
+  async userCanManageHRSkills(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.MANAGE_HR_SKILLS
+    );
+  }
+
+  /**
+   * Check if user can verify skills
+   */
+  async userCanVerifySkills(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.VERIFY_SKILLS
+    );
+  }
+
+  /**
+   * Check if user can manage HR documents
+   */
+  async userCanManageHRDocuments(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.MANAGE_HR_DOCUMENTS
+    );
+  }
+
+  /**
+   * Check if user can view HR analytics
+   */
+  async userCanViewHRAnalytics(
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    return await this.userHasPermission(
+      organizationId,
+      userId,
+      ORGANIZATION_PERMISSIONS.VIEW_HR_ANALYTICS
+    );
+  }
+
+  /**
+   * Create HR roles for an organization
+   */
+  async createHRRoles(organizationId: string): Promise<OrganizationRole[]> {
+    const hrRoles: OrganizationRole[] = [];
+
+    // Create HR Manager role
+    const hrManagerRole = await this.createRole({
+      organization_id: organizationId,
+      name: DEFAULT_ROLE_CONFIGS.HR_MANAGER.name,
+      description: DEFAULT_ROLE_CONFIGS.HR_MANAGER.description,
+      rank: DEFAULT_ROLE_CONFIGS.HR_MANAGER.rank,
+      permissions: DEFAULT_ROLE_CONFIGS.HR_MANAGER.permissions,
+    });
+    hrRoles.push(hrManagerRole);
+
+    // Create Recruiter role
+    const recruiterRole = await this.createRole({
+      organization_id: organizationId,
+      name: DEFAULT_ROLE_CONFIGS.RECRUITER.name,
+      description: DEFAULT_ROLE_CONFIGS.RECRUITER.description,
+      rank: DEFAULT_ROLE_CONFIGS.RECRUITER.rank,
+      permissions: DEFAULT_ROLE_CONFIGS.RECRUITER.permissions,
+    });
+    hrRoles.push(recruiterRole);
+
+    // Create Supervisor role
+    const supervisorRole = await this.createRole({
+      organization_id: organizationId,
+      name: DEFAULT_ROLE_CONFIGS.SUPERVISOR.name,
+      description: DEFAULT_ROLE_CONFIGS.SUPERVISOR.description,
+      rank: DEFAULT_ROLE_CONFIGS.SUPERVISOR.rank,
+      permissions: DEFAULT_ROLE_CONFIGS.SUPERVISOR.permissions,
+    });
+    hrRoles.push(supervisorRole);
+
+    return hrRoles;
+  }
+
+  /**
+   * Assign HR role to user with validation
+   */
+  async assignHRRole(
+    organizationId: string,
+    userId: string,
+    hrRoleName: 'HR Manager' | 'Recruiter' | 'Supervisor',
+    assignedBy: string
+  ): Promise<boolean> {
+    // Check if the assigner has permission to assign roles
+    const canAssignRoles = await this.userHasPermission(
+      organizationId,
+      assignedBy,
+      ORGANIZATION_PERMISSIONS.ASSIGN_ROLES
+    );
+
+    if (!canAssignRoles) {
+      throw new Error('User does not have permission to assign roles');
+    }
+
+    // Find the HR role
+    const hrRole = await this.findByOrganizationAndName(organizationId, hrRoleName);
+    if (!hrRole) {
+      throw new Error(`HR role '${hrRoleName}' not found in organization`);
+    }
+
+    // Assign the role
+    return await this.assignRoleToUser(organizationId, userId, hrRole.id);
+  }
+
+  /**
+   * Validate HR role assignment permissions
+   */
+  async validateHRRoleAssignment(
+    organizationId: string,
+    assignerId: string,
+    targetUserId: string,
+    hrRoleName: string
+  ): Promise<{ valid: boolean; reason?: string }> {
+    // Check if assigner has role assignment permissions
+    const canAssignRoles = await this.userHasPermission(
+      organizationId,
+      assignerId,
+      ORGANIZATION_PERMISSIONS.ASSIGN_ROLES
+    );
+
+    if (!canAssignRoles) {
+      return { valid: false, reason: 'Insufficient permissions to assign roles' };
+    }
+
+    // Check if target user is a member of the organization
+    const targetRole = await this.getUserRoleObject(organizationId, targetUserId);
+    if (!targetRole) {
+      return { valid: false, reason: 'Target user is not a member of this organization' };
+    }
+
+    // Check if HR role exists
+    const hrRole = await this.findByOrganizationAndName(organizationId, hrRoleName);
+    if (!hrRole) {
+      return { valid: false, reason: `HR role '${hrRoleName}' does not exist` };
+    }
+
+    // Check rank hierarchy - assigner must have higher rank than the role being assigned
+    const assignerRole = await this.getUserRoleObject(organizationId, assignerId);
+    if (!assignerRole || assignerRole.rank <= hrRole.rank) {
+      return { valid: false, reason: 'Cannot assign role with equal or higher rank' };
+    }
+
+    return { valid: true };
+  }
 }

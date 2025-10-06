@@ -16,3 +16,4 @@ export * from './notification';
 export * from './rating';
 export * from './stats';
 export * from './event_review';
+export * from './hr';
