@@ -508,4 +508,352 @@ export class HRSkillModel {
       proficiency_distribution: proficiencyDistribution,
     };
   }
+
+  // Skill Statistics methods
+  async getSkillStatistics(organizationId: string, skillId: string): Promise<{
+    skill_id: string;
+    total_members: number;
+    verified_members: number;
+    verification_rate: number;
+    proficiency_breakdown: {
+      beginner: number;
+      intermediate: number;
+      advanced: number;
+      expert: number;
+    };
+    recent_verifications: number;
+  }> {
+    const [memberStats, proficiencyStats, recentVerifications] = await Promise.all([
+      // Total and verified member counts
+      db('hr_user_skills')
+        .join('users', 'hr_user_skills.user_id', 'users.id')
+        .join('organization_members', 'users.id', 'organization_members.user_id')
+        .where({ 'organization_members.organization_id': organizationId })
+        .where({ 'organization_members.is_active': true })
+        .where({ 'hr_user_skills.skill_id': skillId })
+        .select(
+          db.raw('COUNT(*) as total_members'),
+          db.raw('COUNT(CASE WHEN hr_user_skills.verified = true THEN 1 END) as verified_members')
+        )
+        .first(),
+
+      // Proficiency level breakdown
+      db('hr_user_skills')
+        .join('users', 'hr_user_skills.user_id', 'users.id')
+        .join('organization_members', 'users.id', 'organization_members.user_id')
+        .where({ 'organization_members.organization_id': organizationId })
+        .where({ 'organization_members.is_active': true })
+        .where({ 'hr_user_skills.skill_id': skillId })
+        .select('hr_user_skills.proficiency_level', db.raw('COUNT(*) as count'))
+        .groupBy('hr_user_skills.proficiency_level'),
+
+      // Recent verifications (last 30 days)
+      db('hr_user_skills')
+        .join('users', 'hr_user_skills.user_id', 'users.id')
+        .join('organization_members', 'users.id', 'organization_members.user_id')
+        .where({ 'organization_members.organization_id': organizationId })
+        .where({ 'organization_members.is_active': true })
+        .where({ 'hr_user_skills.skill_id': skillId })
+        .where({ 'hr_user_skills.verified': true })
+        .where('hr_user_skills.verified_at', '>=', db.raw("NOW() - INTERVAL '30 days'"))
+        .count('* as count')
+        .first(),
+    ]);
+
+    const totalMembers = parseInt(memberStats?.total_members as string) || 0;
+    const verifiedMembers = parseInt(memberStats?.verified_members as string) || 0;
+    const verificationRate = totalMembers > 0 ? verifiedMembers / totalMembers : 0;
+
+    const proficiencyBreakdown = {
+      beginner: 0,
+      intermediate: 0,
+      advanced: 0,
+      expert: 0,
+    };
+
+    proficiencyStats.forEach((stat: any) => {
+      proficiencyBreakdown[stat.proficiency_level as keyof typeof proficiencyBreakdown] = parseInt(stat.count);
+    });
+
+    const recentVerificationsCount = parseInt(recentVerifications?.count as string) || 0;
+
+    return {
+      skill_id: skillId,
+      total_members: totalMembers,
+      verified_members: verifiedMembers,
+      verification_rate: verificationRate,
+      proficiency_breakdown: proficiencyBreakdown,
+      recent_verifications: recentVerificationsCount,
+    };
+  }
+
+  async getAllSkillsStatistics(organizationId: string): Promise<Record<string, {
+    skill_id: string;
+    skill_name: string;
+    skill_category: string;
+    total_members: number;
+    verified_members: number;
+    verification_rate: number;
+    proficiency_breakdown: {
+      beginner: number;
+      intermediate: number;
+      advanced: number;
+      expert: number;
+    };
+    recent_verifications: number;
+  }>> {
+    // Get all skills with their statistics in a single optimized query
+    const skillsWithStats = await db('hr_skills')
+      .leftJoin('hr_user_skills', 'hr_skills.id', 'hr_user_skills.skill_id')
+      .leftJoin('users', 'hr_user_skills.user_id', 'users.id')
+      .leftJoin('organization_members', function() {
+        this.on('users.id', '=', 'organization_members.user_id')
+          .andOn('organization_members.organization_id', '=', db.raw('?', [organizationId]))
+          .andOn('organization_members.is_active', '=', db.raw('true'));
+      })
+      .select(
+        'hr_skills.id as skill_id',
+        'hr_skills.name as skill_name',
+        'hr_skills.category as skill_category',
+        'hr_user_skills.proficiency_level',
+        'hr_user_skills.verified',
+        db.raw(`CASE WHEN hr_user_skills.verified = true AND hr_user_skills.verified_at >= NOW() - INTERVAL '30 days' THEN 1 ELSE 0 END as recent_verification`)
+      )
+      .where('organization_members.user_id', 'is not', null)
+      .orWhere('organization_members.user_id', 'is', null);
+
+    // Process the results to build statistics
+    const statisticsMap: Record<string, any> = {};
+
+    // Initialize all skills with zero stats
+    const allSkills = await db('hr_skills').select('id', 'name', 'category');
+    allSkills.forEach(skill => {
+      statisticsMap[skill.id] = {
+        skill_id: skill.id,
+        skill_name: skill.name,
+        skill_category: skill.category,
+        total_members: 0,
+        verified_members: 0,
+        verification_rate: 0,
+        proficiency_breakdown: {
+          beginner: 0,
+          intermediate: 0,
+          advanced: 0,
+          expert: 0,
+        },
+        recent_verifications: 0,
+      };
+    });
+
+    // Aggregate the statistics
+    skillsWithStats.forEach((row: any) => {
+      if (!row.skill_id || !row.proficiency_level) return;
+
+      const stats = statisticsMap[row.skill_id];
+      if (!stats) return;
+
+      stats.total_members++;
+      
+      if (row.verified) {
+        stats.verified_members++;
+      }
+
+      if (row.proficiency_level && stats.proficiency_breakdown[row.proficiency_level] !== undefined) {
+        stats.proficiency_breakdown[row.proficiency_level]++;
+      }
+
+      if (row.recent_verification) {
+        stats.recent_verifications++;
+      }
+    });
+
+    // Calculate verification rates
+    Object.values(statisticsMap).forEach((stats: any) => {
+      stats.verification_rate = stats.total_members > 0 ? stats.verified_members / stats.total_members : 0;
+    });
+
+    return statisticsMap;
+  }
+
+  async getSkillStatisticsByCategory(organizationId: string, category: string): Promise<Array<{
+    skill_id: string;
+    skill_name: string;
+    total_members: number;
+    verified_members: number;
+    verification_rate: number;
+    proficiency_breakdown: {
+      beginner: number;
+      intermediate: number;
+      advanced: number;
+      expert: number;
+    };
+    recent_verifications: number;
+  }>> {
+    const allStats = await this.getAllSkillsStatistics(organizationId);
+    
+    return Object.values(allStats)
+      .filter((stats: any) => stats.skill_category === category)
+      .map((stats: any) => ({
+        skill_id: stats.skill_id,
+        skill_name: stats.skill_name,
+        total_members: stats.total_members,
+        verified_members: stats.verified_members,
+        verification_rate: stats.verification_rate,
+        proficiency_breakdown: stats.proficiency_breakdown,
+        recent_verifications: stats.recent_verifications,
+      }));
+  }
+
+  async getTopSkillsByMemberCount(organizationId: string, limit: number = 10): Promise<Array<{
+    skill_id: string;
+    skill_name: string;
+    skill_category: string;
+    total_members: number;
+    verified_members: number;
+    verification_rate: number;
+  }>> {
+    const allStats = await this.getAllSkillsStatistics(organizationId);
+    
+    return Object.values(allStats)
+      .sort((a: any, b: any) => b.total_members - a.total_members)
+      .slice(0, limit)
+      .map((stats: any) => ({
+        skill_id: stats.skill_id,
+        skill_name: stats.skill_name,
+        skill_category: stats.skill_category,
+        total_members: stats.total_members,
+        verified_members: stats.verified_members,
+        verification_rate: stats.verification_rate,
+      }));
+  }
+
+  async getSkillVerificationTrends(organizationId: string, skillId?: string, days: number = 30): Promise<Array<{
+    date: string;
+    verifications_count: number;
+    skill_id?: string;
+    skill_name?: string;
+  }>> {
+    let query = db('hr_user_skills')
+      .join('users', 'hr_user_skills.user_id', 'users.id')
+      .join('organization_members', 'users.id', 'organization_members.user_id')
+      .join('hr_skills', 'hr_user_skills.skill_id', 'hr_skills.id')
+      .where({ 'organization_members.organization_id': organizationId })
+      .where({ 'organization_members.is_active': true })
+      .where({ 'hr_user_skills.verified': true })
+      .where('hr_user_skills.verified_at', '>=', db.raw(`NOW() - INTERVAL '${days} days'`))
+      .select(
+        db.raw('DATE(hr_user_skills.verified_at) as date'),
+        db.raw('COUNT(*) as verifications_count')
+      )
+      .groupBy(db.raw('DATE(hr_user_skills.verified_at)'))
+      .orderBy('date', 'asc');
+
+    if (skillId) {
+      query = query
+        .where({ 'hr_user_skills.skill_id': skillId })
+        .select(
+          db.raw('DATE(hr_user_skills.verified_at) as date'),
+          db.raw('COUNT(*) as verifications_count'),
+          'hr_user_skills.skill_id',
+          'hr_skills.name as skill_name'
+        )
+        .groupBy(db.raw('DATE(hr_user_skills.verified_at)'), 'hr_user_skills.skill_id', 'hr_skills.name');
+    }
+
+    const results = await query;
+
+    return results.map((row: any) => ({
+      date: row.date,
+      verifications_count: parseInt(row.verifications_count),
+      ...(skillId && {
+        skill_id: row.skill_id,
+        skill_name: row.skill_name,
+      }),
+    }));
+  }
+
+  async getOrganizationSkillsOverview(organizationId: string): Promise<{
+    total_unique_skills: number;
+    total_skill_instances: number;
+    overall_verification_rate: number;
+    skills_by_category: Record<string, {
+      unique_skills: number;
+      total_instances: number;
+      verification_rate: number;
+    }>;
+    top_skills: Array<{
+      skill_name: string;
+      member_count: number;
+      verification_rate: number;
+    }>;
+    verification_trends: Array<{
+      date: string;
+      verifications_count: number;
+    }>;
+  }> {
+    const [overallStats, categoryStats, topSkills, verificationTrends] = await Promise.all([
+      // Overall statistics
+      db('hr_user_skills')
+        .join('users', 'hr_user_skills.user_id', 'users.id')
+        .join('organization_members', 'users.id', 'organization_members.user_id')
+        .where({ 'organization_members.organization_id': organizationId })
+        .where({ 'organization_members.is_active': true })
+        .select(
+          db.raw('COUNT(DISTINCT hr_user_skills.skill_id) as unique_skills'),
+          db.raw('COUNT(*) as total_instances'),
+          db.raw('COUNT(CASE WHEN hr_user_skills.verified = true THEN 1 END) as verified_instances')
+        )
+        .first(),
+
+      // Category breakdown
+      db('hr_user_skills')
+        .join('users', 'hr_user_skills.user_id', 'users.id')
+        .join('organization_members', 'users.id', 'organization_members.user_id')
+        .join('hr_skills', 'hr_user_skills.skill_id', 'hr_skills.id')
+        .where({ 'organization_members.organization_id': organizationId })
+        .where({ 'organization_members.is_active': true })
+        .select(
+          'hr_skills.category',
+          db.raw('COUNT(DISTINCT hr_user_skills.skill_id) as unique_skills'),
+          db.raw('COUNT(*) as total_instances'),
+          db.raw('COUNT(CASE WHEN hr_user_skills.verified = true THEN 1 END) as verified_instances')
+        )
+        .groupBy('hr_skills.category'),
+
+      // Top skills by member count
+      this.getTopSkillsByMemberCount(organizationId, 5),
+
+      // Verification trends for last 30 days
+      this.getSkillVerificationTrends(organizationId, undefined, 30),
+    ]);
+
+    const totalInstances = parseInt(overallStats?.total_instances as string) || 0;
+    const verifiedInstances = parseInt(overallStats?.verified_instances as string) || 0;
+    const overallVerificationRate = totalInstances > 0 ? verifiedInstances / totalInstances : 0;
+
+    const skillsByCategory: Record<string, any> = {};
+    categoryStats.forEach((stat: any) => {
+      const totalCategoryInstances = parseInt(stat.total_instances);
+      const verifiedCategoryInstances = parseInt(stat.verified_instances);
+      
+      skillsByCategory[stat.category] = {
+        unique_skills: parseInt(stat.unique_skills),
+        total_instances: totalCategoryInstances,
+        verification_rate: totalCategoryInstances > 0 ? verifiedCategoryInstances / totalCategoryInstances : 0,
+      };
+    });
+
+    return {
+      total_unique_skills: parseInt(overallStats?.unique_skills as string) || 0,
+      total_skill_instances: totalInstances,
+      overall_verification_rate: overallVerificationRate,
+      skills_by_category: skillsByCategory,
+      top_skills: topSkills.map(skill => ({
+        skill_name: skill.skill_name,
+        member_count: skill.total_members,
+        verification_rate: skill.verification_rate,
+      })),
+      verification_trends: verificationTrends,
+    };
+  }
 }

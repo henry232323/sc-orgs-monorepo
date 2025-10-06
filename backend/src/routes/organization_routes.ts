@@ -1945,6 +1945,7 @@ import { HROnboardingController } from '../controllers/hr_onboarding_controller'
 import { HRPerformanceController } from '../controllers/hr_performance_controller';
 // HR Skills routes
 import { HRSkillController } from '../controllers/hr_skill_controller';
+import { HRSkillStatisticsController } from '../controllers/hr_skill_statistics_controller';
 // HR Document routes
 import { HRDocumentController } from '../controllers/hr_document_controller';
 // HR Application routes
@@ -1955,6 +1956,7 @@ import { HRActivityController } from '../controllers/hr_activity_controller';
 const hrOnboardingController = new HROnboardingController();
 const hrPerformanceController = new HRPerformanceController();
 const hrSkillController = new HRSkillController();
+const hrSkillStatisticsController = new HRSkillStatisticsController();
 const hrDocumentController = new HRDocumentController();
 const hrApplicationController = new HRApplicationController();
 const hrActivityController = new HRActivityController();
@@ -4789,6 +4791,681 @@ router.delete('/:id/skills/certifications/:certificationId',
   resolveOrganization,
   requireOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillController.deleteCertification.bind(hrSkillController)
+);
+
+// HR Skills Statistics routes
+
+// Get all skills statistics
+router.get('/:id/skills/statistics',
+  loggedRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Get all skills statistics',
+    description: 'Get statistics for all skills in the organization',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'category',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['pilot', 'engineer', 'medic', 'security', 'logistics', 'leadership']
+        },
+        description: 'Filter by skill category'
+      },
+      {
+        name: 'skill_ids',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Comma-separated list of skill IDs to include'
+      },
+      {
+        name: 'include_zero_members',
+        in: 'query',
+        schema: { type: 'boolean' as const, default: false },
+        description: 'Include skills with zero members'
+      },
+      {
+        name: 'min_member_count',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 0 },
+        description: 'Minimum member count to include skill'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Skills statistics',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  additionalProperties: {
+                    type: 'object' as const,
+                    properties: {
+                      skill_id: { type: 'string' as const },
+                      skill_name: { type: 'string' as const },
+                      skill_category: { type: 'string' as const },
+                      total_members: { type: 'integer' as const },
+                      verified_members: { type: 'integer' as const },
+                      verification_rate: { type: 'number' as const },
+                      proficiency_breakdown: {
+                        type: 'object' as const,
+                        properties: {
+                          beginner: { type: 'integer' as const },
+                          intermediate: { type: 'integer' as const },
+                          advanced: { type: 'integer' as const },
+                          expert: { type: 'integer' as const }
+                        }
+                      },
+                      recent_verifications: { type: 'integer' as const },
+                      last_updated: { type: 'string' as const, format: 'date-time' }
+                    }
+                  }
+                },
+                organization_id: { type: 'string' as const },
+                total_skills: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillStatisticsController.getAllSkillsStatistics.bind(hrSkillStatisticsController)
+);
+
+// Get specific skill statistics
+router.get('/:id/skills/:skillId/statistics',
+  loggedRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Get skill statistics',
+    description: 'Get statistics for a specific skill',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'skillId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Skill ID'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Skill statistics',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    skill_id: { type: 'string' as const },
+                    skill_name: { type: 'string' as const },
+                    skill_category: { type: 'string' as const },
+                    total_members: { type: 'integer' as const },
+                    verified_members: { type: 'integer' as const },
+                    verification_rate: { type: 'number' as const },
+                    proficiency_breakdown: {
+                      type: 'object' as const,
+                      properties: {
+                        beginner: { type: 'integer' as const },
+                        intermediate: { type: 'integer' as const },
+                        advanced: { type: 'integer' as const },
+                        expert: { type: 'integer' as const }
+                      }
+                    },
+                    recent_verifications: { type: 'integer' as const },
+                    last_updated: { type: 'string' as const, format: 'date-time' }
+                  }
+                },
+                organization_id: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      404: {
+        description: 'Skill not found'
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillStatisticsController.getSkillStatistics.bind(hrSkillStatisticsController)
+);
+
+// Get skills statistics by category
+router.get('/:id/skills/statistics/category/:category',
+  loggedRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Get category statistics',
+    description: 'Get statistics for skills in a specific category',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'category',
+        in: 'path',
+        required: true,
+        schema: { 
+          type: 'string' as const,
+          enum: ['pilot', 'engineer', 'medic', 'security', 'logistics', 'leadership']
+        },
+        description: 'Skill category'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Category statistics',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    category: { type: 'string' as const },
+                    unique_skills: { type: 'integer' as const },
+                    total_instances: { type: 'integer' as const },
+                    verification_rate: { type: 'number' as const },
+                    average_proficiency: { type: 'number' as const },
+                    top_skills: {
+                      type: 'array' as const,
+                      items: {
+                        type: 'object' as const,
+                        properties: {
+                          skill_name: { type: 'string' as const },
+                          member_count: { type: 'integer' as const },
+                          verification_rate: { type: 'number' as const }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillStatisticsController.getSkillStatisticsByCategory.bind(hrSkillStatisticsController)
+);
+
+// Get organization skills overview
+router.get('/:id/skills/statistics/overview',
+  loggedRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Get skills overview',
+    description: 'Get comprehensive organization skills overview',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Skills overview',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    total_unique_skills: { type: 'integer' as const },
+                    total_skill_instances: { type: 'integer' as const },
+                    overall_verification_rate: { type: 'number' as const },
+                    skills_by_category: {
+                      type: 'object' as const,
+                      additionalProperties: {
+                        type: 'object' as const,
+                        properties: {
+                          unique_skills: { type: 'integer' as const },
+                          total_instances: { type: 'integer' as const },
+                          verification_rate: { type: 'number' as const }
+                        }
+                      }
+                    },
+                    top_skills: {
+                      type: 'array' as const,
+                      items: {
+                        type: 'object' as const,
+                        properties: {
+                          skill_name: { type: 'string' as const },
+                          member_count: { type: 'integer' as const },
+                          verification_rate: { type: 'number' as const }
+                        }
+                      }
+                    },
+                    verification_trends: {
+                      type: 'array' as const,
+                      items: {
+                        type: 'object' as const,
+                        properties: {
+                          date: { type: 'string' as const, format: 'date' },
+                          verifications_count: { type: 'integer' as const }
+                        }
+                      }
+                    },
+                    last_updated: { type: 'string' as const, format: 'date-time' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillStatisticsController.getOrganizationSkillsOverview.bind(hrSkillStatisticsController)
+);
+
+// Get skills statistics summary
+router.get('/:id/skills/statistics/summary',
+  loggedRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Get statistics summary',
+    description: 'Get skill statistics summary for dashboard',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Statistics summary',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    total_skills: { type: 'integer' as const },
+                    total_members_with_skills: { type: 'integer' as const },
+                    overall_verification_rate: { type: 'number' as const },
+                    most_common_skill: {
+                      type: 'object' as const,
+                      nullable: true,
+                      properties: {
+                        name: { type: 'string' as const },
+                        member_count: { type: 'integer' as const }
+                      }
+                    },
+                    least_verified_category: {
+                      type: 'object' as const,
+                      nullable: true,
+                      properties: {
+                        category: { type: 'string' as const },
+                        verification_rate: { type: 'number' as const }
+                      }
+                    },
+                    recent_verifications_count: { type: 'integer' as const },
+                    skill_gaps_count: { type: 'integer' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillStatisticsController.getSkillStatisticsSummary.bind(hrSkillStatisticsController)
+);
+
+// Get verification trends
+router.get('/:id/skills/statistics/trends',
+  loggedRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Get verification trends',
+    description: 'Get skill verification trends over time',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'skill_id',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Specific skill ID to get trends for'
+      },
+      {
+        name: 'days',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 365, default: 30 },
+        description: 'Number of days to look back'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Verification trends',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      date: { type: 'string' as const, format: 'date' },
+                      verifications_count: { type: 'integer' as const },
+                      skill_id: { type: 'string' as const },
+                      skill_name: { type: 'string' as const }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  hrSkillStatisticsController.getSkillVerificationTrends.bind(hrSkillStatisticsController)
+);
+
+// Get skill gap analysis
+router.post('/:id/skills/statistics/gaps',
+  hrOperationsRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Get skill gap analysis',
+    description: 'Perform skill gap analysis for the organization',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              target_requirements: {
+                type: 'object' as const,
+                additionalProperties: { type: 'integer' as const },
+                description: 'Target member count for each skill ID'
+              }
+            }
+          }
+        }
+      }
+    },
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Skill gap analysis',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      skill_id: { type: 'string' as const },
+                      skill_name: { type: 'string' as const },
+                      skill_category: { type: 'string' as const },
+                      current_members: { type: 'integer' as const },
+                      target_members: { type: 'integer' as const },
+                      gap_count: { type: 'integer' as const },
+                      gap_percentage: { type: 'number' as const },
+                      priority: { type: 'string' as const, enum: ['high', 'medium', 'low'] },
+                      recommended_actions: {
+                        type: 'array' as const,
+                        items: { type: 'string' as const }
+                      }
+                    }
+                  }
+                },
+                total_gaps: { type: 'integer' as const },
+                high_priority_gaps: { type: 'integer' as const },
+                medium_priority_gaps: { type: 'integer' as const },
+                low_priority_gaps: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrSkillStatisticsController.getSkillGapAnalysis.bind(hrSkillStatisticsController)
+);
+
+// Refresh statistics cache
+router.post('/:id/skills/statistics/refresh',
+  hrOperationsRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Refresh statistics cache',
+    description: 'Refresh the skills statistics cache for the organization',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Cache refreshed successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                message: { type: 'string' as const },
+                organization_id: { type: 'string' as const },
+                refreshed_at: { type: 'string' as const, format: 'date-time' }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrSkillStatisticsController.refreshStatisticsCache.bind(hrSkillStatisticsController)
+);
+
+// Clear statistics cache
+router.delete('/:id/skills/statistics/cache',
+  hrOperationsRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Clear statistics cache',
+    description: 'Clear the skills statistics cache for the organization',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'skill_id',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Specific skill ID to clear cache for (optional)'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Cache cleared successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                message: { type: 'string' as const },
+                organization_id: { type: 'string' as const },
+                skill_id: { type: 'string' as const, nullable: true },
+                cleared_at: { type: 'string' as const, format: 'date-time' }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrSkillStatisticsController.clearStatisticsCache.bind(hrSkillStatisticsController)
+);
+
+// Export skill statistics
+router.get('/:id/skills/statistics/export',
+  analyticsRateLimit,
+  oapi.path({
+    tags: ['HR Skills Statistics'],
+    summary: 'Export skill statistics',
+    description: 'Export skill statistics data in JSON or CSV format',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'format',
+        in: 'query',
+        schema: { type: 'string' as const, enum: ['json', 'csv'], default: 'json' },
+        description: 'Export format'
+      },
+      {
+        name: 'include_details',
+        in: 'query',
+        schema: { type: 'boolean' as const, default: true },
+        description: 'Include detailed statistics'
+      }
+    ],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Exported statistics data',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                organization_id: { type: 'string' as const },
+                organization_name: { type: 'string' as const },
+                exported_at: { type: 'string' as const, format: 'date-time' },
+                overview: { type: 'object' as const },
+                detailed_statistics: { type: 'object' as const }
+              }
+            }
+          },
+          'text/csv': {
+            schema: {
+              type: 'string' as const
+            }
+          }
+        }
+      }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrSkillStatisticsController.exportSkillStatistics.bind(hrSkillStatisticsController)
 );
 
 // HR Document Management routes
