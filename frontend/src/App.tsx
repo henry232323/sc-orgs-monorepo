@@ -31,6 +31,14 @@ import AuthCallbackPage from './pages/AuthCallbackPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
 import UIPreviewPage from './pages/UIPreviewPage';
 import { OrganizationRole } from './types/organization';
+// HR Pages
+import {
+  HRDashboardPage,
+  ApplicationsPage,
+  PerformancePage,
+  SkillsPage,
+  DocumentsPage,
+} from './pages/hr';
 import './app.css';
 
 const AppContent: React.FC = () => {
@@ -137,6 +145,68 @@ const AppContent: React.FC = () => {
             <RequireOrganizationMember>
               <EventForm mode='create' />
             </RequireOrganizationMember>
+          }
+        />
+
+        {/* HR routes - require organization membership and HR permissions */}
+        <Route
+          path='/organizations/:spectrumId/hr'
+          element={
+            <RequireOrganizationRole
+              requiredRoles={[OrganizationRole.OWNER, OrganizationRole.ADMIN]}
+            >
+              <HRDashboardPage />
+            </RequireOrganizationRole>
+          }
+        />
+        <Route
+          path='/organizations/:spectrumId/hr/dashboard'
+          element={
+            <RequireOrganizationRole
+              requiredRoles={[OrganizationRole.OWNER, OrganizationRole.ADMIN]}
+            >
+              <HRDashboardPage />
+            </RequireOrganizationRole>
+          }
+        />
+        <Route
+          path='/organizations/:spectrumId/hr/applications'
+          element={
+            <RequireOrganizationRole
+              requiredRoles={[OrganizationRole.OWNER, OrganizationRole.ADMIN]}
+            >
+              <ApplicationsPage />
+            </RequireOrganizationRole>
+          }
+        />
+        <Route
+          path='/organizations/:spectrumId/hr/performance'
+          element={
+            <RequireOrganizationRole
+              requiredRoles={[OrganizationRole.OWNER, OrganizationRole.ADMIN]}
+            >
+              <PerformancePage />
+            </RequireOrganizationRole>
+          }
+        />
+        <Route
+          path='/organizations/:spectrumId/hr/skills'
+          element={
+            <RequireOrganizationRole
+              requiredRoles={[OrganizationRole.OWNER, OrganizationRole.ADMIN]}
+            >
+              <SkillsPage />
+            </RequireOrganizationRole>
+          }
+        />
+        <Route
+          path='/organizations/:spectrumId/hr/documents'
+          element={
+            <RequireOrganizationRole
+              requiredRoles={[OrganizationRole.OWNER, OrganizationRole.ADMIN]}
+            >
+              <DocumentsPage />
+            </RequireOrganizationRole>
           }
         />
 
