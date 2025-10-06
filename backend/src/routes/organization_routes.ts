@@ -1949,12 +1949,15 @@ import { HRSkillController } from '../controllers/hr_skill_controller';
 import { HRDocumentController } from '../controllers/hr_document_controller';
 // HR Application routes
 import { HRApplicationController } from '../controllers/hr_application_controller';
+// HR Activity routes
+import { HRActivityController } from '../controllers/hr_activity_controller';
 
 const hrOnboardingController = new HROnboardingController();
 const hrPerformanceController = new HRPerformanceController();
 const hrSkillController = new HRSkillController();
 const hrDocumentController = new HRDocumentController();
 const hrApplicationController = new HRApplicationController();
+const hrActivityController = new HRActivityController();
 
 // HR Application Management routes
 
@@ -5630,6 +5633,259 @@ router.get('/:id/documents/pending-acknowledgments',
   requireLogin as any,
   resolveOrganization,
   hrDocumentController.getPendingAcknowledgments.bind(hrDocumentController)
+);
+
+// HR Activity Management routes
+
+// Get organization HR activities
+router.get('/:id/hr-activities',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Get organization HR activities',
+    description: 'Get paginated HR activities for an organization with filtering options',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      },
+      {
+        name: 'activity_types',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          description: 'Comma-separated list of activity types to filter by'
+        },
+        description: 'Filter by activity types (application_submitted, application_status_changed, onboarding_completed, performance_review_submitted, skill_verified, document_acknowledged)'
+      },
+      {
+        name: 'date_from',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date-time' as const },
+        description: 'Filter activities from this date (ISO 8601 format)'
+      },
+      {
+        name: 'date_to',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date-time' as const },
+        description: 'Filter activities to this date (ISO 8601 format)'
+      },
+      {
+        name: 'user_id',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter activities by specific user ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR activities retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      organization_id: { type: 'string' as const },
+                      activity_type: { 
+                        type: 'string' as const,
+                        enum: ['application_submitted', 'application_status_changed', 'onboarding_completed', 'performance_review_submitted', 'skill_verified', 'document_acknowledged']
+                      },
+                      user_id: { type: 'string' as const },
+                      user_handle: { type: 'string' as const },
+                      user_avatar_url: { type: 'string' as const },
+                      title: { type: 'string' as const },
+                      description: { type: 'string' as const },
+                      metadata: { type: 'object' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' as const },
+                      updated_at: { type: 'string' as const, format: 'date-time' as const }
+                    }
+                  }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                has_more: { type: 'boolean' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_MEMBERS'),
+  loggedRateLimit(hrOperationsRateLimit),
+  hrActivityController.getOrganizationActivities.bind(hrActivityController)
+);
+
+// Get organization HR activity statistics
+router.get('/:id/hr-activities/stats',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Get organization HR activity statistics',
+    description: 'Get statistical data about HR activities for an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'date_from',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date-time' as const },
+        description: 'Filter statistics from this date (ISO 8601 format)'
+      },
+      {
+        name: 'date_to',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date-time' as const },
+        description: 'Filter statistics to this date (ISO 8601 format)'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR activity statistics retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    total_activities: { type: 'integer' as const },
+                    activities_by_type: {
+                      type: 'object' as const,
+                      properties: {
+                        application_submitted: { type: 'integer' as const },
+                        application_status_changed: { type: 'integer' as const },
+                        onboarding_completed: { type: 'integer' as const },
+                        performance_review_submitted: { type: 'integer' as const },
+                        skill_verified: { type: 'integer' as const },
+                        document_acknowledged: { type: 'integer' as const }
+                      }
+                    },
+                    recent_activity_trend: {
+                      type: 'array' as const,
+                      items: {
+                        type: 'object' as const,
+                        properties: {
+                          date: { type: 'string' as const },
+                          count: { type: 'integer' as const }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('VIEW_ANALYTICS'),
+  loggedRateLimit(analyticsRateLimit),
+  hrActivityController.getOrganizationActivityStats.bind(hrActivityController)
+);
+
+// Get individual HR activity by ID
+router.get('/hr-activities/:activityId',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Get HR activity by ID',
+    description: 'Get detailed information about a specific HR activity',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'activityId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'HR Activity ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR activity retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    id: { type: 'string' as const },
+                    organization_id: { type: 'string' as const },
+                    activity_type: { 
+                      type: 'string' as const,
+                      enum: ['application_submitted', 'application_status_changed', 'onboarding_completed', 'performance_review_submitted', 'skill_verified', 'document_acknowledged']
+                    },
+                    user_id: { type: 'string' as const },
+                    user_handle: { type: 'string' as const },
+                    user_avatar_url: { type: 'string' as const },
+                    title: { type: 'string' as const },
+                    description: { type: 'string' as const },
+                    metadata: { type: 'object' as const },
+                    created_at: { type: 'string' as const, format: 'date-time' as const },
+                    updated_at: { type: 'string' as const, format: 'date-time' as const }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  loggedRateLimit(hrOperationsRateLimit),
+  hrActivityController.getActivityById.bind(hrActivityController)
 );
 
 export default router;

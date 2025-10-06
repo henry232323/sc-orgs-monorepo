@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth_controller';
 import { ActivityController } from '../controllers/activity_controller';
+import { HRActivityController } from '../controllers/hr_activity_controller';
 import { requireLogin } from '../middleware/auth';
 import passport from 'passport';
 import { oapi } from './openapi_routes';
@@ -8,6 +9,7 @@ import { oapi } from './openapi_routes';
 const router: Router = Router();
 const authController = new AuthController();
 const activityController = new ActivityController();
+const hrActivityController = new HRActivityController();
 
 // Discord OAuth routes
 router.get('/discord', 
@@ -522,6 +524,66 @@ router.get('/activity',
   }),
   requireLogin as any,
   activityController.getUserActivity.bind(activityController)
+);
+
+// HR-specific user activity endpoint
+router.get('/hr-activities',
+  oapi.path({
+    tags: ['Authentication'],
+    summary: 'Get user HR activities',
+    description: 'Returns HR-specific activity log for the authenticated user',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 50, default: 10 },
+        description: 'Maximum number of activities to return'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'User HR activity log',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      organization_id: { type: 'string' as const },
+                      activity_type: { 
+                        type: 'string' as const,
+                        enum: ['application_submitted', 'application_status_changed', 'onboarding_completed', 'performance_review_submitted', 'skill_verified', 'document_acknowledged']
+                      },
+                      user_id: { type: 'string' as const },
+                      user_handle: { type: 'string' as const },
+                      user_avatar_url: { type: 'string' as const },
+                      title: { type: 'string' as const },
+                      description: { type: 'string' as const },
+                      metadata: { type: 'object' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' as const },
+                      updated_at: { type: 'string' as const, format: 'date-time' as const }
+                    }
+                  }
+                },
+                total: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  hrActivityController.getUserActivities.bind(hrActivityController)
 );
 
 export default router;

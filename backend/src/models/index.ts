@@ -9,3 +9,4 @@ export { HROnboardingModel } from './hr_onboarding_model';
 export { HRPerformanceModel } from './hr_performance_model';
 export { HRSkillModel } from './hr_skill_model';
 export { HRDocumentModel } from './hr_document_model';
+export { HRActivityModel } from './hr_activity_model';
