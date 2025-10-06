@@ -28,7 +28,7 @@
   - Configure appropriate cache timing and invalidation tags for all new endpoints
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-- [ ] 5. Replace HR Dashboard Dummy Data with Real Activity Feed
+- [x] 5. Replace HR Dashboard Dummy Data with Real Activity Feed
   - Remove hardcoded "John_Doe" and "Jane_Smith" activity placeholders from hr_dashboard.tsx
   - Integrate useGetHRActivitiesQuery hook with proper loading and error states
   - Implement real-time relative timestamp calculation using actual created_at dates

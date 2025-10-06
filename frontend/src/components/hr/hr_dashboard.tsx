@@ -8,11 +8,15 @@ import {
   StatLarge,
   StatMedium,
   StatSmall,
+  ComponentTitle,
+  ComponentSubtitle,
 } from '../ui';
 import {
   useGetHRAnalyticsQuery,
+  useGetHRActivitiesQuery,
 } from '../../services/apiSlice';
 import { usePermissions } from '../../hooks/usePermissions';
+import { formatRelativeTime } from '../../utils/activityUtils';
 import {
   ClipboardDocumentListIcon,
   AcademicCapIcon,
@@ -23,16 +27,50 @@ import {
   TrophyIcon,
   ExclamationTriangleIcon,
   ArrowRightIcon,
+  CheckCircleIcon,
+  DocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
 interface HRDashboardProps {
   organizationId: string;
 }
 
+/**
+ * Get the appropriate icon component for an HR activity type
+ */
+function getHRActivityIcon(activityType: string) {
+  switch (activityType) {
+    case 'application_submitted':
+    case 'application_status_changed':
+      return UserPlusIcon;
+    case 'onboarding_completed':
+      return ClipboardDocumentListIcon;
+    case 'performance_review_submitted':
+      return TrophyIcon;
+    case 'skill_verified':
+      return AcademicCapIcon;
+    case 'document_acknowledged':
+      return DocumentCheckIcon;
+    default:
+      return ClockIcon;
+  }
+}
+
 const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
   // Fetch HR analytics data
   const { data: hrAnalytics, isLoading: analyticsLoading } = useGetHRAnalyticsQuery({
     organizationId,
+  });
+
+  // Fetch recent HR activities
+  const { 
+    data: recentActivities, 
+    isLoading: activitiesLoading,
+    error: activitiesError,
+    refetch: refetchActivities
+  } = useGetHRActivitiesQuery({
+    organizationId,
+    limit: 5, // Show only 5 most recent activities
   });
 
   // Check user permissions for role-based customization
@@ -230,59 +268,73 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
             Recent Activity
           </SectionTitle>
           <Paper variant='glass' size='lg'>
-            <div className='space-y-4'>
-              {/* Placeholder activity items */}
-              <div className='flex items-start space-x-4 p-4 bg-white/5 rounded-lg'>
-                <div className='w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0'>
-                  <UserPlusIcon className='w-5 h-5 text-white/60' />
-                </div>
-                <div className='flex-1 min-w-0'>
-                  <h4 className='text-sm font-semibold text-primary'>
-                    New Application Received
-                  </h4>
-                  <p className='text-sm text-secondary'>
-                    John_Doe submitted an application for Pilot role
-                  </p>
-                  <p className='text-xs text-tertiary mt-1'>
-                    2 hours ago
-                  </p>
-                </div>
+            {activitiesLoading ? (
+              // Loading state
+              <div className='space-y-4'>
+                {[1, 2, 3].map(i => (
+                  <div key={i} className='animate-pulse'>
+                    <div className='flex items-start space-x-4 p-4'>
+                      <div className='w-10 h-10 bg-white/10 rounded-lg flex-shrink-0'></div>
+                      <div className='flex-1 space-y-2'>
+                        <div className='h-4 bg-white/10 rounded w-3/4'></div>
+                        <div className='h-3 bg-white/5 rounded w-full'></div>
+                        <div className='h-3 bg-white/5 rounded w-1/4'></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <div className='flex items-start space-x-4 p-4 bg-white/5 rounded-lg'>
-                <div className='w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0'>
-                  <ClockIcon className='w-5 h-5 text-white/60' />
-                </div>
-                <div className='flex-1 min-w-0'>
-                  <h4 className='text-sm font-semibold text-primary'>
-                    Onboarding Overdue
-                  </h4>
-                  <p className='text-sm text-secondary'>
-                    3 members have overdue onboarding tasks
-                  </p>
-                  <p className='text-xs text-tertiary mt-1'>
-                    1 day ago
-                  </p>
-                </div>
+            ) : activitiesError ? (
+              // Error state
+              <div className='text-center py-8'>
+                <ExclamationTriangleIcon className='w-12 h-12 text-error mx-auto mb-4' />
+                <ComponentTitle className='text-primary mb-2'>
+                  Failed to Load Activities
+                </ComponentTitle>
+                <ComponentSubtitle className='text-secondary mb-4'>
+                  Unable to fetch recent HR activities
+                </ComponentSubtitle>
+                <Button variant='secondary' onClick={() => refetchActivities()}>
+                  Try Again
+                </Button>
               </div>
-
-              <div className='flex items-start space-x-4 p-4 bg-white/5 rounded-lg'>
-                <div className='w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0'>
-                  <TrophyIcon className='w-5 h-5 text-white/60' />
-                </div>
-                <div className='flex-1 min-w-0'>
-                  <h4 className='text-sm font-semibold text-primary'>
-                    Performance Review Completed
-                  </h4>
-                  <p className='text-sm text-secondary'>
-                    Jane_Smith completed quarterly review
-                  </p>
-                  <p className='text-xs text-tertiary mt-1'>
-                    3 days ago
-                  </p>
-                </div>
+            ) : !recentActivities?.data?.data?.length ? (
+              // Empty state
+              <div className='text-center py-12'>
+                <ClockIcon className='w-16 h-16 text-tertiary mx-auto mb-4' />
+                <ComponentTitle className='text-primary mb-2'>
+                  No Recent Activity
+                </ComponentTitle>
+                <ComponentSubtitle className='text-secondary'>
+                  HR activities will appear here as they occur in your organization.
+                </ComponentSubtitle>
               </div>
-            </div>
+            ) : (
+              // Activity list
+              <div className='space-y-4'>
+                {recentActivities.data.data.map((activity) => {
+                  const ActivityIcon = getHRActivityIcon(activity.activity_type);
+                  return (
+                    <div key={activity.id} className='flex items-start space-x-4 p-4 bg-white/5 rounded-lg'>
+                      <div className='w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0'>
+                        <ActivityIcon className='w-5 h-5 text-white/60' />
+                      </div>
+                      <div className='flex-1 min-w-0'>
+                        <h4 className='text-sm font-semibold text-primary'>
+                          {activity.title}
+                        </h4>
+                        <p className='text-sm text-secondary'>
+                          {activity.description}
+                        </p>
+                        <p className='text-xs text-tertiary mt-1'>
+                          {formatRelativeTime(activity.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Paper>
         </div>
 
