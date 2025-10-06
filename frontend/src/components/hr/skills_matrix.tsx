@@ -12,6 +12,8 @@ import {
   ComponentSubtitle,
   StatMedium,
   StatSmall,
+  DataStateWrapper,
+  EmptyState,
 } from '../ui';
 import {
   useGetSkillsQuery,
@@ -21,6 +23,8 @@ import {
   useGetSkillsAnalyticsQuery,
   useGetHREventAnalyticsQuery,
 } from '../../services/apiSlice';
+import { useSkillsStatisticsWithRetry } from '../../hooks/useHRQuery';
+import HRErrorBoundary from './HRErrorBoundary';
 import type { Skill, UserSkill, CreateSkillData, CreateUserSkillData, SkillFilters } from '../../types/hr';
 import {
   AcademicCapIcon,
@@ -63,20 +67,43 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
     notes: '',
   });
 
-  // Fetch data
-  const { data: skillsData, isLoading } = useGetSkillsQuery({
+  // Fetch data with enhanced error handling
+  const { 
+    data: skillsData, 
+    isLoading: skillsLoading, 
+    error: skillsError,
+    refetch: refetchSkills
+  } = useGetSkillsQuery({
     organizationId,
     page,
     limit: 20,
     filters,
   });
 
-  const { data: analyticsData } = useGetSkillsAnalyticsQuery({
+  const { 
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    error: analyticsError
+  } = useGetSkillsAnalyticsQuery({
+    organizationId,
+  });
+
+  // Use enhanced skills statistics query with retry
+  const {
+    data: skillsStatistics,
+    isLoading: statisticsLoading,
+    error: statisticsError,
+    retry: retryStatistics,
+    isRetrying: statisticsRetrying,
+    canRetry: canRetryStatistics
+  } = useSkillsStatisticsWithRetry({
     organizationId,
   });
 
   // Get HR event analytics for skill development tracking
-  const { data: eventAnalytics } = useGetHREventAnalyticsQuery({
+  const { 
+    data: eventAnalytics,
+  } = useGetHREventAnalyticsQuery({
     organizationId,
     startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // Last 90 days
     endDate: new Date().toISOString(),
@@ -185,17 +212,15 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
     }
   };
 
-  // Group skills by category
-  const skillsByCategory: Record<string, Skill[]> = skillsData?.data ? skillsData.data.reduce((acc: Record<string, Skill[]>, skill) => {
-    if (!acc[skill.category]) {
-      acc[skill.category] = [];
-    }
-    acc[skill.category]!.push(skill);
-    return acc;
-  }, {}) : {};
+  // Skills grouping is now handled inside DataStateWrapper
 
   return (
-    <div className='space-y-[var(--spacing-section)]'>
+    <HRErrorBoundary 
+      componentName="Skills Matrix"
+      organizationId={organizationId}
+      enableRetry={true}
+    >
+      <div className='space-y-[var(--spacing-section)]'>
       {/* Header */}
       <div className='flex items-center justify-between'>
         <SectionTitle>Skills Matrix</SectionTitle>
@@ -228,32 +253,48 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
       </div>
 
       {/* Analytics Overview */}
-      {analyticsData && (
-        <div className='grid grid-cols-1 md:grid-cols-4 gap-[var(--gap-grid-md)]'>
-          <Paper variant='glass' size='md' className='text-center'>
-            <AcademicCapIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-            <StatMedium className='mb-1'>
-              {analyticsData.total_skills_tracked}
-            </StatMedium>
-            <ComponentSubtitle className='text-tertiary'>
-              Total Skills
-            </ComponentSubtitle>
-          </Paper>
+      <DataStateWrapper
+        data={analyticsData}
+        isLoading={analyticsLoading}
+        error={analyticsError}
+        isEmpty={(data) => !data}
+        loadingProps={{
+          variant: 'card',
+          skeletonCount: 4,
+          title: 'Loading Analytics',
+        }}
+        errorProps={{
+          title: 'Analytics Unavailable',
+          description: 'Unable to load skills analytics at the moment.',
+          showRetry: false,
+        }}
+      >
+        {(analyticsData) => (
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-[var(--gap-grid-md)]'>
+            <Paper variant='glass' size='md' className='text-center'>
+              <AcademicCapIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
+              <StatMedium className='mb-1'>
+                {analyticsData?.total_skills_tracked || 0}
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                Total Skills
+              </ComponentSubtitle>
+            </Paper>
 
-          <Paper variant='glass' size='md' className='text-center'>
-            <CheckBadgeIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-            <StatMedium className='mb-1'>
-              {(analyticsData.verification_rate * 100).toFixed(0)}%
-            </StatMedium>
-            <ComponentSubtitle className='text-tertiary'>
-              Verified Skills
+            <Paper variant='glass' size='md' className='text-center'>
+              <CheckBadgeIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
+              <StatMedium className='mb-1'>
+                {((analyticsData?.verification_rate || 0) * 100).toFixed(0)}%
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                Verified Skills
             </ComponentSubtitle>
           </Paper>
 
           <Paper variant='glass' size='md' className='text-center'>
             <ChartBarIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
             <StatMedium className='mb-1'>
-              {analyticsData.skill_gaps.length}
+              {analyticsData?.skill_gaps?.length || 0}
             </StatMedium>
             <ComponentSubtitle className='text-tertiary'>
               Skill Gaps
@@ -263,14 +304,15 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
           <Paper variant='glass' size='md' className='text-center'>
             <StarIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
             <StatMedium className='mb-1'>
-              {analyticsData.skill_gaps.reduce((acc, gap) => acc + gap.current_count, 0)}
+              {analyticsData?.skill_gaps?.reduce((acc, gap) => acc + gap.current_count, 0) || 0}
             </StatMedium>
             <ComponentSubtitle className='text-tertiary'>
               Skilled Members
             </ComponentSubtitle>
           </Paper>
         </div>
-      )}
+        )}
+      </DataStateWrapper>
 
       {/* Event-Based Skill Development */}
       {eventAnalytics && (
@@ -403,11 +445,43 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
       )}
 
       {/* Skills by Category */}
-      {isLoading ? (
-        <div className='flex items-center justify-center py-12'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary'></div>
-        </div>
-      ) : Object.keys(skillsByCategory).length > 0 ? (
+      <DataStateWrapper
+        data={skillsData}
+        isLoading={skillsLoading}
+        error={skillsError}
+        onRetry={() => refetchSkills()}
+        isEmpty={(data) => !data?.data || data.data.length === 0}
+        loadingProps={{
+          title: 'Loading Skills Matrix',
+          description: 'Fetching organization skills and member capabilities...',
+          variant: 'card',
+          skeletonCount: 6,
+        }}
+        errorProps={{
+          title: 'Failed to Load Skills',
+          description: 'Unable to fetch skills data. This might be a temporary issue.',
+          showRetry: true,
+          retryText: 'Retry Loading',
+        }}
+        emptyProps={{
+          variant: 'no-skills',
+          title: 'No Skills Defined',
+          description: 'Start building your organization\'s skills matrix by adding the first skill.',
+          action: {
+            label: 'Create First Skill',
+            onClick: () => setShowCreateSkillModal(true),
+            variant: 'primary',
+          },
+        }}
+      >
+        {(skillsData) => {
+          const skillsByCategory = skillsData?.data?.reduce((acc, skill) => {
+            if (!acc[skill.category]) acc[skill.category] = [];
+            acc[skill.category]!.push(skill);
+            return acc;
+          }, {} as Record<string, Skill[]>) || {};
+
+          return Object.keys(skillsByCategory).length > 0 ? (
         <div className='space-y-[var(--spacing-section)]'>
           {skillCategories.map((category) => {
             const categorySkills = skillsByCategory[category.value] || [];
@@ -490,7 +564,13 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
                         <div className='grid grid-cols-2 gap-4 text-center'>
                           <div>
                             <StatSmall className='text-accent-blue'>
-                              0
+                              {statisticsLoading ? (
+                                <div className="animate-pulse bg-white/10 h-4 w-8 rounded mx-auto"></div>
+                              ) : statisticsError ? (
+                                '—'
+                              ) : (
+                                skillsStatistics?.[skill.id]?.total_members ?? 0
+                              )}
                             </StatSmall>
                             <ComponentSubtitle className='text-tertiary text-xs'>
                               Members
@@ -498,13 +578,32 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
                           </div>
                           <div>
                             <StatSmall className='text-success'>
-                              0%
+                              {statisticsLoading ? (
+                                <div className="animate-pulse bg-white/10 h-4 w-8 rounded mx-auto"></div>
+                              ) : statisticsError ? (
+                                '—'
+                              ) : (
+                                `${((skillsStatistics?.[skill.id]?.verification_rate ?? 0) * 100).toFixed(0)}%`
+                              )}
                             </StatSmall>
                             <ComponentSubtitle className='text-tertiary text-xs'>
                               Verified
                             </ComponentSubtitle>
                           </div>
                         </div>
+                        
+                        {/* Statistics error state */}
+                        {statisticsError && canRetryStatistics && (
+                          <div className="mt-2 text-center">
+                            <button
+                              onClick={retryStatistics}
+                              className="text-xs text-tertiary hover:text-secondary transition-colors"
+                              disabled={statisticsRetrying}
+                            >
+                              {statisticsRetrying ? 'Retrying...' : 'Retry Stats'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </Paper>
                   ))}
@@ -513,21 +612,25 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             );
           })}
         </div>
-      ) : (
-        <Paper variant='glass' size='lg'>
-          <div className='text-center py-12'>
-            <AcademicCapIcon className='w-16 h-16 text-tertiary mx-auto mb-4' />
-            <ComponentTitle className='text-primary mb-2'>
-              No Skills Found
-            </ComponentTitle>
-            <ComponentSubtitle className='text-secondary'>
-              {Object.keys(filters).length > 0
-                ? 'No skills match your current filters.'
-                : 'Start by creating your first skill.'}
-            </ComponentSubtitle>
-          </div>
-        </Paper>
-      )}
+          ) : (
+            <EmptyState
+              variant="no-results"
+              title="No Skills Match Filters"
+              description="Try adjusting your search criteria or filters to find skills."
+              action={{
+                label: 'Clear Filters',
+                onClick: () => setFilters({}),
+                variant: 'secondary',
+              }}
+              secondaryAction={{
+                label: 'Create New Skill',
+                onClick: () => setShowCreateSkillModal(true),
+                variant: 'primary',
+              }}
+            />
+          );
+        }}
+      </DataStateWrapper>
 
       {/* Skill Gaps Analysis */}
       {analyticsData && analyticsData.skill_gaps.length > 0 && (
@@ -779,7 +882,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
           </div>
         </div>
       </Dialog>
-    </div>
+      </div>
+    </HRErrorBoundary>
   );
 };
 
