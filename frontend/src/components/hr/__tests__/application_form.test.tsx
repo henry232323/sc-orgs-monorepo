@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
@@ -189,7 +189,6 @@ describe('ApplicationForm', () => {
   });
 
   it('shows loading state during submission', async () => {
-    const user = userEvent.setup();
     vi.spyOn(apiSlice.endpoints.createApplication, 'useMutation').mockReturnValue([
       mockCreateApplication,
       { isLoading: true }

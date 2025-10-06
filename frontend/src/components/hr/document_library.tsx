@@ -13,15 +13,15 @@ import Paper from '../ui/Paper';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import Chip from '../ui/Chip';
-import Sidebar from '../ui/Sidebar';
+
 import SidebarItem from '../ui/SidebarItem';
 import { ComponentTitle, ComponentSubtitle, Caption } from '../ui/Typography';
 import {
   useGetDocumentsQuery,
-  useCreateDocumentMutation,
+  useUploadDocumentMutation,
   useAcknowledgeDocumentMutation,
 } from '../../services/apiSlice';
-import type { Document, CreateDocumentData, DocumentFilters } from '../../types/hr';
+import type { Document, DocumentFilters } from '../../types/hr';
 
 interface DocumentLibraryProps {
   onDocumentSelect?: (document: Document) => void;
@@ -44,7 +44,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   const { organizationId } = useParams<{ organizationId: string }>();
   const [currentFolder, setCurrentFolder] = useState('/');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [, setSelectedDocument] = useState<Document | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadMetadata, setUploadMetadata] = useState({
     title: '',
@@ -61,7 +61,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   }, [searchQuery]);
 
   const filters: DocumentFilters = useMemo(() => ({
-    folder_path: currentFolder === '/' ? undefined : currentFolder,
+    ...(currentFolder !== '/' && { folder_path: currentFolder }),
     ...(debouncedSearch && { title: debouncedSearch }),
   }), [currentFolder, debouncedSearch]);
 
@@ -75,7 +75,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     { skip: !organizationId }
   );
 
-  const [createDocument, { isLoading: isUploading }] = useCreateDocumentMutation();
+  const [uploadDocument, { isLoading: isUploading }] = useUploadDocumentMutation();
   const [acknowledgeDocument, { isLoading: isAcknowledging }] = useAcknowledgeDocumentMutation();
 
   // Build folder structure from documents
@@ -124,18 +124,17 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     }
 
     try {
-      const uploadData: CreateDocumentData = {
-        title: uploadMetadata.title,
-        description: uploadMetadata.description,
-        folder_path: currentFolder,
-        requires_acknowledgment: uploadMetadata.requires_acknowledgment,
-        access_roles: uploadMetadata.access_roles,
-        file: uploadFile,
-      };
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('title', uploadMetadata.title);
+      formData.append('description', uploadMetadata.description);
+      formData.append('folder_path', currentFolder);
+      formData.append('requires_acknowledgment', uploadMetadata.requires_acknowledgment.toString());
+      formData.append('access_roles', JSON.stringify(uploadMetadata.access_roles));
 
-      await createDocument({
+      await uploadDocument({
         organizationId,
-        data: uploadData,
+        data: formData,
       }).unwrap();
 
       // Reset form
@@ -159,7 +158,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     try {
       await acknowledgeDocument({
         organizationId,
-        data: { document_id: documentId },
+        documentId,
       }).unwrap();
 
       refetch();
@@ -457,7 +456,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                             variant="secondary"
                             size="sm"
                             onClick={(e) => {
-                              e.stopPropagation();
+                              e?.stopPropagation();
                               handleDocumentAcknowledge(doc.id);
                             }}
                             disabled={isAcknowledging}
@@ -471,7 +470,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
-                            e.stopPropagation();
+                            e?.stopPropagation();
                             // Open document in new tab
                             window.open(`/api/documents/${doc.id}/download`, '_blank');
                           }}

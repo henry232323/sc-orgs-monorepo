@@ -4,7 +4,7 @@ interface InputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  type?: 'text' | 'email' | 'password' | 'search' | 'url';
+  type?: 'text' | 'email' | 'password' | 'search' | 'url' | 'date';
   disabled?: boolean;
   error?: string | undefined;
   className?: string;

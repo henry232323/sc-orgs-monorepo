@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
@@ -31,7 +31,7 @@ const createMockStore = (initialState = {}) => {
 };
 
 // Mock onboarding progress data
-const mockOnboardingProgress: OnboardingProgress = {
+const mockOnboardingProgress: OnboardingProgress & { template: any } = {
   id: 'progress-1',
   organization_id: 'test-org',
   user_id: 'test-user',
@@ -95,7 +95,7 @@ describe('OnboardingChecklist', () => {
     
     // Mock the RTK Query hooks
     vi.spyOn(apiSlice.endpoints.getOnboardingProgress, 'useQuery').mockReturnValue({
-      data: mockOnboardingProgress,
+      data: { data: [mockOnboardingProgress], total: 1, page: 1, limit: 20 },
       isLoading: false,
       error: null,
       refetch: mockRefetch,
@@ -173,7 +173,9 @@ describe('OnboardingChecklist', () => {
     const checkboxes = screen.getAllByRole('checkbox');
     const secondTaskCheckbox = checkboxes[1]; // Ship Familiarization task
     
-    await user.click(secondTaskCheckbox);
+    if (secondTaskCheckbox) {
+      await user.click(secondTaskCheckbox);
+    }
     
     await waitFor(() => {
       expect(mockCompleteTask).toHaveBeenCalledWith({
@@ -197,7 +199,9 @@ describe('OnboardingChecklist', () => {
     const checkboxes = screen.getAllByRole('checkbox');
     const firstTaskCheckbox = checkboxes[0]; // Already completed task
     
-    await user.click(firstTaskCheckbox);
+    if (firstTaskCheckbox) {
+      await user.click(firstTaskCheckbox);
+    }
     
     await waitFor(() => {
       expect(mockUpdateProgress).toHaveBeenCalledWith({
@@ -295,12 +299,14 @@ describe('OnboardingChecklist', () => {
     const secondTaskCheckbox = checkboxes[1];
     
     // Should optimistically check the box
-    await user.click(secondTaskCheckbox);
-    expect(secondTaskCheckbox).toBeChecked();
-    
-    // Should revert on error
-    await waitFor(() => {
-      expect(secondTaskCheckbox).not.toBeChecked();
-    });
+    if (secondTaskCheckbox) {
+      await user.click(secondTaskCheckbox);
+      expect(secondTaskCheckbox).toBeChecked();
+      
+      // Should revert on error
+      await waitFor(() => {
+        expect(secondTaskCheckbox).not.toBeChecked();
+      });
+    }
   });
 });

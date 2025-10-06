@@ -2,10 +2,11 @@ import React from 'react';
 
 interface PaperProps {
   children: React.ReactNode;
-  variant?: 'default' | 'elevated' | 'glass' | 'glass-subtle' | 'glass-strong';
+  variant?: 'default' | 'elevated' | 'glass' | 'glass-subtle' | 'glass-strong' | 'glass-elevated';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   interactive?: boolean;
+  onClick?: () => void;
 }
 
 const Paper: React.FC<PaperProps> = ({
@@ -14,6 +15,7 @@ const Paper: React.FC<PaperProps> = ({
   size = 'md',
   className = '',
   interactive = false,
+  onClick,
 }) => {
   // Base classes using theme variables
   const baseClasses =
@@ -25,6 +27,7 @@ const Paper: React.FC<PaperProps> = ({
     glass: 'glass',
     'glass-subtle': 'glass-subtle',
     'glass-strong': 'glass-strong',
+    'glass-elevated': 'glass-elevated',
   };
 
   const sizeClasses = {
@@ -48,7 +51,7 @@ const Paper: React.FC<PaperProps> = ({
     .filter(Boolean)
     .join(' ');
 
-  return <div className={classes}>{children}</div>;
+  return <div className={classes} onClick={onClick}>{children}</div>;
 };
 
 export default Paper;

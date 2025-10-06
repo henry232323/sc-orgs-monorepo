@@ -31,7 +31,7 @@ interface FormData {
   ratings: {
     [category: string]: {
       score: number;
-      comments: string;
+      comments?: string;
     };
   };
   overall_rating: number;
@@ -110,9 +110,9 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   useEffect(() => {
     if (existingReview) {
       setFormData({
-        review_period_start: existingReview.review_period_start.split('T')[0],
-        review_period_end: existingReview.review_period_end.split('T')[0],
-        ratings: existingReview.ratings,
+        review_period_start: existingReview.review_period_start?.split('T')[0] || '',
+        review_period_end: existingReview.review_period_end?.split('T')[0] || '',
+        ratings: existingReview.ratings || {},
         overall_rating: existingReview.overall_rating,
         strengths: existingReview.strengths,
         areas_for_improvement: existingReview.areas_for_improvement,
@@ -130,15 +130,18 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - 3);
       
-      setFormData(prev => ({
-        ...prev,
-        review_period_start: startDate.toISOString().split('T')[0],
-        review_period_end: endDate.toISOString().split('T')[0],
+      setFormData({
+        review_period_start: startDate.toISOString().split('T')[0] || '',
+        review_period_end: endDate.toISOString().split('T')[0] || '',
         ratings: RATING_CATEGORIES.reduce((acc, category) => ({
           ...acc,
           [category.key]: { score: 3, comments: '' }
-        }), {}),
-      }));
+        }), {} as { [key: string]: { score: number; comments?: string } }),
+        overall_rating: 3,
+        strengths: [],
+        areas_for_improvement: [],
+        goals: [],
+      });
     }
   }, [existingReview]);
 
@@ -196,7 +199,12 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
         reviewee_id: revieweeId,
         review_period_start: formData.review_period_start,
         review_period_end: formData.review_period_end,
-        ratings: formData.ratings,
+        ratings: Object.fromEntries(
+          Object.entries(formData.ratings).map(([key, value]) => [
+            key,
+            { score: value.score, comments: value.comments || '' }
+          ])
+        ),
         overall_rating: formData.overall_rating,
         strengths: formData.strengths,
         areas_for_improvement: formData.areas_for_improvement,
@@ -251,7 +259,7 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
       ratings: {
         ...prev.ratings,
         [category]: {
-          ...prev.ratings[category],
+          score: prev.ratings[category]?.score || 3,
           comments,
         },
       },

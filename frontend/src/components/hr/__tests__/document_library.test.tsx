@@ -114,7 +114,7 @@ describe('DocumentLibrary', () => {
       refetch: mockRefetch,
     } as any);
     
-    vi.spyOn(apiSlice.endpoints.createDocument, 'useMutation').mockReturnValue([
+    vi.spyOn(apiSlice.endpoints.uploadDocument, 'useMutation').mockReturnValue([
       mockCreateDocument,
       { isLoading: false }
     ] as any);

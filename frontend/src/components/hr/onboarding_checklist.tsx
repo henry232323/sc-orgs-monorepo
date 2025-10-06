@@ -25,17 +25,20 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
   const [localCompletedTasks, setLocalCompletedTasks] = useState<string[]>([]);
 
   const {
-    data: onboardingProgress,
+    data: onboardingProgressResponse,
     isLoading,
     error,
     refetch,
   } = useGetOnboardingProgressQuery(
-    { organizationId: organizationId!, userId: userId! },
+    { organizationId: organizationId!, filters: { user_id: userId! } },
     { skip: !organizationId || !userId }
   );
 
   const [updateProgress, { isLoading: isUpdating }] = useUpdateOnboardingProgressMutation();
   const [completeTask, { isLoading: isCompletingTask }] = useCompleteOnboardingTaskMutation();
+
+  // Get the first onboarding progress from the response
+  const onboardingProgress = onboardingProgressResponse?.data?.[0] as (OnboardingProgress & { template?: any }) | undefined;
 
   // Sync local state with server data
   useEffect(() => {
@@ -67,13 +70,12 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
         await completeTask({
           organizationId,
           taskId,
-          userId,
         }).unwrap();
       } else {
         // Update progress to remove task
         await updateProgress({
           organizationId,
-          userId,
+          userId: userId!,
           data: { completed_tasks: newCompletedTasks },
         }).unwrap();
       }
@@ -114,10 +116,10 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
     if (!onboardingProgress?.template?.tasks) return 0;
     
     const incompleteTasks = onboardingProgress.template.tasks.filter(
-      task => !localCompletedTasks.includes(task.id)
+      (task: any) => !localCompletedTasks.includes(task.id)
     );
     
-    return incompleteTasks.reduce((total, task) => total + task.estimated_hours, 0);
+    return incompleteTasks.reduce((total: number, task: any) => total + task.estimated_hours, 0);
   };
 
   if (isLoading) {
@@ -203,7 +205,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
         {onboardingProgress.template?.tasks?.length ? (
           <div className="space-y-4">
             {onboardingProgress.template.tasks
-              .sort((a, b) => a.order_index - b.order_index)
+              .sort((a: any, b: any) => a.order_index - b.order_index)
               .map((task: OnboardingTask) => {
                 const isCompleted = localCompletedTasks.includes(task.id);
                 const isDisabled = isUpdating || isCompletingTask;
