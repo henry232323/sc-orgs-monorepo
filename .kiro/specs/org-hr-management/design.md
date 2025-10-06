@@ -572,6 +572,15 @@ interface SkillGap {
 - **Role System Integration**: HR permissions use existing organization role system
 - **Member Lifecycle**: HR processes integrated with organization membership lifecycle
 
+### Navigation and Routing Integration
+- **Main Navigation**: HR dashboard accessible from organization detail pages
+- **Organization Context**: All HR pages maintain organization context in URLs (`/organizations/:spectrumId/hr/*`)
+- **Sidebar Navigation**: HR sections integrated into organization management sidebar
+- **Breadcrumb Navigation**: Consistent breadcrumbs showing organization > HR > specific page
+- **Quick Actions**: HR shortcuts added to organization detail page quick actions
+- **Route Guards**: HR pages protected by organization membership and role requirements
+- **Mobile Navigation**: HR navigation optimized for mobile sidebar experience
+
 ### Package Management and Validation
 - **Yarn Usage**: All package management operations use `yarn` instead of `npm`
 - **OpenAPI Validation**: All input validation handled through OpenAPI specifications for self-validating endpoints

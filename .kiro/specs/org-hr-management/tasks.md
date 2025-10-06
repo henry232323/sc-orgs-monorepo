@@ -275,29 +275,29 @@
     - Test document_library.tsx navigation, upload, and acknowledgment functionality
     - _Requirements: All workflow-related requirements_
 
-- [ ] 11. Integrate HR system with existing SC-Orgs features using RTK Query
-  - [ ] 11.1 Connect HR system with existing notification system using RTK Query patterns
+- [x] 11. Integrate HR system with existing SC-Orgs features using RTK Query
+  - [x] 11.1 Connect HR system with existing notification system using RTK Query patterns
     - Extend existing notification endpoints in apiSlice.ts with HR-specific notification types
     - Add HR workflow notification triggers using existing notification mutation patterns
     - Implement notification preferences using existing useUpdateNotificationPreferencesMutation
     - Create HR notification history using existing useGetNotificationsQuery with HR filtering
     - _Requirements: 1.2, 2.4, 3.6, 4.6, 5.5_
 
-  - [ ] 11.2 Extend organization dashboard with HR metrics using existing patterns
+  - [x] 11.2 Extend organization dashboard with HR metrics using existing patterns
     - Add HR summary cards to existing organization dashboard using useGetHRAnalyticsQuery
     - Integrate HR analytics with existing useGetOrganizationStatsQuery
     - Create HR quick actions following existing organization management button patterns
     - Add HR navigation to existing organization menu using existing routing patterns
     - _Requirements: 7.1, 7.2, 8.2_
 
-  - [ ] 11.3 Connect HR activity tracking with existing event system using RTK Query
+  - [x] 11.3 Connect HR activity tracking with existing event system using RTK Query
     - Link event attendance using existing useGetEventRegistrationsQuery with HR activity tracking
     - Integrate event participation in performance reviews using existing event queries
     - Add HR-relevant analytics using existing useGetEventAnalyticsQuery patterns
     - Create event-based skill verification using existing event and skill mutation patterns
     - _Requirements: 5.1, 5.2, 5.3_
 
-  - [ ] 11.4 Write integration tests for HR system RTK Query connections
+  - [x] 11.4 Write integration tests for HR system RTK Query connections
     - Test notification system integration with HR workflow mutations
     - Write tests for dashboard integration using existing dashboard test patterns
     - Test event system integration with HR activity tracking queries
@@ -354,3 +354,45 @@
     - Test API documentation accuracy and completeness with schema validation
     - Use yarn test commands for running all test suites
     - _Requirements: All API and validation requirements_
+
+- [ ] 14. Implement HR Navigation and Page Integration
+  - [ ] 14.1 Create HR page components with consistent navigation
+    - Create HRDashboardPage.tsx as main HR landing page with organization context using existing Page patterns
+    - Create ApplicationsPage.tsx wrapping ApplicationTracker with proper PageContainer and breadcrumbs
+    - Create PerformancePage.tsx wrapping PerformanceCenter with navigation and organization sidebar
+    - Create SkillsPage.tsx wrapping SkillsMatrix with consistent page structure and navigation
+    - Create DocumentsPage.tsx wrapping DocumentLibrary with proper page layout and breadcrumbs
+    - Use existing PageTitle, SectionTitle typography and PageContainer components for consistency
+    - _Requirements: All navigation and user experience requirements_
+
+  - [ ] 14.2 Add HR routes to main App.tsx with proper organization context
+    - Add HR routes under `/organizations/:spectrumId/hr/*` pattern following existing organization route structure
+    - Implement route guards using existing RequireOrganizationRole patterns for HR access control
+    - Add HR dashboard route as main entry point (`/organizations/:spectrumId/hr`) with proper permissions
+    - Create nested routes for applications, performance, skills, and documents with organization context
+    - Ensure all HR routes maintain organization context and follow existing URL patterns
+    - _Requirements: All routing and access control requirements_
+
+  - [ ] 14.3 Integrate HR navigation into existing organization pages
+    - Extend OrganizationDetail component with HR quick actions following existing OrganizationQuickActions pattern
+    - Add HR navigation section to organization management sidebar using existing SidebarSection patterns
+    - Integrate HR metrics cards into organization stats grid using existing stats display patterns
+    - Implement breadcrumb navigation for HR pages showing organization > HR > specific page hierarchy
+    - Add HR navigation items to mobile sidebar following existing MobileSidebar component patterns
+    - _Requirements: All navigation integration requirements_
+
+  - [ ] 14.4 Create HR-specific navigation components following design system
+    - Create HRSidebar component for HR page navigation using existing Sidebar and SidebarItem patterns
+    - Build HRBreadcrumbs component showing organization context using existing breadcrumb patterns
+    - Implement HRQuickActions component for common HR tasks following existing Button and Paper patterns
+    - Add HRNavigationTabs for switching between HR sections using existing Tabs component with glass styling
+    - Ensure all HR navigation components follow glass morphism design system and cyberpunk color scheme
+    - _Requirements: All navigation component requirements_
+
+  - [ ] 14.5 Write navigation integration tests
+    - Test HR route integration and proper organization context maintenance using existing route test patterns
+    - Write tests for HR navigation components and user interactions following existing component test patterns
+    - Test route guards and permission-based access to HR pages using existing auth test patterns
+    - Test breadcrumb navigation and organization context display with proper navigation flow
+    - Test mobile navigation integration with HR pages using existing mobile test patterns
+    - _Requirements: All navigation testing requirements_

@@ -6,6 +6,7 @@ import {
   useGetOrganizationQuery,
   useGetEventsByOrganizationQuery,
   useDeleteOrganizationMutation,
+  useGetHRAnalyticsQuery,
 } from '../../services/apiSlice';
 import {
   Button,
@@ -30,6 +31,10 @@ import {
   GlobeAltIcon,
   CogIcon,
   StarIcon,
+  BriefcaseIcon,
+  DocumentTextIcon,
+  ChartBarIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import { Organization } from '../../types/organization';
 import { convertCodesToNames } from '../../utils/languageMapping';
@@ -323,32 +328,10 @@ const OrganizationDetail: React.FC<OrganizationDetailProps> = () => {
             </h3>
 
             {/* Organization Stats */}
-            <div className='grid grid-cols-2 gap-4 mb-6'>
-              <div className='text-center p-3 bg-white/5 rounded-lg'>
-                <div className='text-2xl font-bold text-white'>
-                  {organization.total_members || 0}
-                </div>
-                <div className='text-white/60 text-sm'>Members</div>
-              </div>
-              <div className='text-center p-3 bg-white/5 rounded-lg'>
-                <div className='text-2xl font-bold text-white'>
-                  {eventsData?.total || 0}
-                </div>
-                <div className='text-white/60 text-sm'>Events</div>
-              </div>
-              <div className='text-center p-3 bg-white/5 rounded-lg'>
-                <div className='text-2xl font-bold text-white'>
-                  {organization.is_active ? 'Active' : 'Inactive'}
-                </div>
-                <div className='text-white/60 text-sm'>Status</div>
-              </div>
-              <div className='text-center p-3 bg-white/5 rounded-lg'>
-                <div className='text-2xl font-bold text-white'>
-                  {organization.total_upvotes || 0}
-                </div>
-                <div className='text-white/60 text-sm'>Upvotes</div>
-              </div>
-            </div>
+            <OrganizationStatsGrid 
+              organization={organization}
+              eventsTotal={eventsData?.total || 0}
+            />
 
             {/* Event Ratings */}
             <div className='mb-6'>
@@ -460,51 +443,12 @@ const OrganizationDetail: React.FC<OrganizationDetailProps> = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className='space-y-[var(--spacing-element)]'>
-              <div>
-                {spectrum_id ? (
-                  <a
-                    href={`https://robertsspaceindustries.com/en/orgs/${spectrum_id}`}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  >
-                    <Button variant='outline' className='w-full justify-center'>
-                      <GlobeAltIcon className='w-5 h-5 mr-2' />
-                      View RSI Page
-                    </Button>
-                  </a>
-                ) : (
-                  <Button
-                    variant='outline'
-                    className='w-full justify-center'
-                    disabled
-                  >
-                    <GlobeAltIcon className='w-5 h-5 mr-2' />
-                    Loading...
-                  </Button>
-                )}
-              </div>
-              <div>
-                <Button
-                  variant='outline'
-                  className='w-full justify-center'
-                  onClick={() =>
-                    navigate(
-                      `/organizations/${organization?.rsi_org_id || ''}/members`
-                    )
-                  }
-                >
-                  <UserGroupIcon className='w-5 h-5 mr-2' />
-                  View Members
-                </Button>
-              </div>
-              <div>
-                <Button variant='outline' className='w-full justify-center'>
-                  <ClockIcon className='w-5 h-5 mr-2' />
-                  View Events
-                </Button>
-              </div>
-            </div>
+            <OrganizationQuickActions 
+              organization={organization}
+              spectrum_id={spectrum_id}
+              navigate={navigate}
+              user={user}
+            />
           </div>
         </div>
       </Paper>
@@ -718,6 +662,231 @@ const OrganizationDetail: React.FC<OrganizationDetailProps> = () => {
       )}
         </PageContainer>
       </div>
+    </div>
+  );
+};
+
+// Organization Quick Actions Component with HR Integration
+interface OrganizationQuickActionsProps {
+  organization: Organization;
+  spectrum_id: string | undefined;
+  navigate: (path: string) => void;
+  user: any;
+}
+
+const OrganizationQuickActions: React.FC<OrganizationQuickActionsProps> = ({
+  organization,
+  spectrum_id,
+  navigate,
+  user,
+}) => {
+  // Check if user has HR permissions (simplified check)
+  const hasHRAccess = user?.rsi_handle === organization.owner_handle;
+
+  return (
+    <div className='space-y-[var(--spacing-element)]'>
+      {/* Core Actions */}
+      <div>
+        {spectrum_id ? (
+          <a
+            href={`https://robertsspaceindustries.com/en/orgs/${spectrum_id}`}
+            target='_blank'
+            rel='noopener noreferrer'
+          >
+            <Button variant='outline' className='w-full justify-center'>
+              <GlobeAltIcon className='w-5 h-5 mr-2' />
+              View RSI Page
+            </Button>
+          </a>
+        ) : (
+          <Button
+            variant='outline'
+            className='w-full justify-center'
+            disabled
+          >
+            <GlobeAltIcon className='w-5 h-5 mr-2' />
+            Loading...
+          </Button>
+        )}
+      </div>
+      <div>
+        <Button
+          variant='outline'
+          className='w-full justify-center'
+          onClick={() =>
+            navigate(
+              `/organizations/${organization?.rsi_org_id || ''}/members`
+            )
+          }
+        >
+          <UserGroupIcon className='w-5 h-5 mr-2' />
+          View Members
+        </Button>
+      </div>
+      <div>
+        <Button 
+          variant='outline' 
+          className='w-full justify-center'
+          onClick={() => navigate(`/events?org=${organization?.rsi_org_id || ''}`)}
+        >
+          <ClockIcon className='w-5 h-5 mr-2' />
+          View Events
+        </Button>
+      </div>
+
+      {/* HR Actions - Show if user has HR access */}
+      {hasHRAccess && (
+        <>
+          <div className='border-t border-white/10 pt-[var(--spacing-element)]'>
+            <div className='text-sm font-medium text-white/80 mb-2'>HR Management</div>
+          </div>
+          <div>
+            <Button
+              variant='outline'
+              className='w-full justify-center bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20'
+              onClick={() =>
+                navigate(`/organizations/${organization?.rsi_org_id || ''}/hr/applications`)
+              }
+            >
+              <BriefcaseIcon className='w-5 h-5 mr-2 text-blue-400' />
+              <span className='text-blue-300'>Applications</span>
+            </Button>
+          </div>
+          <div>
+            <Button
+              variant='outline'
+              className='w-full justify-center bg-green-500/10 border-green-500/20 hover:bg-green-500/20'
+              onClick={() =>
+                navigate(`/organizations/${organization?.rsi_org_id || ''}/hr/performance`)
+              }
+            >
+              <ChartBarIcon className='w-5 h-5 mr-2 text-green-400' />
+              <span className='text-green-300'>Performance</span>
+            </Button>
+          </div>
+          <div>
+            <Button
+              variant='outline'
+              className='w-full justify-center bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20'
+              onClick={() =>
+                navigate(`/organizations/${organization?.rsi_org_id || ''}/hr/skills`)
+              }
+            >
+              <AcademicCapIcon className='w-5 h-5 mr-2 text-purple-400' />
+              <span className='text-purple-300'>Skills</span>
+            </Button>
+          </div>
+          <div>
+            <Button
+              variant='outline'
+              className='w-full justify-center bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20'
+              onClick={() =>
+                navigate(`/organizations/${organization?.rsi_org_id || ''}/hr/documents`)
+              }
+            >
+              <DocumentTextIcon className='w-5 h-5 mr-2 text-yellow-400' />
+              <span className='text-yellow-300'>Documents</span>
+            </Button>
+          </div>
+          <div>
+            <Button
+              variant='primary'
+              className='w-full justify-center'
+              onClick={() =>
+                navigate(`/organizations/${organization?.rsi_org_id || ''}/hr/dashboard`)
+              }
+            >
+              <ChartBarIcon className='w-5 h-5 mr-2' />
+              HR Dashboard
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// Organization Stats Grid Component with HR Integration
+interface OrganizationStatsGridProps {
+  organization: Organization;
+  eventsTotal: number;
+}
+
+const OrganizationStatsGrid: React.FC<OrganizationStatsGridProps> = ({
+  organization,
+  eventsTotal,
+}) => {
+  // Fetch HR analytics for the organization
+  const { data: hrAnalytics } = useGetHRAnalyticsQuery(
+    { 
+      organizationId: organization.rsi_org_id,
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // Last 30 days
+      endDate: new Date().toISOString()
+    },
+    { skip: !organization.rsi_org_id }
+  );
+
+  return (
+    <div className='grid grid-cols-2 gap-4 mb-6'>
+      {/* Core Organization Stats */}
+      <div className='text-center p-3 bg-white/5 rounded-lg'>
+        <div className='text-2xl font-bold text-white'>
+          {organization.total_members || 0}
+        </div>
+        <div className='text-white/60 text-sm'>Members</div>
+      </div>
+      <div className='text-center p-3 bg-white/5 rounded-lg'>
+        <div className='text-2xl font-bold text-white'>
+          {eventsTotal}
+        </div>
+        <div className='text-white/60 text-sm'>Events</div>
+      </div>
+      
+      {/* HR Stats - Show if HR analytics are available */}
+      {hrAnalytics ? (
+        <>
+          <div className='text-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20'>
+            <div className='text-2xl font-bold text-blue-400'>
+              {hrAnalytics.metrics.applications.total_received || 0}
+            </div>
+            <div className='text-blue-300 text-sm'>Applications</div>
+          </div>
+          <div className='text-center p-3 bg-green-500/10 rounded-lg border border-green-500/20'>
+            <div className='text-2xl font-bold text-green-400'>
+              {Math.round(hrAnalytics.metrics.onboarding.completion_rate * 100) || 0}%
+            </div>
+            <div className='text-green-300 text-sm'>Onboarding Rate</div>
+          </div>
+          <div className='text-center p-3 bg-purple-500/10 rounded-lg border border-purple-500/20'>
+            <div className='text-2xl font-bold text-purple-400'>
+              {hrAnalytics.metrics.performance.reviews_completed || 0}
+            </div>
+            <div className='text-purple-300 text-sm'>Reviews</div>
+          </div>
+          <div className='text-center p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20'>
+            <div className='text-2xl font-bold text-yellow-400'>
+              {hrAnalytics.metrics.skills.total_skills_tracked || 0}
+            </div>
+            <div className='text-yellow-300 text-sm'>Skills Tracked</div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Fallback stats when HR analytics not available */}
+          <div className='text-center p-3 bg-white/5 rounded-lg'>
+            <div className='text-2xl font-bold text-white'>
+              {organization.is_active ? 'Active' : 'Inactive'}
+            </div>
+            <div className='text-white/60 text-sm'>Status</div>
+          </div>
+          <div className='text-center p-3 bg-white/5 rounded-lg'>
+            <div className='text-2xl font-bold text-white'>
+              {organization.total_upvotes || 0}
+            </div>
+            <div className='text-white/60 text-sm'>Upvotes</div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

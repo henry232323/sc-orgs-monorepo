@@ -2232,6 +2232,248 @@ export const apiSlice = createApi({
       keepUnusedDataFor: 120, // Cache search results for 2 minutes
     }),
 
+    // HR Notification endpoints
+    getHRNotifications: builder.query<
+      NotificationListResponse,
+      {
+        organizationId: string;
+        page?: number;
+        limit?: number;
+        is_read?: boolean;
+        hr_type?: 'application' | 'onboarding' | 'performance' | 'skill' | 'document' | 'analytics';
+        sort_by?: string;
+        sort_order?: string;
+      }
+    >({
+      query: ({
+        organizationId,
+        page = 1,
+        limit = 20,
+        is_read,
+        hr_type,
+        sort_by = 'created_at',
+        sort_order = 'desc',
+      }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+          sort_by,
+          sort_order,
+        });
+        if (is_read !== undefined) params.append('is_read', is_read.toString());
+        if (hr_type) params.append('hr_type', hr_type);
+        return `/api/organizations/${organizationId}/notifications/hr?${params.toString()}`;
+      },
+      transformResponse: (
+        response: ApiSuccessResponse<NotificationListResponse>
+      ) => response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'Notification', id: `HR_${organizationId}` },
+        'Notification',
+      ],
+      keepUnusedDataFor: 60, // Cache HR notifications for 1 minute (they change frequently)
+    }),
+
+    createHRNotification: builder.mutation<
+      { success: boolean; message: string },
+      {
+        organizationId: string;
+        entity_type: import('../types/notification').NotificationEntityType;
+        entity_id: string;
+        notifier_ids: string[];
+        title?: string;
+        message?: string;
+        custom_data?: Record<string, any>;
+      }
+    >({
+      query: ({ organizationId, ...data }) => ({
+        url: `/api/organizations/${organizationId}/notifications/hr`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Notification', id: `HR_${organizationId}` },
+        'Notification',
+      ],
+    }),
+
+    markHRNotificationsAsRead: builder.mutation<
+      { updated_count: number },
+      { organizationId: string; notification_ids: string[] }
+    >({
+      query: ({ organizationId, notification_ids }) => ({
+        url: `/api/organizations/${organizationId}/notifications/hr/mark-read`,
+        method: 'POST',
+        body: { notification_ids },
+      }),
+      transformResponse: (
+        response: ApiSuccessResponse<{ updated_count: number }>
+      ) => response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Notification', id: `HR_${organizationId}` },
+        'Notification',
+      ],
+    }),
+
+    updateHRNotificationPreferences: builder.mutation<
+      { message: string },
+      Partial<NotificationPreferences>
+    >({
+      query: data => ({
+        url: '/api/notifications/preferences/hr',
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiMessageResponse) => response,
+      invalidatesTags: ['Notification'],
+    }),
+
+    // HR Event Integration endpoints
+    getHREventAttendance: builder.query<
+      {
+        data: {
+          event_id: string;
+          user_id: string;
+          attended: boolean;
+          attendance_date: string;
+          performance_notes?: string;
+        }[];
+        total: number;
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+        };
+      },
+      { 
+        organizationId: string; 
+        userId?: string; 
+        eventId?: string;
+        page?: number; 
+        limit?: number;
+        startDate?: string;
+        endDate?: string;
+      }
+    >({
+      query: ({ organizationId, userId, eventId, page = 1, limit = 20, startDate, endDate }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        if (userId) params.append('user_id', userId);
+        if (eventId) params.append('event_id', eventId);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        return `/api/organizations/${organizationId}/hr/event-attendance?${params.toString()}`;
+      },
+      transformResponse: (response: ApiSuccessResponse<any>) => response.data,
+      providesTags: (_, __, { organizationId, userId }) => [
+        { type: 'HRAnalytics' as const, id: `${organizationId}-attendance` },
+        ...(userId ? [{ type: 'User' as const, id: userId }] : []),
+      ],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
+    }),
+
+    recordEventAttendance: builder.mutation<
+      { success: boolean; message: string },
+      {
+        organizationId: string;
+        eventId: string;
+        attendanceData: {
+          user_id: string;
+          attended: boolean;
+          performance_notes?: string;
+        }[];
+      }
+    >({
+      query: ({ organizationId, eventId, attendanceData }) => ({
+        url: `/api/organizations/${organizationId}/hr/events/${eventId}/attendance`,
+        method: 'POST',
+        body: { attendance_data: attendanceData },
+      }),
+      invalidatesTags: (_, __, { organizationId, eventId }) => [
+        { type: 'HRAnalytics', id: `${organizationId}-attendance` },
+        { type: 'Event', id: eventId },
+        { type: 'EventRegistrations', id: eventId },
+      ],
+    }),
+
+    getHREventAnalytics: builder.query<
+      {
+        event_participation: {
+          total_events: number;
+          attended_events: number;
+          attendance_rate: number;
+          recent_events: {
+            event_id: string;
+            event_title: string;
+            event_date: string;
+            attended: boolean;
+            performance_rating?: number;
+          }[];
+        };
+        skill_development: {
+          skills_demonstrated: string[];
+          skill_verifications_earned: number;
+          training_events_attended: number;
+        };
+        performance_correlation: {
+          attendance_vs_performance: {
+            high_attendance_high_performance: number;
+            high_attendance_low_performance: number;
+            low_attendance_high_performance: number;
+            low_attendance_low_performance: number;
+          };
+        };
+      },
+      { 
+        organizationId: string; 
+        userId?: string;
+        startDate?: string;
+        endDate?: string;
+      }
+    >({
+      query: ({ organizationId, userId, startDate, endDate }) => {
+        const params = new URLSearchParams();
+        if (userId) params.append('user_id', userId);
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        const queryString = params.toString();
+        return `/api/organizations/${organizationId}/hr/event-analytics${queryString ? `?${queryString}` : ''}`;
+      },
+      transformResponse: (response: ApiSuccessResponse<any>) => response.data,
+      providesTags: (_, __, { organizationId, userId }) => [
+        { type: 'HRAnalytics' as const, id: `${organizationId}-event-analytics` },
+        ...(userId ? [{ type: 'User' as const, id: userId }] : []),
+      ],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
+    }),
+
+    createEventBasedSkillVerification: builder.mutation<
+      { success: boolean; message: string; verification_id: string },
+      {
+        organizationId: string;
+        eventId: string;
+        userId: string;
+        skillId: string;
+        proficiencyLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+        verificationNotes?: string;
+      }
+    >({
+      query: ({ organizationId, eventId, ...data }) => ({
+        url: `/api/organizations/${organizationId}/hr/events/${eventId}/skill-verification`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: (_, __, { organizationId, userId }) => [
+        { type: 'Skill' as const, id: `${organizationId}-${userId}` },
+        { type: 'HRAnalytics' as const, id: `${organizationId}-skills` },
+        { type: 'User' as const, id: userId },
+      ],
+    }),
+
     // Reputation System endpoints
     searchPlayers: builder.query<
       import('../types/reputation').PlayerSearchResponse,
@@ -2872,4 +3114,16 @@ export const {
   useUploadDocumentMutation,
   useAcknowledgeDocumentMutation,
   useSearchDocumentsQuery,
+  
+  // HR Notification hooks
+  useGetHRNotificationsQuery,
+  useCreateHRNotificationMutation,
+  useMarkHRNotificationsAsReadMutation,
+  useUpdateHRNotificationPreferencesMutation,
+  
+  // HR Event Integration hooks
+  useGetHREventAttendanceQuery,
+  useRecordEventAttendanceMutation,
+  useGetHREventAnalyticsQuery,
+  useCreateEventBasedSkillVerificationMutation,
 } = apiSlice;

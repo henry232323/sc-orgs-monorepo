@@ -19,6 +19,7 @@ import {
   useAddUserSkillMutation,
   useVerifySkillMutation,
   useGetSkillsAnalyticsQuery,
+  useGetHREventAnalyticsQuery,
 } from '../../services/apiSlice';
 import type { Skill, UserSkill, CreateSkillData, CreateUserSkillData, SkillFilters } from '../../types/hr';
 import {
@@ -72,6 +73,13 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
 
   const { data: analyticsData } = useGetSkillsAnalyticsQuery({
     organizationId,
+  });
+
+  // Get HR event analytics for skill development tracking
+  const { data: eventAnalytics } = useGetHREventAnalyticsQuery({
+    organizationId,
+    startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // Last 90 days
+    endDate: new Date().toISOString(),
   });
 
   // Mutations
@@ -262,6 +270,66 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             </ComponentSubtitle>
           </Paper>
         </div>
+      )}
+
+      {/* Event-Based Skill Development */}
+      {eventAnalytics && (
+        <Paper variant='glass' size='lg'>
+          <ComponentTitle className='mb-[var(--spacing-card-lg)]'>
+            Event-Based Skill Development
+          </ComponentTitle>
+          
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-[var(--gap-grid-md)] mb-6'>
+            <Paper variant='glass-subtle' size='md' className='text-center'>
+              <AcademicCapIcon className='w-8 h-8 text-blue-400 mx-auto mb-3' />
+              <StatMedium className='mb-1 text-blue-300'>
+                {eventAnalytics.skill_development.skill_verifications_earned}
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                Skills Verified via Events
+              </ComponentSubtitle>
+            </Paper>
+            
+            <Paper variant='glass-subtle' size='md' className='text-center'>
+              <CheckBadgeIcon className='w-8 h-8 text-green-400 mx-auto mb-3' />
+              <StatMedium className='mb-1 text-green-300'>
+                {eventAnalytics.skill_development.training_events_attended}
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                Training Events Attended
+              </ComponentSubtitle>
+            </Paper>
+            
+            <Paper variant='glass-subtle' size='md' className='text-center'>
+              <StarIcon className='w-8 h-8 text-purple-400 mx-auto mb-3' />
+              <StatMedium className='mb-1 text-purple-300'>
+                {eventAnalytics.skill_development.skills_demonstrated.length}
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                Skills Demonstrated
+              </ComponentSubtitle>
+            </Paper>
+          </div>
+
+          {/* Skills Demonstrated in Events */}
+          {eventAnalytics.skill_development.skills_demonstrated.length > 0 && (
+            <div>
+              <ComponentSubtitle className='mb-4'>Skills Demonstrated in Recent Events</ComponentSubtitle>
+              <div className='flex flex-wrap gap-2'>
+                {eventAnalytics.skill_development.skills_demonstrated.map((skill, index) => (
+                  <Chip
+                    key={index}
+                    variant='status'
+                    size='sm'
+                    className='bg-brand-secondary/20 text-brand-secondary'
+                  >
+                    {skill}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          )}
+        </Paper>
       )}
 
       {/* Filters */}

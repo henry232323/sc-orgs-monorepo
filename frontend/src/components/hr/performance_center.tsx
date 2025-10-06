@@ -16,6 +16,7 @@ import {
   useGetPerformanceReviewsQuery,
   useCreatePerformanceReviewMutation,
   useGetPerformanceAnalyticsQuery,
+  useGetHREventAnalyticsQuery,
 } from '../../services/apiSlice';
 import type { PerformanceReview, CreatePerformanceReviewData } from '../../types/hr';
 import {
@@ -63,6 +64,13 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
 
   const { data: analyticsData } = useGetPerformanceAnalyticsQuery({
     organizationId,
+  });
+
+  // Get HR event analytics for performance correlation
+  const { data: eventAnalytics } = useGetHREventAnalyticsQuery({
+    organizationId,
+    startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // Last 90 days
+    endDate: new Date().toISOString(),
   });
 
   // Mutations
@@ -237,6 +245,82 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
             </ComponentSubtitle>
           </Paper>
         </div>
+      )}
+
+      {/* Event Participation Analytics */}
+      {eventAnalytics && (
+        <Paper variant='glass' size='lg'>
+          <ComponentTitle className='mb-[var(--spacing-card-lg)]'>
+            Event Participation & Performance Correlation
+          </ComponentTitle>
+          
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-[var(--gap-grid-md)] mb-6'>
+            <Paper variant='glass-subtle' size='md' className='text-center'>
+              <CalendarIcon className='w-8 h-8 text-blue-400 mx-auto mb-3' />
+              <StatMedium className='mb-1 text-blue-300'>
+                {eventAnalytics.event_participation.attendance_rate.toFixed(0)}%
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                Event Attendance Rate
+              </ComponentSubtitle>
+            </Paper>
+            
+            <Paper variant='glass-subtle' size='md' className='text-center'>
+              <TrophyIcon className='w-8 h-8 text-green-400 mx-auto mb-3' />
+              <StatMedium className='mb-1 text-green-300'>
+                {eventAnalytics.skill_development.skill_verifications_earned}
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                Skills Verified via Events
+              </ComponentSubtitle>
+            </Paper>
+            
+            <Paper variant='glass-subtle' size='md' className='text-center'>
+              <UserIcon className='w-8 h-8 text-purple-400 mx-auto mb-3' />
+              <StatMedium className='mb-1 text-purple-300'>
+                {eventAnalytics.performance_correlation.attendance_vs_performance.high_attendance_high_performance}
+              </StatMedium>
+              <ComponentSubtitle className='text-tertiary'>
+                High Attendance + Performance
+              </ComponentSubtitle>
+            </Paper>
+          </div>
+
+          {/* Recent Event Participation */}
+          {eventAnalytics.event_participation.recent_events.length > 0 && (
+            <div>
+              <ComponentSubtitle className='mb-4'>Recent Event Participation</ComponentSubtitle>
+              <div className='space-y-3'>
+                {eventAnalytics.event_participation.recent_events.slice(0, 5).map((event, index) => (
+                  <div key={index} className='flex items-center justify-between p-3 bg-white/5 rounded-lg'>
+                    <div className='flex items-center space-x-3'>
+                      <div className={`w-3 h-3 rounded-full ${event.attended ? 'bg-green-400' : 'bg-red-400'}`} />
+                      <div>
+                        <div className='text-white font-medium'>{event.event_title}</div>
+                        <div className='text-white/60 text-sm'>
+                          {new Date(event.event_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className='flex items-center space-x-2'>
+                      {event.performance_rating && (
+                        <div className='flex items-center space-x-1'>
+                          <StarIcon className='w-4 h-4 text-yellow-400' />
+                          <span className='text-yellow-300 text-sm'>{event.performance_rating}/5</span>
+                        </div>
+                      )}
+                      <span className={`text-sm px-2 py-1 rounded ${
+                        event.attended ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                      }`}>
+                        {event.attended ? 'Attended' : 'Missed'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Paper>
       )}
 
       {/* Reviews List */}

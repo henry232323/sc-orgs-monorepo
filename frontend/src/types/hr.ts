@@ -379,3 +379,62 @@ export interface DocumentFilters {
   access_roles?: string[];
   file_type?: string;
 }
+
+// HR Event Integration Types
+export interface HREventAttendance {
+  id: string;
+  event_id: string;
+  user_id: string;
+  organization_id: string;
+  attended: boolean;
+  attendance_date: string;
+  performance_notes?: string;
+  skill_demonstrations?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventAttendanceData {
+  user_id: string;
+  attended: boolean;
+  performance_notes?: string;
+  skill_demonstrations?: string[];
+}
+
+export interface HREventAnalytics {
+  event_participation: {
+    total_events: number;
+    attended_events: number;
+    attendance_rate: number;
+    recent_events: {
+      event_id: string;
+      event_title: string;
+      event_date: string;
+      attended: boolean;
+      performance_rating?: number;
+    }[];
+  };
+  skill_development: {
+    skills_demonstrated: string[];
+    skill_verifications_earned: number;
+    training_events_attended: number;
+  };
+  performance_correlation: {
+    attendance_vs_performance: {
+      high_attendance_high_performance: number;
+      high_attendance_low_performance: number;
+      low_attendance_high_performance: number;
+      low_attendance_low_performance: number;
+    };
+  };
+}
+
+export interface EventBasedSkillVerification {
+  event_id: string;
+  user_id: string;
+  skill_id: string;
+  proficiency_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  verification_notes?: string;
+  verified_by: string;
+  verification_date: string;
+}

@@ -13,6 +13,9 @@ import {
   ClockIcon,
   PencilIcon,
   ChatBubbleLeftRightIcon,
+  BriefcaseIcon,
+  AcademicCapIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 
 // Components we'll create
@@ -24,6 +27,12 @@ import OrganizationAnalytics from '../components/organizations/OrganizationAnaly
 import RecentActivity from '../components/organizations/RecentActivity';
 import OrganizationEdit from '../components/organizations/OrganizationEdit';
 import { DiscordServersList } from '../components/discord';
+// HR Components
+import HRDashboard from '../components/hr/hr_dashboard';
+import ApplicationTracker from '../components/hr/application_tracker';
+import PerformanceCenter from '../components/hr/performance_center';
+import SkillsMatrix from '../components/hr/skills_matrix';
+import DocumentLibrary from '../components/hr/document_library';
 
 const OrganizationManagementPage: React.FC = () => {
   const { spectrumId } = useParams<{ spectrumId: string }>();
@@ -136,6 +145,32 @@ const OrganizationManagementPage: React.FC = () => {
       name: 'Discord',
       icon: ChatBubbleLeftRightIcon,
       component: <DiscordServersList organizationId={organization?.rsi_org_id!} />,
+    },
+    // HR Management Tabs
+    {
+      name: 'HR Dashboard',
+      icon: ChartBarIcon,
+      component: <HRDashboard organizationId={organization?.rsi_org_id!} />,
+    },
+    {
+      name: 'Applications',
+      icon: BriefcaseIcon,
+      component: <ApplicationTracker organizationId={organization?.rsi_org_id!} />,
+    },
+    {
+      name: 'Performance',
+      icon: ChartBarIcon,
+      component: <PerformanceCenter organizationId={organization?.rsi_org_id!} />,
+    },
+    {
+      name: 'Skills',
+      icon: AcademicCapIcon,
+      component: <SkillsMatrix organizationId={organization?.rsi_org_id!} />,
+    },
+    {
+      name: 'Documents',
+      icon: DocumentTextIcon,
+      component: <DocumentLibrary />,
     },
   ];
 
