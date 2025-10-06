@@ -28,9 +28,12 @@
     "docker:db:reset": "docker-compose down -v && docker-compose up -d postgres && yarn db:migrate && yarn db:seed"
   },
   "dependencies": {
+    "@types/ajv": "^1.0.4",
     "@types/express-session": "^1.18.2",
     "@types/node-cron": "^3.0.11",
     "@wesleytodd/openapi": "git+https://github.com/erikjuhani/express-openapi.git#express-openapi-types",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.1.2",

@@ -331,8 +331,8 @@
     - Test event system integration with HR metrics and skill verification
     - _Requirements: All integration-related requirements_
 
-- [ ] 13. Add HR system API documentation and validation with OpenAPI
-  - [ ] 13.1 Create comprehensive OpenAPI specifications for all HR endpoints
+- [x] 13. Add HR system API documentation and validation with OpenAPI
+  - [x] 13.1 Create comprehensive OpenAPI specifications for all HR endpoints
     - Document all HR API endpoints with request/response schemas using existing OpenAPI patterns
     - Add validation rules and error response documentation following existing API documentation standards
     - Create example requests and responses for each endpoint with proper schema validation
@@ -340,7 +340,7 @@
     - Use yarn commands for all package management operations (yarn add, yarn install, yarn build)
     - _Requirements: All API-related requirements_
 
-  - [ ] 13.2 Implement OpenAPI-driven validation for HR endpoints
+  - [x] 13.2 Implement OpenAPI-driven validation for HR endpoints
     - Add OpenAPI request validation middleware for all HR controllers following existing patterns
     - Create custom validation schemas for HR-specific data types using OpenAPI specifications
     - Implement sanitization through OpenAPI schema validation
@@ -348,7 +348,7 @@
     - Ensure all validation is handled through self-validating OpenAPI specifications
     - _Requirements: All security and validation requirements_
 
-  - [ ] 13.3 Write comprehensive API integration tests for HR system
+  - [x] 13.3 Write comprehensive API integration tests for HR system
     - Test all HR endpoints with various input scenarios using existing API test patterns
     - Write tests for OpenAPI validation and error handling
     - Test API documentation accuracy and completeness with schema validation

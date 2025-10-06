@@ -7,6 +7,8 @@ import { requireLogin } from '../middleware/auth';
 import { requireOrganizationPermission, requireOrganizationAnalyticsPermission } from '../middleware/permissions';
 import { recordOrganizationView } from '../middleware/view_tracking';
 import { resolveOrganization } from '../middleware/organization_resolver';
+import { validateHRRequest, sanitizeRequest } from '../middleware/openapi_validation';
+import { applicationRateLimit, hrOperationsRateLimit, analyticsRateLimit, bulkOperationsRateLimit, loggedRateLimit } from '../middleware/hr_rate_limit';
 import { oapi } from './openapi_routes';
 
 const router: Router = Router();
@@ -1945,11 +1947,380 @@ import { HRPerformanceController } from '../controllers/hr_performance_controlle
 import { HRSkillController } from '../controllers/hr_skill_controller';
 // HR Document routes
 import { HRDocumentController } from '../controllers/hr_document_controller';
+// HR Application routes
+import { HRApplicationController } from '../controllers/hr_application_controller';
 
 const hrOnboardingController = new HROnboardingController();
 const hrPerformanceController = new HRPerformanceController();
 const hrSkillController = new HRSkillController();
 const hrDocumentController = new HRDocumentController();
+const hrApplicationController = new HRApplicationController();
+
+// HR Application Management routes
+
+// Submit application
+router.post('/:id/applications',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Submit application',
+    description: 'Submit a new application to an organization',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CreateApplicationRequest' }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: 'Application submitted successfully',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ApplicationResponse' }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/ValidationError' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      409: {
+        description: 'Application already exists',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/Error' }
+          }
+        }
+      },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  loggedRateLimit(applicationRateLimit),
+  sanitizeRequest(),
+  validateHRRequest('createApplication'),
+  hrApplicationController.submitApplication.bind(hrApplicationController)
+);
+
+// List applications
+router.get('/:id/applications',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'List applications',
+    description: 'Get applications for an organization with filtering and pagination',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'status',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['pending', 'under_review', 'interview_scheduled', 'approved', 'rejected']
+        },
+        description: 'Filter by application status'
+      },
+      {
+        name: 'reviewer_id',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by reviewer ID'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Applications list',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ApplicationListResponse' }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  loggedRateLimit(hrOperationsRateLimit),
+  hrApplicationController.listApplications.bind(hrApplicationController)
+);
+
+// Get specific application
+router.get('/:id/applications/:applicationId',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Get application',
+    description: 'Get a specific application by ID',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'applicationId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Application ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Application details',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ApplicationResponse' }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  hrApplicationController.getApplication.bind(hrApplicationController)
+);
+
+// Update application status
+router.put('/:id/applications/:applicationId/status',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Update application status',
+    description: 'Update the status of an application',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'applicationId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Application ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/UpdateApplicationStatusRequest' }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Application status updated',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ApplicationResponse' }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/ValidationError' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  sanitizeRequest(),
+  validateHRRequest('updateApplicationStatus'),
+  hrApplicationController.updateApplicationStatus.bind(hrApplicationController)
+);
+
+// Bulk update applications
+router.post('/:id/applications/bulk-update',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Bulk update applications',
+    description: 'Update multiple applications at once',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            properties: {
+              application_ids: {
+                type: 'array' as const,
+                items: { type: 'string' as const },
+                minItems: 1,
+                description: 'Application IDs to update'
+              },
+              status: {
+                type: 'string' as const,
+                enum: ['pending', 'under_review', 'interview_scheduled', 'approved', 'rejected'],
+                description: 'New status for all applications'
+              },
+              review_notes: {
+                type: 'string' as const,
+                maxLength: 1000,
+                description: 'Review notes for all applications'
+              }
+            },
+            required: ['application_ids', 'status']
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Applications updated successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    updated_count: { type: 'integer' as const },
+                    failed_count: { type: 'integer' as const }
+                  }
+                },
+                message: { type: 'string' as const }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/ValidationError' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationPermission('MANAGE_MEMBERS'),
+  loggedRateLimit(bulkOperationsRateLimit),
+  sanitizeRequest(),
+  hrApplicationController.bulkUpdateApplications.bind(hrApplicationController)
+);
+
+// Get application analytics
+router.get('/:id/applications/analytics',
+  oapi.path({
+    tags: ['HR Management'],
+    summary: 'Get application analytics',
+    description: 'Get application analytics and statistics',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization ID'
+      },
+      {
+        name: 'period_days',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 365, default: 30 },
+        description: 'Number of days to analyze'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Application analytics',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    total_applications: { type: 'integer' as const },
+                    approval_rate: { type: 'number' as const },
+                    average_processing_time_days: { type: 'number' as const },
+                    applications_by_status: {
+                      type: 'object' as const,
+                      properties: {
+                        pending: { type: 'integer' as const },
+                        under_review: { type: 'integer' as const },
+                        interview_scheduled: { type: 'integer' as const },
+                        approved: { type: 'integer' as const },
+                        rejected: { type: 'integer' as const }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  loggedRateLimit(analyticsRateLimit),
+  hrApplicationController.getAnalytics.bind(hrApplicationController)
+);
 
 // Onboarding template management
 router.get('/:id/onboarding/templates',
@@ -2071,6 +2442,8 @@ router.post('/:id/onboarding/templates',
   requireLogin as any,
   resolveOrganization,
   requireOrganizationPermission('MANAGE_MEMBERS'),
+  sanitizeRequest(),
+  validateHRRequest('createOnboardingTemplate'),
   hrOnboardingController.createTemplate.bind(hrOnboardingController)
 );
 
@@ -2758,6 +3131,8 @@ router.post('/:id/performance/reviews',
   requireLogin as any,
   resolveOrganization,
   requireOrganizationPermission('MANAGE_MEMBERS'),
+  sanitizeRequest(),
+  validateHRRequest('createPerformanceReview'),
   hrPerformanceController.createReview.bind(hrPerformanceController)
 );
 

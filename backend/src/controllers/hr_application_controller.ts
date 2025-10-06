@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { HRApplicationModel } from '../models/hr_application_model';
 import { getUserFromRequest } from '../utils/user-casting';
+import { validateHRRequest, sanitizeRequest } from '../middleware/openapi_validation';
 import logger from '../config/logger';
 
 const applicationModel = new HRApplicationModel();
@@ -603,6 +604,104 @@ export class HRApplicationController {
       res.status(500).json({
         success: false,
         error: 'Failed to generate invite code',
+      });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/applications/analytics
+   * Get application analytics
+   */
+  async getAnalytics(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const user = getUserFromRequest(req);
+      const { period_days = 30 } = req.query;
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      // Check if user has permission to view analytics
+      const hasAccess = await this.hasOrganizationAccess(organization.id, user.id);
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to view application analytics',
+        });
+        return;
+      }
+
+      const periodDays = parseInt(period_days as string) || 30;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - periodDays);
+
+      // Get application statistics
+      const stats = await applicationModel.getApplicationStats(organization.id);
+      
+      // Get all applications for analytics (we'll filter by date in memory for now)
+      const applications = await applicationModel.list(organization.id, {
+        limit: 1000,
+        offset: 0
+      });
+
+      // Filter by date range
+      const filteredApplications = applications.data.filter(app => {
+        const createdAt = new Date(app.created_at);
+        return createdAt >= startDate && createdAt <= endDate;
+      });
+
+      // Calculate analytics
+      const totalApplications = filteredApplications.length;
+      const approvedCount = filteredApplications.filter(app => app.status === 'approved').length;
+      const rejectedCount = filteredApplications.filter(app => app.status === 'rejected').length;
+      const approvalRate = totalApplications > 0 ? approvedCount / totalApplications : 0;
+
+      // Calculate average processing time
+      const processedApplications = filteredApplications.filter(app => 
+        app.status === 'approved' || app.status === 'rejected'
+      );
+      const avgProcessingTime = processedApplications.length > 0 
+        ? processedApplications.reduce((sum, app) => {
+            const processingTime = new Date(app.updated_at).getTime() - new Date(app.created_at).getTime();
+            return sum + (processingTime / (1000 * 60 * 60 * 24)); // Convert to days
+          }, 0) / processedApplications.length
+        : 0;
+
+      const analytics = {
+        total_applications: totalApplications,
+        approval_rate: approvalRate,
+        average_processing_time_days: avgProcessingTime,
+        applications_by_status: {
+          pending: filteredApplications.filter(app => app.status === 'pending').length,
+          under_review: filteredApplications.filter(app => app.status === 'under_review').length,
+          interview_scheduled: filteredApplications.filter(app => app.status === 'interview_scheduled').length,
+          approved: approvedCount,
+          rejected: rejectedCount
+        }
+      };
+
+      res.json({
+        success: true,
+        data: analytics
+      });
+
+      logger.info('Application analytics retrieved', {
+        organizationId: organization.id,
+        userId: user.id,
+        periodDays,
+        totalApplications
+      });
+    } catch (error) {
+      logger.error('Error getting application analytics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get application analytics',
       });
     }
   }

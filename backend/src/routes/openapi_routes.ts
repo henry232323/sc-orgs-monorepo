@@ -11,6 +11,7 @@ import * as commentSchemas from '../schemas/comment';
 import * as roleSchemas from '../schemas/role';
 import * as notificationSchemas from '../schemas/notification';
 import * as discordSchemas from '../schemas/discord';
+import * as hrSchemas from '../schemas/hr';
 
 const router: Router = Router();
 
@@ -145,7 +146,39 @@ const document: OpenAPIV3.Document = {
       DiscordSyncStatsResponse: discordSchemas.DiscordSyncStatsResponseSchema,
       DiscordHealthCheckResponse: discordSchemas.DiscordHealthCheckResponseSchema,
       SyncEventsRequest: discordSchemas.SyncEventsRequestSchema,
-      WebhookResponse: discordSchemas.WebhookResponseSchema
+      WebhookResponse: discordSchemas.WebhookResponseSchema,
+      
+      // HR Management schemas
+      Application: hrSchemas.ApplicationSchema,
+      CreateApplicationRequest: hrSchemas.CreateApplicationRequestSchema,
+      UpdateApplicationStatusRequest: hrSchemas.UpdateApplicationStatusRequestSchema,
+      ApplicationListResponse: hrSchemas.ApplicationListResponseSchema,
+      ApplicationResponse: hrSchemas.ApplicationResponseSchema,
+      
+      OnboardingTask: hrSchemas.OnboardingTaskSchema,
+      OnboardingTemplate: hrSchemas.OnboardingTemplateSchema,
+      OnboardingProgress: hrSchemas.OnboardingProgressSchema,
+      CreateOnboardingTemplateRequest: hrSchemas.CreateOnboardingTemplateRequestSchema,
+      OnboardingTemplateResponse: hrSchemas.OnboardingTemplateResponseSchema,
+      OnboardingProgressResponse: hrSchemas.OnboardingProgressResponseSchema,
+      
+      PerformanceGoal: hrSchemas.PerformanceGoalSchema,
+      PerformanceReview: hrSchemas.PerformanceReviewSchema,
+      CreatePerformanceReviewRequest: hrSchemas.CreatePerformanceReviewRequestSchema,
+      PerformanceReviewResponse: hrSchemas.PerformanceReviewResponseSchema,
+      
+      Skill: hrSchemas.SkillSchema,
+      UserSkill: hrSchemas.UserSkillSchema,
+      Certification: hrSchemas.CertificationSchema,
+      SkillListResponse: hrSchemas.SkillListResponseSchema,
+      
+      Document: hrSchemas.DocumentSchema,
+      CreateDocumentRequest: hrSchemas.CreateDocumentRequestSchema,
+      DocumentResponse: hrSchemas.DocumentResponseSchema,
+      
+      HRAnalytics: hrSchemas.HRAnalyticsSchema,
+      HRAnalyticsResponse: hrSchemas.HRAnalyticsResponseSchema,
+      OnboardingAnalytics: hrSchemas.OnboardingAnalyticsSchema
     },
     securitySchemes: {
       bearerAuth: {
@@ -162,6 +195,14 @@ const document: OpenAPIV3.Document = {
       }
     },
     responses: {
+      BadRequest: {
+        description: 'Bad Request',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ValidationError' }
+          }
+        }
+      },
       ValidationError: {
         description: 'Validation error',
         content: {
@@ -236,6 +277,10 @@ const document: OpenAPIV3.Document = {
     {
       name: 'Discord',
       description: 'Discord integration endpoints'
+    },
+    {
+      name: 'HR Management',
+      description: 'Human Resources management endpoints for organizations'
     }
   ]
 }
