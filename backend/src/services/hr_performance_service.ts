@@ -1,6 +1,8 @@
 import { HRPerformanceModel, HRPerformanceReview, HRPerformanceReviewWithUserInfo } from '../models/hr_performance_model';
 import { NotificationService } from './notification_service';
+import { ActivityService } from './activity_service';
 import { NotificationEntityType } from '../types/notification';
+import db from '../config/database';
 import logger from '../config/logger';
 
 export interface PerformanceAnalytics {
@@ -55,10 +57,12 @@ export interface ImprovementPlan {
 export class HRPerformanceService {
   private performanceModel: HRPerformanceModel;
   private notificationService: NotificationService;
+  private activityService: ActivityService;
 
   constructor() {
     this.performanceModel = new HRPerformanceModel();
     this.notificationService = new NotificationService();
+    this.activityService = new ActivityService();
   }
 
   /**
@@ -601,7 +605,7 @@ export class HRPerformanceService {
 
       // Notify organization leadership about overdue reviews
       await this.notificationService.createCustomEventNotification(
-        NotificationEntityType.ORGANIZATION_UPDATED,
+        NotificationEntityType.HR_PERFORMANCE_REVIEW_DUE,
         organizationId,
         'system',
         [organization.owner_id],
@@ -639,7 +643,7 @@ export class HRPerformanceService {
 
       // Notify organization leadership about upcoming reviews
       await this.notificationService.createCustomEventNotification(
-        NotificationEntityType.ORGANIZATION_UPDATED,
+        NotificationEntityType.HR_PERFORMANCE_REVIEW_DUE,
         organizationId,
         'system',
         [organization.owner_id],
@@ -677,7 +681,7 @@ export class HRPerformanceService {
 
       // Notify organization leadership about reviews due in 30 days
       await this.notificationService.createCustomEventNotification(
-        NotificationEntityType.ORGANIZATION_UPDATED,
+        NotificationEntityType.HR_PERFORMANCE_REVIEW_DUE,
         organizationId,
         'system',
         [organization.owner_id],
@@ -704,7 +708,7 @@ export class HRPerformanceService {
   private async notifyReviewCompleted(review: HRPerformanceReview): Promise<void> {
     try {
       await this.notificationService.createCustomEventNotification(
-        NotificationEntityType.ORGANIZATION_UPDATED,
+        NotificationEntityType.HR_PERFORMANCE_REVIEW_SUBMITTED,
         review.organization_id,
         review.reviewer_id,
         [review.reviewee_id],
@@ -744,7 +748,7 @@ export class HRPerformanceService {
 
       if (notifierIds.length > 0) {
         await this.notificationService.createCustomEventNotification(
-          NotificationEntityType.ORGANIZATION_UPDATED,
+          NotificationEntityType.HR_PERFORMANCE_REVIEW_SUBMITTED,
           review.organization_id,
           submitterId,
           notifierIds,
@@ -879,5 +883,119 @@ export class HRPerformanceService {
       .join('\n');
 
     return csvContent;
+  }
+
+  /**
+   * Link event attendance data with HR performance metrics
+   */
+  async linkEventAttendanceToPerformance(
+    organizationId: string,
+    userId: string,
+    reviewPeriodStart: Date,
+    reviewPeriodEnd: Date
+  ): Promise<{
+    events_attended: number;
+    events_registered: number;
+    attendance_rate: number;
+    event_participation_score: number;
+  }> {
+    try {
+      // Get events for the organization during the review period
+      const organizationEvents = await db('events')
+        .where('organization_id', organizationId)
+        .where('start_time', '>=', reviewPeriodStart)
+        .where('start_time', '<=', reviewPeriodEnd)
+        .where('is_active', true);
+
+      if (organizationEvents.length === 0) {
+        return {
+          events_attended: 0,
+          events_registered: 0,
+          attendance_rate: 0,
+          event_participation_score: 0,
+        };
+      }
+
+      const eventIds = organizationEvents.map(event => event.id);
+
+      // Get user's event registrations during the period
+      const registrations = await db('event_registrations')
+        .whereIn('event_id', eventIds)
+        .where('user_id', userId);
+
+      const eventsRegistered = registrations.length;
+
+      // For now, we'll consider all registrations as attended
+      // In a full implementation, you'd track actual attendance
+      const eventsAttended = registrations.filter(reg => reg.status === 'confirmed').length;
+
+      const attendanceRate = eventsRegistered > 0 ? (eventsAttended / eventsRegistered) * 100 : 0;
+
+      // Calculate participation score based on attendance rate and frequency
+      const totalOrgEvents = organizationEvents.length;
+      const participationFrequency = totalOrgEvents > 0 ? (eventsRegistered / totalOrgEvents) * 100 : 0;
+      const eventParticipationScore = (attendanceRate * 0.7) + (participationFrequency * 0.3);
+
+      return {
+        events_attended: eventsAttended,
+        events_registered: eventsRegistered,
+        attendance_rate: Math.round(attendanceRate * 100) / 100,
+        event_participation_score: Math.round(eventParticipationScore * 100) / 100,
+      };
+    } catch (error) {
+      logger.error('Error linking event attendance to performance:', error);
+      return {
+        events_attended: 0,
+        events_registered: 0,
+        attendance_rate: 0,
+        event_participation_score: 0,
+      };
+    }
+  }
+
+  /**
+   * Integrate event participation in performance review data
+   */
+  async integrateEventParticipationInReview(
+    reviewId: string
+  ): Promise<HRPerformanceReview | null> {
+    try {
+      const review = await this.performanceModel.findReviewById(reviewId);
+      if (!review) {
+        return null;
+      }
+
+      // Get event participation data for the review period
+      const eventParticipation = await this.linkEventAttendanceToPerformance(
+        review.organization_id,
+        review.reviewee_id,
+        review.review_period_start,
+        review.review_period_end
+      );
+
+      // Update the review with event participation data
+      const updatedReview = await this.performanceModel.updateReview(reviewId, {
+        ratings: {
+          ...review.ratings,
+          event_participation: {
+            score: Math.min(5, Math.max(1, Math.round(eventParticipation.event_participation_score / 20))), // Convert to 1-5 scale
+            comments: `Attended ${eventParticipation.events_attended} out of ${eventParticipation.events_registered} registered events (${eventParticipation.attendance_rate}% attendance rate)`,
+          },
+        },
+      });
+
+      logger.info('Event participation integrated into performance review', {
+        reviewId,
+        userId: review.reviewee_id,
+        organizationId: review.organization_id,
+        eventsAttended: eventParticipation.events_attended,
+        attendanceRate: eventParticipation.attendance_rate,
+      });
+
+      return updatedReview;
+    } catch (error) {
+      logger.error('Error integrating event participation in review:', error);
+      return null;
+    }
   }
 }

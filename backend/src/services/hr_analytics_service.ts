@@ -1,7 +1,15 @@
 import db from '../config/database';
 import { HRAnalyticsMetrics, HRAlert, AlertThreshold } from '../models/hr_analytics_model';
+import { NotificationService } from './notification_service';
+import { NotificationEntityType } from '../types/notification';
+import logger from '../config/logger';
 
 export class HRAnalyticsService {
+  private notificationService: NotificationService;
+
+  constructor() {
+    this.notificationService = new NotificationService();
+  }
   /**
    * Check if user has access to organization analytics
    */
@@ -466,10 +474,69 @@ export class HRAnalyticsService {
       const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       recommendations.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
 
+      // Send notifications for high priority recommendations
+      await this.sendAnalyticsAlerts(organizationId, recommendations.filter(r => r.priority === 'high'));
+
       return recommendations;
     } catch (error) {
       console.error('Error generating recommendations:', error);
       return [];
+    }
+  }
+
+  /**
+   * Send analytics alerts for high priority issues
+   */
+  private async sendAnalyticsAlerts(
+    organizationId: string,
+    highPriorityRecommendations: any[]
+  ): Promise<void> {
+    try {
+      if (highPriorityRecommendations.length === 0) {
+        return;
+      }
+
+      // Import here to avoid circular dependencies
+      const { OrganizationModel } = await import('../models/organization_model');
+      const organizationModel = new OrganizationModel();
+
+      const organization = await organizationModel.findById(organizationId);
+      if (!organization) {
+        logger.warn('Organization not found for analytics alert', { organizationId });
+        return;
+      }
+
+      // Send alert to organization owner and HR managers
+      const notifierIds = [organization.owner_id];
+
+      for (const recommendation of highPriorityRecommendations) {
+        await this.notificationService.createNotification({
+          user_id: organization.owner_id,
+          entity_type: NotificationEntityType.HR_ANALYTICS_ALERT,
+          entity_id: organizationId,
+          title: `HR Alert: ${recommendation.title}`,
+          message: recommendation.description,
+          actor_id: 'system',
+          custom_data: {
+            organization_id: organizationId,
+            alert_category: recommendation.category,
+            alert_priority: recommendation.priority,
+            action_items: recommendation.action_items,
+          },
+        });
+      }
+
+      logger.info('Analytics alerts sent', {
+        organizationId,
+        alertCount: highPriorityRecommendations.length,
+        notifierCount: notifierIds.length,
+      });
+    } catch (error) {
+      logger.error('Failed to send analytics alerts', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+        alertCount: highPriorityRecommendations.length,
+      });
     }
   }
 

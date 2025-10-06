@@ -522,26 +522,42 @@ export class HRDocumentService {
     document: HRDocument
   ): Promise<void> {
     try {
-      // Get organization members who need to acknowledge this document
-      const pendingUsers = await this.documentModel.getPendingAcknowledgments(
-        organizationId,
-        '', // We'll get all users and filter
-        [] // No role filtering for this notification
-      );
+      // Import here to avoid circular dependencies
+      const { OrganizationModel } = await import('../models/organization_model');
+      const organizationModel = new OrganizationModel();
 
-      // This would require getting organization members and filtering
-      // For now, just log the notification intent
-      logger.info('Document acknowledgment notifications would be sent', {
+      // Get organization members who should receive this notification
+      const organization = await organizationModel.findById(organizationId);
+      if (!organization) {
+        logger.warn('Organization not found for document notification', { organizationId });
+        return;
+      }
+
+      // For now, notify the organization owner and any HR managers
+      // In a full implementation, you'd filter by access_roles and get all relevant members
+      const notifierIds = [organization.owner_id];
+
+      await this.notificationService.createNotification({
+        user_id: organization.owner_id,
+        entity_type: NotificationEntityType.HR_DOCUMENT_REQUIRES_ACKNOWLEDGMENT,
+        entity_id: document.id,
+        title: 'Document Requires Acknowledgment',
+        message: `Please review and acknowledge "${document.title}"`,
+        actor_id: document.uploaded_by,
+        custom_data: {
+          document_id: document.id,
+          document_title: document.title,
+          organization_id: organizationId,
+          requires_acknowledgment: true,
+        },
+      });
+
+      logger.info('Document acknowledgment notifications sent', {
         documentId: document.id,
         organizationId,
         documentTitle: document.title,
+        notifierCount: notifierIds.length,
       });
-
-      // In a full implementation, this would:
-      // 1. Get all organization members
-      // 2. Filter by access_roles if specified
-      // 3. Send notifications to each member
-      // 4. Track notification delivery
     } catch (error) {
       logger.error('Failed to send acknowledgment notifications', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -556,18 +572,36 @@ export class HRDocumentService {
     userId: string
   ): Promise<void> {
     try {
-      // Send notification to document uploader and organization managers
-      logger.info('Document acknowledgment completed notification would be sent', {
+      // Import here to avoid circular dependencies
+      const { UserModel } = await import('../models/user_model');
+      const userModel = new UserModel();
+
+      const user = await userModel.findById(userId);
+      
+      // Notify the document uploader about the acknowledgment
+      if (document.uploaded_by && document.uploaded_by !== userId) {
+        await this.notificationService.createNotification({
+          user_id: document.uploaded_by,
+          entity_type: NotificationEntityType.HR_DOCUMENT_REQUIRES_ACKNOWLEDGMENT,
+          entity_id: document.id,
+          title: 'Document Acknowledged',
+          message: `${user?.rsi_handle || 'Someone'} has acknowledged "${document.title}"`,
+          actor_id: userId,
+          custom_data: {
+            document_id: document.id,
+            document_title: document.title,
+            acknowledged_by: userId,
+            acknowledged_by_handle: user?.rsi_handle,
+          },
+        });
+      }
+
+      logger.info('Document acknowledgment completed notification sent', {
         documentId: document.id,
         userId,
         documentTitle: document.title,
         uploadedBy: document.uploaded_by,
       });
-
-      // In a full implementation, this would send notifications to:
-      // 1. Document uploader
-      // 2. Organization managers/admins
-      // 3. HR personnel
     } catch (error) {
       logger.error('Failed to send acknowledgment completed notification', {
         error: error instanceof Error ? error.message : 'Unknown error',

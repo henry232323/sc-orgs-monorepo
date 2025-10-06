@@ -1,5 +1,6 @@
 import { HRApplicationModel, HRApplication, ApplicationStatus } from '../models/hr_application_model';
 import { NotificationService } from './notification_service';
+import { ActivityService } from './activity_service';
 import { NotificationEntityType } from '../types/notification';
 import logger from '../config/logger';
 
@@ -28,10 +29,12 @@ export interface ApplicationValidationResult {
 export class HRApplicationService {
   private applicationModel: HRApplicationModel;
   private notificationService: NotificationService;
+  private activityService: ActivityService;
 
   constructor() {
     this.applicationModel = new HRApplicationModel();
     this.notificationService = new NotificationService();
+    this.activityService = new ActivityService();
   }
 
   /**

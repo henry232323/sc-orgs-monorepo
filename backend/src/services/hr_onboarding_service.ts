@@ -1,5 +1,7 @@
 import { HROnboardingModel, HROnboardingTemplate, HROnboardingProgress, OnboardingTask, CreateHROnboardingProgressData, UpdateHROnboardingProgressData } from '../models/hr_onboarding_model';
 import { NotificationService } from './notification_service';
+import { ActivityService } from './activity_service';
+import { NotificationEntityType } from '../types/notification';
 import logger from '../config/logger';
 
 export interface OnboardingCompletionCertificate {
@@ -27,10 +29,12 @@ export interface OnboardingNotificationData {
 export class HROnboardingService {
   private onboardingModel: HROnboardingModel;
   private notificationService: NotificationService;
+  private activityService: ActivityService;
 
   constructor() {
     this.onboardingModel = new HROnboardingModel();
     this.notificationService = new NotificationService();
+    this.activityService = new ActivityService();
   }
 
   // Role-based template assignment and customization
@@ -431,8 +435,24 @@ export class HROnboardingService {
           break;
       }
 
+      let entityType: NotificationEntityType;
+      
+      switch (data.notification_type) {
+        case 'started':
+          entityType = NotificationEntityType.HR_ONBOARDING_STARTED;
+          break;
+        case 'completed':
+          entityType = NotificationEntityType.HR_ONBOARDING_COMPLETED;
+          break;
+        case 'overdue':
+          entityType = NotificationEntityType.HR_ONBOARDING_OVERDUE;
+          break;
+        default:
+          entityType = NotificationEntityType.HR_ONBOARDING_STARTED;
+      }
+
       await this.notificationService.createCustomEventNotification(
-        'hr_onboarding' as any, // We'll need to add this to the enum
+        entityType,
         data.progress_id,
         data.user_id, // actor_id
         [data.user_id], // notifier_ids

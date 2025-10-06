@@ -1,6 +1,8 @@
 import { HRSkillModel, HRSkill, HRUserSkill, HRCertification } from '../models/hr_skill_model';
 import { NotificationService } from './notification_service';
+import { ActivityService } from './activity_service';
 import { NotificationEntityType } from '../types/notification';
+import db from '../config/database';
 import logger from '../config/logger';
 
 export interface SkillGap {
@@ -65,10 +67,12 @@ export interface SkillAnalyticsReport {
 export class HRSkillService {
   private skillModel: HRSkillModel;
   private notificationService: NotificationService;
+  private activityService: ActivityService;
 
   constructor() {
     this.skillModel = new HRSkillModel();
     this.notificationService = new NotificationService();
+    this.activityService = new ActivityService();
   }
 
   /**
@@ -594,6 +598,199 @@ export class HRSkillService {
         organizationId,
       });
       return [];
+    }
+  }
+
+  /**
+   * Create skill verification opportunities through event participation
+   */
+  async createSkillVerificationFromEventParticipation(
+    eventId: string,
+    userId: string,
+    skillCategories: string[]
+  ): Promise<{ verified_skills: string[]; pending_verifications: string[] }> {
+    try {
+      // Import here to avoid circular dependencies
+      const { EventModel } = await import('../models/event_model');
+      const eventModel = new EventModel();
+
+      const event = await eventModel.findById(eventId);
+      if (!event) {
+        return { verified_skills: [], pending_verifications: [] };
+      }
+
+      // Check if user attended the event
+      const registration = await eventModel.getUserRegistration(eventId, userId);
+      if (!registration || registration.status !== 'confirmed') {
+        return { verified_skills: [], pending_verifications: [] };
+      }
+
+      const verifiedSkills: string[] = [];
+      const pendingVerifications: string[] = [];
+
+      // Get user's skills in the relevant categories
+      const userSkills = await this.getUserSkillsByCategories(userId, skillCategories);
+
+      for (const userSkill of userSkills) {
+        if (!userSkill.verified) {
+          // Auto-verify skills based on event participation
+          const verified = await this.skillModel.verifyUserSkill(
+            userSkill.id,
+            'system', // System verification based on event attendance
+            `Verified through participation in event: ${event.title}`
+          );
+
+          if (verified) {
+            const skill = await this.skillModel.findSkillById(userSkill.skill_id);
+            verifiedSkills.push(skill?.name || 'Unknown Skill');
+          } else {
+            const skill = await this.skillModel.findSkillById(userSkill.skill_id);
+            pendingVerifications.push(skill?.name || 'Unknown Skill');
+          }
+        }
+      }
+
+      logger.info('Skill verification from event participation processed', {
+        eventId,
+        userId,
+        eventTitle: event.title,
+        verifiedCount: verifiedSkills.length,
+        pendingCount: pendingVerifications.length,
+      });
+
+      return { verified_skills: verifiedSkills, pending_verifications: pendingVerifications };
+    } catch (error) {
+      logger.error('Error creating skill verification from event participation:', error);
+      return { verified_skills: [], pending_verifications: [] };
+    }
+  }
+
+  /**
+   * Get user skills by categories
+   */
+  async getUserSkillsByCategories(
+    userId: string,
+    categories: string[]
+  ): Promise<Array<HRUserSkill & { skill_name?: string }>> {
+    try {
+      const userSkills = await db('hr_user_skills')
+        .join('hr_skills', 'hr_user_skills.skill_id', 'hr_skills.id')
+        .select(
+          'hr_user_skills.*',
+          'hr_skills.name as skill_name',
+          'hr_skills.category'
+        )
+        .where('hr_user_skills.user_id', userId)
+        .whereIn('hr_skills.category', categories);
+
+      return userSkills;
+    } catch (error) {
+      logger.error('Error getting user skills by categories:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Add training event categories for HR development
+   */
+  async linkSkillsToTrainingEvents(
+    eventId: string,
+    skillCategories: string[],
+    requiredSkills: string[] = []
+  ): Promise<boolean> {
+    try {
+      // Store the relationship between training events and skills
+      await db('hr_training_event_skills').insert({
+        event_id: eventId,
+        skill_categories: JSON.stringify(skillCategories),
+        required_skills: JSON.stringify(requiredSkills),
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      logger.info('Skills linked to training event', {
+        eventId,
+        skillCategories,
+        requiredSkillsCount: requiredSkills.length,
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('Error linking skills to training event:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Process skill verifications after event completion
+   */
+  async processEventCompletionSkillVerifications(
+    eventId: string
+  ): Promise<{ total_processed: number; verified_count: number; error_count: number }> {
+    try {
+      // Import here to avoid circular dependencies
+      const { EventModel } = await import('../models/event_model');
+      const eventModel = new EventModel();
+
+      // Get event details and skill requirements
+      const event = await eventModel.findById(eventId);
+      if (!event) {
+        return { total_processed: 0, verified_count: 0, error_count: 0 };
+      }
+
+      // Get training event skill requirements
+      const trainingEventSkills = await db('hr_training_event_skills')
+        .where('event_id', eventId)
+        .first();
+
+      if (!trainingEventSkills) {
+        // Not a training event, no skill verifications to process
+        return { total_processed: 0, verified_count: 0, error_count: 0 };
+      }
+
+      const skillCategories = JSON.parse(trainingEventSkills.skill_categories || '[]');
+      const requiredSkills = JSON.parse(trainingEventSkills.required_skills || '[]');
+
+      // Get all confirmed attendees
+      const attendees = await eventModel.getEventRegistrations(eventId);
+      const confirmedAttendees = attendees.filter(reg => reg.status === 'confirmed');
+
+      let totalProcessed = 0;
+      let verifiedCount = 0;
+      let errorCount = 0;
+
+      for (const attendee of confirmedAttendees) {
+        try {
+          const result = await this.createSkillVerificationFromEventParticipation(
+            eventId,
+            attendee.user_id,
+            skillCategories
+          );
+
+          totalProcessed++;
+          verifiedCount += result.verified_skills.length;
+        } catch (error) {
+          errorCount++;
+          logger.error('Error processing skill verification for attendee', {
+            eventId,
+            userId: attendee.user_id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      logger.info('Event completion skill verifications processed', {
+        eventId,
+        eventTitle: event.title,
+        totalProcessed,
+        verifiedCount,
+        errorCount,
+      });
+
+      return { total_processed: totalProcessed, verified_count: verifiedCount, error_count: errorCount };
+    } catch (error) {
+      logger.error('Error processing event completion skill verifications:', error);
+      return { total_processed: 0, verified_count: 0, error_count: 0 };
     }
   }
 }
