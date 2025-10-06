@@ -1,4 +1,5 @@
 import { HRDocumentModel, HRDocument, CreateHRDocumentData } from '../models/hr_document_model';
+import { HRDocumentAcknowledmentService } from './hr_document_acknowledgment_service';
 import { NotificationService } from './notification_service';
 import { NotificationEntityType } from '../types/notification';
 import logger from '../config/logger';
@@ -49,10 +50,12 @@ export interface DocumentSearchOptions {
 
 export class HRDocumentService {
   private documentModel: HRDocumentModel;
+  private acknowledgmentService: HRDocumentAcknowledmentService;
   private notificationService: NotificationService;
 
   constructor() {
     this.documentModel = new HRDocumentModel();
+    this.acknowledgmentService = new HRDocumentAcknowledmentService();
     this.notificationService = new NotificationService();
   }
 
@@ -366,41 +369,24 @@ export class HRDocumentService {
    * Tracks document acknowledgments and sends compliance notifications
    */
   async trackAcknowledgment(
+    organizationId: string,
     documentId: string,
     userId: string,
     ipAddress?: string
   ): Promise<boolean> {
     try {
-      const document = await this.documentModel.findDocumentById(documentId);
-      
-      if (!document) {
-        throw new Error('Document not found');
-      }
-
-      if (!document.requires_acknowledgment) {
-        throw new Error('Document does not require acknowledgment');
-      }
-
-      // Check if already acknowledged
-      const existingAcknowledgment = await this.documentModel.findAcknowledgment(documentId, userId);
-      if (existingAcknowledgment) {
-        throw new Error('Document already acknowledged');
-      }
-
-      // Create acknowledgment
-      await this.documentModel.createAcknowledgment({
-        document_id: documentId,
-        user_id: userId,
-        ip_address: ipAddress,
-      });
-
-      // Send notification to document uploader/managers
-      await this.sendAcknowledgmentCompletedNotification(document, userId);
-
-      logger.info('Document acknowledgment tracked', {
+      // Use the dedicated acknowledgment service
+      await this.acknowledgmentService.acknowledgeDocument(
+        organizationId,
         documentId,
         userId,
-        documentTitle: document.title,
+        ipAddress
+      );
+
+      logger.info('Document acknowledgment tracked via acknowledgment service', {
+        documentId,
+        organizationId,
+        userId,
         ipAddress,
       });
 
@@ -409,11 +395,57 @@ export class HRDocumentService {
       logger.error('Failed to track document acknowledgment', {
         error: error instanceof Error ? error.message : 'Unknown error',
         documentId,
+        organizationId,
         userId,
       });
 
       return false;
     }
+  }
+
+  /**
+   * Get document acknowledgment status using the acknowledgment service
+   */
+  async getDocumentAcknowledmentStatus(
+    organizationId: string,
+    documentId: string,
+    currentUserId: string
+  ) {
+    return this.acknowledgmentService.getDocumentAcknowledmentStatus(
+      organizationId,
+      documentId,
+      currentUserId
+    );
+  }
+
+  /**
+   * Bulk acknowledge documents using the acknowledgment service
+   */
+  async bulkAcknowledgeDocuments(
+    organizationId: string,
+    documentIds: string[],
+    userId: string,
+    ipAddress?: string
+  ) {
+    return this.acknowledgmentService.bulkAcknowledgeDocuments(
+      organizationId,
+      documentIds,
+      userId,
+      ipAddress
+    );
+  }
+
+  /**
+   * Get acknowledgment analytics using the acknowledgment service
+   */
+  async getAcknowledmentAnalytics(
+    organizationId: string,
+    options?: {
+      days?: number;
+      includeOverdue?: boolean;
+    }
+  ) {
+    return this.acknowledgmentService.getAcknowledmentAnalytics(organizationId, options);
   }
 
   /**

@@ -6312,6 +6312,258 @@ router.get('/:id/documents/pending-acknowledgments',
   hrDocumentController.getPendingAcknowledgments.bind(hrDocumentController)
 );
 
+// Get document acknowledgment status
+router.get('/:id/documents/:documentId/acknowledgment-status',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Get document acknowledgment status',
+    description: 'Get acknowledgment status for a specific document',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'documentId',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Document ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Document acknowledgment status retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    document_id: { type: 'string' as const },
+                    user_acknowledgments: {
+                      type: 'array' as const,
+                      items: {
+                        type: 'object' as const,
+                        properties: {
+                          user_id: { type: 'string' as const },
+                          user_handle: { type: 'string' as const },
+                          acknowledged_at: { type: 'string' as const, format: 'date-time' },
+                          ip_address: { type: 'string' as const }
+                        }
+                      }
+                    },
+                    total_required: { type: 'integer' as const },
+                    total_acknowledged: { type: 'integer' as const },
+                    acknowledgment_rate: { type: 'number' as const },
+                    current_user_acknowledged: { type: 'boolean' as const },
+                    current_user_acknowledged_at: { type: 'string' as const, format: 'date-time' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      404: { $ref: '#/components/responses/NotFound' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.getDocumentAcknowledmentStatus.bind(hrDocumentController)
+);
+
+// Bulk acknowledge documents
+router.post('/:id/documents/bulk-acknowledge',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'Bulk acknowledge documents',
+    description: 'Acknowledge multiple documents at once',
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object' as const,
+            required: ['document_ids'],
+            properties: {
+              document_ids: {
+                type: 'array' as const,
+                items: { type: 'string' as const },
+                minItems: 1,
+                maxItems: 50,
+                description: 'Array of document IDs to acknowledge'
+              }
+            }
+          }
+        }
+      }
+    },
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Bulk acknowledgment completed',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'object' as const,
+                  properties: {
+                    requested: { type: 'integer' as const },
+                    processed: { type: 'integer' as const },
+                    acknowledged: { type: 'integer' as const },
+                    failed: { type: 'integer' as const },
+                    errors: {
+                      type: 'array' as const,
+                      items: { type: 'string' as const }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { $ref: '#/components/responses/BadRequest' },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  bulkOperationsRateLimit,
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.bulkAcknowledgeDocuments.bind(hrDocumentController)
+);
+
+// List documents with acknowledgment status
+router.get('/:id/documents/with-acknowledgment-status',
+  oapi.path({
+    tags: ['HR Documents'],
+    summary: 'List documents with acknowledgment status',
+    description: 'Get documents with acknowledgment status for current user',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'folder_path',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by folder path'
+      },
+      {
+        name: 'file_type',
+        in: 'query',
+        schema: { type: 'string' as const },
+        description: 'Filter by file type'
+      },
+      {
+        name: 'requires_acknowledgment',
+        in: 'query',
+        schema: { type: 'boolean' as const },
+        description: 'Filter by acknowledgment requirement'
+      },
+      {
+        name: 'acknowledgment_status',
+        in: 'query',
+        schema: { 
+          type: 'string' as const,
+          enum: ['acknowledged', 'pending', 'all'],
+          default: 'all'
+        },
+        description: 'Filter by acknowledgment status'
+      },
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, default: 1 },
+        description: 'Page number'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 100, default: 20 },
+        description: 'Number of items per page'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Documents with acknowledgment status retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      organization_id: { type: 'string' as const },
+                      title: { type: 'string' as const },
+                      description: { type: 'string' as const },
+                      file_path: { type: 'string' as const },
+                      file_type: { type: 'string' as const },
+                      file_size: { type: 'integer' as const },
+                      folder_path: { type: 'string' as const },
+                      version: { type: 'integer' as const },
+                      requires_acknowledgment: { type: 'boolean' as const },
+                      access_roles: {
+                        type: 'array' as const,
+                        items: { type: 'string' as const }
+                      },
+                      uploaded_by: { type: 'string' as const },
+                      created_at: { type: 'string' as const, format: 'date-time' },
+                      updated_at: { type: 'string' as const, format: 'date-time' },
+                      user_acknowledged: { type: 'boolean' as const },
+                      user_acknowledged_at: { type: 'string' as const, format: 'date-time' }
+                    }
+                  }
+                },
+                total: { type: 'integer' as const },
+                page: { type: 'integer' as const },
+                limit: { type: 'integer' as const },
+                total_pages: { type: 'integer' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  hrDocumentController.listDocumentsWithAcknowledmentStatus.bind(hrDocumentController)
+);
+
 // HR Activity Management routes
 
 // Get organization HR activities

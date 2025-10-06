@@ -294,6 +294,7 @@ describe('HRDocumentService', () => {
         ...documentData,
         folder_path: '/',
         version: 1,
+        requires_acknowledgment: documentData.requires_acknowledgment || false,
         access_roles: [],
         created_at: new Date(),
         updated_at: new Date(),
@@ -568,24 +569,39 @@ describe('HRDocumentService', () => {
       mockDocumentModel.createAcknowledgment.mockResolvedValue(mockAcknowledgment);
       (service as any).sendAcknowledgmentCompletedNotification = jest.fn().mockResolvedValue(undefined);
 
-      const result = await service.trackAcknowledgment(testDocumentId, testUserId, '192.168.1.1');
+      // Mock the acknowledgment service
+      const mockAcknowledgmentService = {
+        acknowledgeDocument: jest.fn().mockResolvedValue(mockAcknowledgment),
+      };
+      (service as any).acknowledgmentService = mockAcknowledgmentService;
+
+      const result = await service.trackAcknowledgment(testOrganizationId, testDocumentId, testUserId, '192.168.1.1');
 
       expect(result).toBe(true);
-      expect(mockDocumentModel.createAcknowledgment).toHaveBeenCalledWith({
-        document_id: testDocumentId,
-        user_id: testUserId,
-        ip_address: '192.168.1.1',
-      });
-      expect((service as any).sendAcknowledgmentCompletedNotification).toHaveBeenCalledWith(mockDocument, testUserId);
+      expect(mockAcknowledgmentService.acknowledgeDocument).toHaveBeenCalledWith(
+        testOrganizationId,
+        testDocumentId,
+        testUserId,
+        '192.168.1.1'
+      );
     });
 
     it('should fail when document does not exist', async () => {
-      mockDocumentModel.findDocumentById.mockResolvedValue(null);
+      // Mock the acknowledgment service to throw an error
+      const mockAcknowledgmentService = {
+        acknowledgeDocument: jest.fn().mockRejectedValue(new Error('Document not found')),
+      };
+      (service as any).acknowledgmentService = mockAcknowledgmentService;
 
-      const result = await service.trackAcknowledgment(testDocumentId, testUserId);
+      const result = await service.trackAcknowledgment(testOrganizationId, testDocumentId, testUserId);
 
       expect(result).toBe(false);
-      expect(mockDocumentModel.createAcknowledgment).not.toHaveBeenCalled();
+      expect(mockAcknowledgmentService.acknowledgeDocument).toHaveBeenCalledWith(
+        testOrganizationId,
+        testDocumentId,
+        testUserId,
+        undefined
+      );
     });
 
     it('should fail when document does not require acknowledgment', async () => {
@@ -606,9 +622,13 @@ describe('HRDocumentService', () => {
         updated_at: new Date(),
       };
 
-      mockDocumentModel.findDocumentById.mockResolvedValue(mockDocument);
+      // Mock the acknowledgment service to throw an error
+      const mockAcknowledgmentService = {
+        acknowledgeDocument: jest.fn().mockRejectedValue(new Error('Document does not require acknowledgment')),
+      };
+      (service as any).acknowledgmentService = mockAcknowledgmentService;
 
-      const result = await service.trackAcknowledgment(testDocumentId, testUserId);
+      const result = await service.trackAcknowledgment(testOrganizationId, testDocumentId, testUserId);
 
       expect(result).toBe(false);
       expect(mockDocumentModel.createAcknowledgment).not.toHaveBeenCalled();
@@ -640,9 +660,13 @@ describe('HRDocumentService', () => {
       };
 
       mockDocumentModel.findDocumentById.mockResolvedValue(mockDocument);
-      mockDocumentModel.findAcknowledgment.mockResolvedValue(existingAcknowledgment);
+      // Mock the acknowledgment service to throw an error
+      const mockAcknowledgmentService = {
+        acknowledgeDocument: jest.fn().mockRejectedValue(new Error('Document already acknowledged')),
+      };
+      (service as any).acknowledgmentService = mockAcknowledgmentService;
 
-      const result = await service.trackAcknowledgment(testDocumentId, testUserId);
+      const result = await service.trackAcknowledgment(testOrganizationId, testDocumentId, testUserId);
 
       expect(result).toBe(false);
       expect(mockDocumentModel.createAcknowledgment).not.toHaveBeenCalled();

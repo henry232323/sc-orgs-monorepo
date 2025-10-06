@@ -821,6 +821,247 @@ export class HRDocumentController {
   }
 
   /**
+   * GET /api/organizations/:rsi_org_id/documents/:documentId/acknowledgment-status
+   * Get acknowledgment status for a specific document
+   */
+  async getDocumentAcknowledmentStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { documentId } = req.params;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      const document = await documentModel.findDocumentById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Verify document belongs to this organization
+      if (document.organization_id !== organization.id) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if user has access to this document
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+      const hasAccess = await this.hasDocumentAccess(document, userRoles);
+
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to access this document',
+        });
+        return;
+      }
+
+      const acknowledgmentStatus = await documentModel.getDocumentAcknowledmentStatus(
+        organization.id,
+        documentId,
+        user.id
+      );
+
+      res.json({
+        success: true,
+        data: acknowledgmentStatus,
+      });
+    } catch (error) {
+      logger.error('Failed to get document acknowledgment status', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId: req.params.documentId,
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get document acknowledgment status',
+      });
+    }
+  }
+
+  /**
+   * POST /api/organizations/:rsi_org_id/documents/bulk-acknowledge
+   * Bulk acknowledge multiple documents
+   */
+  async bulkAcknowledgeDocuments(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      const { document_ids } = req.body;
+
+      if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: 'document_ids array is required and must not be empty',
+        });
+        return;
+      }
+
+      if (document_ids.length > 50) {
+        res.status(400).json({
+          success: false,
+          error: 'Cannot acknowledge more than 50 documents at once',
+        });
+        return;
+      }
+
+      // Verify all documents belong to this organization and user has access
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+      const validDocumentIds: string[] = [];
+
+      for (const documentId of document_ids) {
+        const document = await documentModel.findDocumentById(documentId);
+        if (document && 
+            document.organization_id === organization.id && 
+            await this.hasDocumentAccess(document, userRoles)) {
+          validDocumentIds.push(documentId);
+        }
+      }
+
+      if (validDocumentIds.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: 'No valid documents found for acknowledgment',
+        });
+        return;
+      }
+
+      const result = await documentModel.bulkAcknowledgeDocuments(
+        validDocumentIds,
+        user.id,
+        req.ip
+      );
+
+      logger.info('Bulk document acknowledgment completed', {
+        organizationId: organization.id,
+        userId: user.id,
+        requestedCount: document_ids.length,
+        validCount: validDocumentIds.length,
+        successCount: result.success,
+        failedCount: result.failed,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          requested: document_ids.length,
+          processed: validDocumentIds.length,
+          acknowledged: result.success,
+          failed: result.failed,
+          errors: result.errors,
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to bulk acknowledge documents', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to bulk acknowledge documents',
+      });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/documents/with-acknowledgment-status
+   * List documents with acknowledgment status for current user
+   */
+  async listDocumentsWithAcknowledmentStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      // Get user roles for access control
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+
+      const {
+        folder_path,
+        file_type,
+        requires_acknowledgment,
+        acknowledgment_status,
+        page = 1,
+        limit = 20,
+      } = req.query;
+
+      const parsedLimit = Math.min(parseInt(limit as string) || 20, 100);
+      const parsedPage = parseInt(page as string) || 1;
+      const offset = (parsedPage - 1) * parsedLimit;
+
+      const filters = {
+        folder_path: folder_path as string,
+        file_type: file_type as string,
+        requires_acknowledgment: requires_acknowledgment === 'true' ? true : 
+                                requires_acknowledgment === 'false' ? false : undefined,
+        acknowledgment_status: acknowledgment_status as 'acknowledged' | 'pending' | 'all',
+        user_roles: userRoles,
+        limit: parsedLimit,
+        offset,
+      };
+
+      const result = await documentModel.getDocumentsWithAcknowledmentStatus(
+        organization.id,
+        user.id,
+        filters
+      );
+
+      res.json({
+        success: true,
+        data: result.data,
+        total: result.total,
+        page: parsedPage,
+        limit: parsedLimit,
+        total_pages: Math.ceil(result.total / parsedLimit),
+      });
+    } catch (error) {
+      logger.error('Failed to list documents with acknowledgment status', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to list documents with acknowledgment status',
+      });
+    }
+  }
+
+  /**
    * GET /api/organizations/:rsi_org_id/documents/compliance-report
    * Get compliance report for the organization
    */

@@ -353,6 +353,199 @@ export class HRDocumentModel {
     return { data: acknowledgments, total };
   }
 
+  async getDocumentAcknowledmentStatus(
+    organizationId: string,
+    documentId: string,
+    currentUserId: string
+  ): Promise<{
+    document_id: string;
+    user_acknowledgments: Array<{
+      user_id: string;
+      user_handle: string;
+      acknowledged_at: string;
+      ip_address?: string;
+    }>;
+    total_required: number;
+    total_acknowledged: number;
+    acknowledgment_rate: number;
+    current_user_acknowledged: boolean;
+    current_user_acknowledged_at?: string;
+  }> {
+    // Get document to verify it exists and belongs to organization
+    const document = await this.findDocumentById(documentId);
+    if (!document || document.organization_id !== organizationId) {
+      throw new Error('Document not found');
+    }
+
+    // Get all acknowledgments for this document
+    const acknowledgments = await db('hr_document_acknowledgments')
+      .join('users', 'hr_document_acknowledgments.user_id', 'users.id')
+      .where({ 'hr_document_acknowledgments.document_id': documentId })
+      .select(
+        'hr_document_acknowledgments.user_id',
+        'hr_document_acknowledgments.acknowledged_at',
+        'hr_document_acknowledgments.ip_address',
+        'users.rsi_handle as user_handle'
+      )
+      .orderBy('hr_document_acknowledgments.acknowledged_at', 'desc');
+
+    // Get total organization members who should acknowledge this document
+    const requiredUsers = await db('organization_members')
+      .where({ organization_id: organizationId, is_active: true })
+      .count('* as count')
+      .first();
+
+    const totalRequired = parseInt(requiredUsers?.count as string) || 0;
+    const totalAcknowledged = acknowledgments.length;
+    const acknowledgmentRate = totalRequired > 0 ? (totalAcknowledged / totalRequired) : 0;
+
+    // Find current user's acknowledgment
+    const currentUserAcknowledgment = acknowledgments.find(ack => ack.user_id === currentUserId);
+
+    return {
+      document_id: documentId,
+      user_acknowledgments: acknowledgments.map(ack => ({
+        user_id: ack.user_id,
+        user_handle: ack.user_handle,
+        acknowledged_at: ack.acknowledged_at.toISOString(),
+        ip_address: ack.ip_address,
+      })),
+      total_required: totalRequired,
+      total_acknowledged: totalAcknowledged,
+      acknowledgment_rate: acknowledgmentRate,
+      current_user_acknowledged: !!currentUserAcknowledgment,
+      current_user_acknowledged_at: currentUserAcknowledgment?.acknowledged_at?.toISOString(),
+    };
+  }
+
+  async getDocumentsWithAcknowledmentStatus(
+    organizationId: string,
+    userId: string,
+    filters: {
+      folder_path?: string;
+      file_type?: string;
+      requires_acknowledgment?: boolean;
+      user_roles?: string[];
+      acknowledgment_status?: 'acknowledged' | 'pending' | 'all';
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<{ data: any[]; total: number }> {
+    let query = db('hr_documents')
+      .leftJoin('hr_document_acknowledgments', function() {
+        this.on('hr_documents.id', '=', 'hr_document_acknowledgments.document_id')
+            .andOn('hr_document_acknowledgments.user_id', '=', db.raw('?', [userId]));
+      })
+      .where({ 'hr_documents.organization_id': organizationId })
+      .select(
+        'hr_documents.*',
+        'hr_document_acknowledgments.acknowledged_at as user_acknowledged_at',
+        db.raw('CASE WHEN hr_document_acknowledgments.id IS NOT NULL THEN true ELSE false END as user_acknowledged')
+      );
+
+    // Apply filters
+    if (filters.folder_path) {
+      query = query.where({ 'hr_documents.folder_path': filters.folder_path });
+    }
+
+    if (filters.file_type) {
+      query = query.where({ 'hr_documents.file_type': filters.file_type });
+    }
+
+    if (filters.requires_acknowledgment !== undefined) {
+      query = query.where({ 'hr_documents.requires_acknowledgment': filters.requires_acknowledgment });
+    }
+
+    // Filter by acknowledgment status
+    if (filters.acknowledgment_status === 'acknowledged') {
+      query = query.whereNotNull('hr_document_acknowledgments.id');
+    } else if (filters.acknowledgment_status === 'pending') {
+      query = query.where({ 'hr_documents.requires_acknowledgment': true })
+                   .whereNull('hr_document_acknowledgments.id');
+    }
+
+    // Filter by user roles if provided
+    if (filters.user_roles && filters.user_roles.length > 0) {
+      query = query.where(function() {
+        // Documents with empty access_roles are accessible to all
+        this.whereRaw('jsonb_array_length(hr_documents.access_roles) = 0');
+        
+        // Or documents where user has at least one matching role
+        filters.user_roles!.forEach(role => {
+          this.orWhereRaw('hr_documents.access_roles @> ?', [JSON.stringify([role])]);
+        });
+      });
+    }
+
+    // Get total count
+    const countQuery = query.clone().clearSelect().count('hr_documents.id as count');
+    const totalResult = await countQuery.first();
+    const total = parseInt(totalResult?.count as string) || 0;
+
+    // Apply pagination
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    if (filters.offset) {
+      query = query.offset(filters.offset);
+    }
+
+    const documents = await query
+      .orderBy('hr_documents.folder_path', 'asc')
+      .orderBy('hr_documents.title', 'asc');
+
+    return { data: documents, total };
+  }
+
+  async bulkAcknowledgeDocuments(
+    documentIds: string[],
+    userId: string,
+    ipAddress?: string
+  ): Promise<{ success: number; failed: number; errors: string[] }> {
+    const results = { success: 0, failed: 0, errors: [] as string[] };
+
+    for (const documentId of documentIds) {
+      try {
+        // Check if document exists and requires acknowledgment
+        const document = await this.findDocumentById(documentId);
+        if (!document) {
+          results.failed++;
+          results.errors.push(`Document ${documentId} not found`);
+          continue;
+        }
+
+        if (!document.requires_acknowledgment) {
+          results.failed++;
+          results.errors.push(`Document ${documentId} does not require acknowledgment`);
+          continue;
+        }
+
+        // Check if already acknowledged
+        const existingAcknowledgment = await this.findAcknowledgment(documentId, userId);
+        if (existingAcknowledgment) {
+          results.failed++;
+          results.errors.push(`Document ${documentId} already acknowledged`);
+          continue;
+        }
+
+        // Create acknowledgment
+        await this.createAcknowledgment({
+          document_id: documentId,
+          user_id: userId,
+          ip_address: ipAddress,
+        });
+
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push(`Failed to acknowledge document ${documentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    return results;
+  }
+
   async getUserAcknowledgments(
     userId: string,
     organizationId: string

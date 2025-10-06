@@ -14,14 +14,14 @@
   - Create database views or optimized queries for skill statistics calculation
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-- [ ] 3. Complete Document Acknowledgment Backend Integration
+- [x] 3. Complete Document Acknowledgment Backend Integration
   - Enhance DocumentModel with acknowledgment status queries and user-specific filtering
   - Extend DocumentController with acknowledgment status endpoints and bulk operations
   - Implement DocumentAcknowledmentService with real-time status tracking and notifications
   - Add database indexes for efficient acknowledgment status queries
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 4. Extend RTK Query API Slice with Missing Endpoints
+- [-] 4. Extend RTK Query API Slice with Missing Endpoints
   - Add useGetHRActivitiesQuery hook with proper caching and pagination support
   - Implement useGetSkillsStatisticsQuery hook with organization-wide statistics
   - Create useGetDocumentAcknowledmentStatusQuery hook with real-time updates
