@@ -2479,12 +2479,7 @@ export const apiSlice = createApi({
 
     // HR Activity Feed endpoints
     getHRActivities: builder.query<
-      {
-        data: import('../types/hr').HRActivity[];
-        total: number;
-        page: number;
-        limit: number;
-      },
+      import('../types').ListResponse<import('../types/hr').HRActivity>,
       {
         organizationId: string;
         page?: number;
@@ -2505,7 +2500,12 @@ export const apiSlice = createApi({
         
         return `/api/organizations/${organizationId}/hr-activities?${params.toString()}`;
       },
-      transformResponse: (response: import('../types/hr').HRActivityListResponse) => response.data,
+      transformResponse: (response: import('../types/hr').HRActivityListResponse) => ({
+        data: response.data.data,
+        total: response.data.total,
+        page: response.data.page,
+        limit: response.data.limit,
+      }),
       providesTags: (_, __, { organizationId }) => [
         { type: 'HRActivity', id: organizationId },
         { type: 'HRActivity', id: 'LIST' },

@@ -27,7 +27,6 @@ import {
   TrophyIcon,
   ExclamationTriangleIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
   DocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
@@ -298,7 +297,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
                   Try Again
                 </Button>
               </div>
-            ) : !recentActivities?.data?.data?.length ? (
+            ) : !recentActivities?.data?.length ? (
               // Empty state
               <div className='text-center py-12'>
                 <ClockIcon className='w-16 h-16 text-tertiary mx-auto mb-4' />
@@ -312,7 +311,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
             ) : (
               // Activity list
               <div className='space-y-4'>
-                {recentActivities.data.data.map((activity) => {
+                {recentActivities.data.map((activity) => {
                   const ActivityIcon = getHRActivityIcon(activity.activity_type);
                   return (
                     <div key={activity.id} className='flex items-start space-x-4 p-4 bg-white/5 rounded-lg'>

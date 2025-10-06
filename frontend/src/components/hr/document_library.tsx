@@ -20,6 +20,7 @@ import {
   useGetDocumentsQuery,
   useUploadDocumentMutation,
   useAcknowledgeDocumentMutation,
+  useGetDocumentAcknowledmentStatusQuery,
 } from '../../services/apiSlice';
 import type { Document, DocumentFilters } from '../../types/hr';
 
@@ -161,9 +162,14 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
         documentId,
       }).unwrap();
 
+      // Refetch both documents list and acknowledgment status
       refetch();
+      
+      // Note: The acknowledgment status will be automatically refetched due to cache invalidation
+      // when the component re-renders after the documents list is updated
     } catch (error) {
       console.error('Failed to acknowledge document:', error);
+      // TODO: Show user-friendly error message
     }
   };
 
@@ -183,19 +189,71 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     return '📄';
   };
 
+  const useDocumentAcknowledgmentStatus = (doc: Document) => {
+    return useGetDocumentAcknowledmentStatusQuery({
+      organizationId: organizationId!,
+      documentId: doc.id,
+    }, {
+      skip: !doc.requires_acknowledgment || !organizationId,
+    });
+  };
+
   const getAcknowledgmentStatus = (doc: Document) => {
-    // This would typically come from the API response
-    // For now, we'll simulate it
-    const isAcknowledged = Math.random() > 0.5; // Simulate acknowledgment status
+    const { data: acknowledgmentStatus, isLoading: isLoadingAcknowledgment, error: acknowledgmentError, refetch: refetchAcknowledgment } = useDocumentAcknowledgmentStatus(doc);
     
     if (!doc.requires_acknowledgment) {
       return null;
     }
 
-    return isAcknowledged ? (
+    if (isLoadingAcknowledgment) {
+      return (
+        <Chip variant="default" size="sm" className="text-tertiary">
+          <ClockIcon className="w-3 h-3 animate-spin" />
+          Loading...
+        </Chip>
+      );
+    }
+
+    if (acknowledgmentError) {
+      return (
+        <div className="flex items-center gap-1">
+          <Chip variant="default" size="sm" className="text-error">
+            <ClockIcon className="w-3 h-3" />
+            Error
+          </Chip>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e?.stopPropagation();
+              refetchAcknowledgment();
+            }}
+            className="text-xs px-1 py-0.5 h-auto"
+          >
+            Retry
+          </Button>
+        </div>
+      );
+    }
+
+    if (!acknowledgmentStatus) {
+      return (
+        <Chip variant="default" size="sm" className="text-tertiary">
+          <ClockIcon className="w-3 h-3" />
+          Unknown
+        </Chip>
+      );
+    }
+
+    return acknowledgmentStatus.current_user_acknowledged ? (
       <Chip variant="status" size="sm" className="text-success">
         <CheckCircleIcon className="w-3 h-3" />
         Acknowledged
+        {acknowledgmentStatus.current_user_acknowledged_at && (
+          <span className="ml-1 text-xs opacity-75">
+            {new Date(acknowledgmentStatus.current_user_acknowledged_at).toLocaleDateString()}
+          </span>
+        )}
       </Chip>
     ) : (
       <Chip variant="default" size="sm" className="text-warning">
@@ -203,6 +261,11 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
         Pending
       </Chip>
     );
+  };
+
+  const isDocumentAcknowledged = (doc: Document) => {
+    const { data: acknowledgmentStatus } = useDocumentAcknowledgmentStatus(doc);
+    return acknowledgmentStatus?.current_user_acknowledged || false;
   };
 
   const currentDocuments = getCurrentFolderDocuments();
@@ -451,7 +514,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {showAcknowledgments && getAcknowledgmentStatus(doc)}
                         
-                        {doc.requires_acknowledgment && !getAcknowledgmentStatus(doc)?.props.children.includes('Acknowledged') && (
+                        {doc.requires_acknowledgment && !isDocumentAcknowledged(doc) && (
                           <Button
                             variant="secondary"
                             size="sm"
