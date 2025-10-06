@@ -21,7 +21,7 @@
   - Add database indexes for efficient acknowledgment status queries
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [-] 4. Extend RTK Query API Slice with Missing Endpoints
+- [x] 4. Extend RTK Query API Slice with Missing Endpoints
   - Add useGetHRActivitiesQuery hook with proper caching and pagination support
   - Implement useGetSkillsStatisticsQuery hook with organization-wide statistics
   - Create useGetDocumentAcknowledmentStatusQuery hook with real-time updates

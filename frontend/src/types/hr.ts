@@ -438,3 +438,91 @@ export interface EventBasedSkillVerification {
   verified_by: string;
   verification_date: string;
 }
+
+// HR Activity Feed Types
+export interface HRActivity {
+  id: string;
+  organization_id: string;
+  activity_type: 'application_submitted' | 'application_status_changed' | 'onboarding_completed' | 'performance_review_submitted' | 'skill_verified' | 'document_acknowledged';
+  user_id: string;
+  user_handle: string;
+  user_avatar_url?: string;
+  title: string;
+  description: string;
+  metadata: {
+    application_id?: string;
+    review_id?: string;
+    skill_id?: string;
+    document_id?: string;
+    old_status?: string;
+    new_status?: string;
+  };
+  created_at: string;
+}
+
+export interface HRActivityListResponse {
+  success: boolean;
+  data: {
+    data: HRActivity[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+export interface HRActivityFilters {
+  page?: number;
+  limit?: number;
+  activity_types?: string[];
+  date_from?: string;
+  date_to?: string;
+}
+
+// Skills Statistics Types
+export interface SkillStatistics {
+  skill_id: string;
+  total_members: number;
+  verified_members: number;
+  verification_rate: number;
+  proficiency_breakdown: {
+    beginner: number;
+    intermediate: number;
+    advanced: number;
+    expert: number;
+  };
+  recent_verifications: number;
+  last_updated: string;
+}
+
+export interface OrganizationSkillsStatistics {
+  [skillId: string]: SkillStatistics;
+}
+
+export interface SkillsStatisticsResponse {
+  success: boolean;
+  data: OrganizationSkillsStatistics;
+}
+
+// Document Acknowledgment Status Types
+export interface UserAcknowledgment {
+  user_id: string;
+  user_handle: string;
+  acknowledged_at: string;
+  ip_address?: string;
+}
+
+export interface DocumentAcknowledmentStatus {
+  document_id: string;
+  user_acknowledgments: UserAcknowledgment[];
+  total_required: number;
+  total_acknowledged: number;
+  acknowledgment_rate: number;
+  current_user_acknowledged: boolean;
+  current_user_acknowledged_at?: string;
+  last_updated: string;
+}
+
+export interface DocumentAcknowledmentStatusResponse {
+  success: boolean;
+  data: DocumentAcknowledmentStatus;
+}

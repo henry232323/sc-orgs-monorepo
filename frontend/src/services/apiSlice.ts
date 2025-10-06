@@ -100,6 +100,9 @@ export const apiSlice = createApi({
     'Skill',
     'Document',
     'HRAnalytics',
+    'HRActivity',
+    'SkillStatistics',
+    'DocumentAcknowledment',
   ],
   // Configure serialization to handle non-serializable data
   serializeQueryArgs: ({ queryArgs, endpointName }) => {
@@ -2474,6 +2477,69 @@ export const apiSlice = createApi({
       ],
     }),
 
+    // HR Activity Feed endpoints
+    getHRActivities: builder.query<
+      {
+        data: import('../types/hr').HRActivity[];
+        total: number;
+        page: number;
+        limit: number;
+      },
+      {
+        organizationId: string;
+        page?: number;
+        limit?: number;
+        activity_types?: string[];
+        date_from?: string;
+        date_to?: string;
+      }
+    >({
+      query: ({ organizationId, page = 1, limit = 20, activity_types, date_from, date_to }) => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+        if (activity_types?.length) params.append('activity_types', activity_types.join(','));
+        if (date_from) params.append('date_from', date_from);
+        if (date_to) params.append('date_to', date_to);
+        
+        return `/api/organizations/${organizationId}/hr-activities?${params.toString()}`;
+      },
+      transformResponse: (response: import('../types/hr').HRActivityListResponse) => response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'HRActivity', id: organizationId },
+        { type: 'HRActivity', id: 'LIST' },
+      ],
+      keepUnusedDataFor: 300, // 5 minutes cache
+    }),
+
+    // Skills Statistics endpoints
+    getSkillsStatistics: builder.query<
+      import('../types/hr').OrganizationSkillsStatistics,
+      { organizationId: string }
+    >({
+      query: ({ organizationId }) => `/api/organizations/${organizationId}/skills/statistics`,
+      transformResponse: (response: import('../types/hr').SkillsStatisticsResponse) => response.data,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'SkillStatistics', id: organizationId },
+      ],
+      keepUnusedDataFor: 600, // 10 minutes cache for statistics
+    }),
+
+    // Document Acknowledgment Status endpoints
+    getDocumentAcknowledmentStatus: builder.query<
+      import('../types/hr').DocumentAcknowledmentStatus,
+      { organizationId: string; documentId: string }
+    >({
+      query: ({ organizationId, documentId }) => 
+        `/api/organizations/${organizationId}/documents/${documentId}/acknowledgments`,
+      transformResponse: (response: import('../types/hr').DocumentAcknowledmentStatusResponse) => response.data,
+      providesTags: (_, __, { documentId }) => [
+        { type: 'DocumentAcknowledment', id: documentId },
+      ],
+      keepUnusedDataFor: 300, // 5 minutes cache
+    }),
+
     // Reputation System endpoints
     searchPlayers: builder.query<
       import('../types/reputation').PlayerSearchResponse,
@@ -3126,4 +3192,13 @@ export const {
   useRecordEventAttendanceMutation,
   useGetHREventAnalyticsQuery,
   useCreateEventBasedSkillVerificationMutation,
+  
+  // HR Activity Feed hooks
+  useGetHRActivitiesQuery,
+  
+  // Skills Statistics hooks
+  useGetSkillsStatisticsQuery,
+  
+  // Document Acknowledgment Status hooks
+  useGetDocumentAcknowledmentStatusQuery,
 } = apiSlice;
