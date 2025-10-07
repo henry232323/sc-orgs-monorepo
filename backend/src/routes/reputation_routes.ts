@@ -9,7 +9,7 @@ const reputationController = new ReputationController();
 // Public routes (no authentication required)
 
 // Search players
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Search Star Citizen players',
   description: 'Search for players by handle with filtering options',
@@ -70,7 +70,7 @@ oapi.path({
 router.get('/', reputationController.searchPlayers.bind(reputationController));
 
 // Get player details
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Get player details',
   description: 'Get detailed information about a specific player including history, reports, comments, and tags',
@@ -99,7 +99,7 @@ oapi.path({
 router.get('/players/:spectrumId', reputationController.getPlayerDetails.bind(reputationController));
 
 // Lookup player by handle
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Lookup player by handle',
   description: 'Lookup a player by their handle and create a new record if not found',
@@ -127,7 +127,7 @@ oapi.path({
 router.post('/players/lookup', reputationController.lookupPlayer.bind(reputationController));
 
 // Search players by handle (current and historical)
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Search players by handle (current and historical)',
   description: 'Search for players by handle, including both current users and historical users who previously had that handle',
@@ -186,7 +186,7 @@ router.post('/search', reputationController.searchPlayersByHandle.bind(reputatio
 // Protected routes (require authentication)
 
 // Sync player data with Spectrum
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Sync player data with Spectrum',
   description: 'Update player data with latest information from Spectrum API',
@@ -217,7 +217,7 @@ oapi.path({
 router.put('/players/:spectrumId/sync', requireLogin, reputationController.syncPlayerData.bind(reputationController));
 
 // Create report
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Create a player report',
   description: 'Create a new report about a player (requires RSI verification)',
@@ -247,7 +247,7 @@ oapi.path({
 router.post('/reports', requireRSIVerification, reputationController.createReport.bind(reputationController));
 
 // Get report details
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Get report details',
   description: 'Get detailed information about a report including attestations',
@@ -276,7 +276,7 @@ oapi.path({
 router.get('/reports/:id', reputationController.getReportDetails.bind(reputationController));
 
 // Attest to report
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Attest to a report',
   description: 'Support, dispute, or remain neutral on a report (requires RSI verification)',
@@ -316,7 +316,7 @@ oapi.path({
 router.post('/reports/:id/attest', requireRSIVerification, reputationController.attestToReport.bind(reputationController));
 
 // Add comment
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Add a comment to a player',
   description: 'Add a public or private comment about a player (requires RSI verification)',
@@ -355,7 +355,7 @@ oapi.path({
 router.post('/players/:playerId/comments', requireRSIVerification, reputationController.addComment.bind(reputationController));
 
 // Attest to comment
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Attest to a comment',
   description: 'Support, dispute, or remain neutral on a comment (requires RSI verification)',
@@ -395,7 +395,7 @@ oapi.path({
 router.post('/comments/:id/attest', requireRSIVerification, reputationController.attestToComment.bind(reputationController));
 
 // Add tag
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Add a tag to a player',
   description: 'Add a positive, negative, or neutral tag to a player (requires RSI verification)',
@@ -435,7 +435,7 @@ oapi.path({
 router.post('/players/:playerId/tags', requireRSIVerification, reputationController.addTag.bind(reputationController));
 
 // Attest to tag
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Attest to a tag',
   description: 'Support, dispute, or remain neutral on a tag (requires RSI verification)',
@@ -477,7 +477,7 @@ router.post('/tags/:id/attest', requireRSIVerification, reputationController.att
 // Enhanced Reporting System Routes
 
 // Organization Reports
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Create organization report',
   description: 'Create a report about suspected organization affiliation (requires RSI verification)',
@@ -508,7 +508,7 @@ oapi.path({
 router.post('/organization-reports', requireRSIVerification, reputationController.createOrganizationReport.bind(reputationController));
 
 // Get organization reports by player
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Get organization reports by player',
   description: 'Get all organization reports for a specific player',
@@ -549,7 +549,7 @@ oapi.path({
 router.get('/players/:playerId/organization-reports', reputationController.getOrganizationReportsByPlayer.bind(reputationController));
 
 // Corroborate organization report
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Vote on organization report',
   description: 'Agree, disagree, or remain neutral on an organization report (requires RSI verification)',
@@ -589,7 +589,7 @@ oapi.path({
 router.post('/organization-reports/:reportId/corroborate', requireRSIVerification, reputationController.corroborateOrganizationReport.bind(reputationController));
 
 // Alt Account Reports
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Create alt account report',
   description: 'Create a report about suspected alt account (requires RSI verification)',
@@ -620,7 +620,7 @@ oapi.path({
 router.post('/alt-account-reports', requireRSIVerification, reputationController.createAltAccountReport.bind(reputationController));
 
 // Get alt account reports by player
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Get alt account reports by player',
   description: 'Get all alt account reports for a specific player',
@@ -661,7 +661,7 @@ oapi.path({
 router.get('/players/:playerId/alt-account-reports', reputationController.getAltAccountReportsByPlayer.bind(reputationController));
 
 // Corroborate alt account report
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Vote on alt account report',
   description: 'Agree, disagree, or remain neutral on an alt account report (requires RSI verification)',
@@ -701,7 +701,7 @@ oapi.path({
 router.post('/alt-account-reports/:reportId/corroborate', requireRSIVerification, reputationController.corroborateAltAccountReport.bind(reputationController));
 
 // Affiliated People Reports
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Create affiliated people report',
   description: 'Create a report about suspected affiliated people (requires RSI verification)',
@@ -732,7 +732,7 @@ oapi.path({
 router.post('/affiliated-people-reports', requireRSIVerification, reputationController.createAffiliatedPeopleReport.bind(reputationController));
 
 // Get affiliated people reports by player
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Get affiliated people reports by player',
   description: 'Get all affiliated people reports for a specific player',
@@ -773,7 +773,7 @@ oapi.path({
 router.get('/players/:playerId/affiliated-people-reports', reputationController.getAffiliatedPeopleReportsByPlayer.bind(reputationController));
 
 // Corroborate affiliated people report
-oapi.path({
+oapi.validPath({
   tags: ['Reputation'],
   summary: 'Vote on affiliated people report',
   description: 'Agree, disagree, or remain neutral on an affiliated people report (requires RSI verification)',

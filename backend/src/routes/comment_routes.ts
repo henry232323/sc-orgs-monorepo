@@ -7,7 +7,7 @@ const router: Router = Router();
 const commentController = new CommentController();
 
 // Public routes (no authentication required)
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Get organization comments',
   description: 'Get comments for a specific organization',
@@ -51,7 +51,7 @@ router.get(
 );
 
 // Protected routes (require JWT)
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Create comment',
   description: 'Create a new comment',
@@ -88,7 +88,7 @@ router.post(
   commentController.createComment.bind(commentController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Update comment',
   description: 'Update an existing comment',
@@ -135,7 +135,7 @@ router.put(
   commentController.updateComment.bind(commentController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Delete comment',
   description: 'Delete a comment',
@@ -174,7 +174,7 @@ router.delete(
 );
 
 // Comment voting
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Upvote comment',
   description: 'Upvote a comment',
@@ -211,7 +211,7 @@ router.post(
   commentController.upvoteComment.bind(commentController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Downvote comment',
   description: 'Downvote a comment',
@@ -248,7 +248,7 @@ router.post(
   commentController.downvoteComment.bind(commentController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Remove vote',
   description: 'Remove vote from a comment',
@@ -286,7 +286,7 @@ router.delete(
 );
 
 // Comment replies
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Create comment reply',
   description: 'Create a reply to a comment',
@@ -332,7 +332,7 @@ router.post(
   commentController.createReply.bind(commentController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Comments'],
   summary: 'Get comment replies',
   description: 'Get replies for a specific comment',

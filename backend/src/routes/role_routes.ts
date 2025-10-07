@@ -10,7 +10,7 @@ const roleController = new RoleController();
 router.use(requireLogin as any);
 
 // Get available permissions
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Get available permissions',
   description: 'Get list of all available permissions in the system',
@@ -37,7 +37,7 @@ router.get(
 );
 
 // Organization role management routes (using spectrum ID)
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Get organization roles',
   description: 'Get all roles for a specific organization',
@@ -74,7 +74,7 @@ router.get(
   roleController.getOrganizationRoles.bind(roleController) as any
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Create organization role',
   description: 'Create a new role for an organization',
@@ -120,7 +120,7 @@ router.post(
   roleController.createRole.bind(roleController) as any
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Update organization role',
   description: 'Update an existing organization role',
@@ -173,7 +173,7 @@ router.put(
   roleController.updateRole.bind(roleController) as any
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Delete organization role',
   description: 'Delete an organization role',
@@ -218,7 +218,7 @@ router.delete(
 );
 
 // Organization member management routes (using spectrum ID)
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Get organization members',
   description: 'Get all members of an organization',
@@ -255,7 +255,7 @@ router.get(
   roleController.getOrganizationMembers.bind(roleController) as any
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Assign role to member',
   description: 'Assign a role to an organization member',
@@ -301,7 +301,7 @@ router.post(
   roleController.assignRole.bind(roleController) as any
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Roles'],
   summary: 'Remove organization member',
   description: 'Remove a member from an organization',

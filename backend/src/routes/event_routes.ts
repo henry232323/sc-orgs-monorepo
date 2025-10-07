@@ -16,7 +16,7 @@ const eventReviewController = new EventReviewController();
 const analyticsController = new AnalyticsController();
 
 // Public routes (no authentication required)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'List events',
   description: 'Get a paginated list of public events',
@@ -57,7 +57,7 @@ oapi.path({
 });
 router.get('/', eventController.listEvents.bind(eventController));
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Search events',
   description: 'Search events with filters',
@@ -128,7 +128,7 @@ oapi.path({
 });
 router.get('/search', eventController.searchEvents.bind(eventController));
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get upcoming events',
   description: 'Get a list of upcoming public events',
@@ -158,7 +158,7 @@ router.get(
 );
 
 // Private events for authenticated users
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get private events',
   description: 'Get private events for authenticated users',
@@ -199,7 +199,7 @@ router.get(
   eventController.getPrivateEvents.bind(eventController) as any
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get event details',
   description: 'Get detailed information about a specific event',
@@ -234,7 +234,7 @@ oapi.path({
 });
 router.get('/:id', recordEventView, eventController.getEvent.bind(eventController));
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get event registrations',
   description: 'Get list of users registered for an event',
@@ -278,7 +278,7 @@ router.get(
 );
 
 // Event reviews (public read, authenticated write)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get event reviews',
   description: 'Get reviews for a specific event',
@@ -321,7 +321,7 @@ router.get('/:id/reviews', (req, res) => {
   eventReviewController.getEventReviews(req, res);
 });
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get event rating summary',
   description: 'Get rating summary for a specific event',
@@ -352,7 +352,7 @@ router.get('/:id/reviews/summary', (req, res) => {
 });
 
 // Protected routes (require authentication)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Create event',
   description: 'Create a new event',
@@ -395,7 +395,7 @@ router.post(
   eventController.createEvent.bind(eventController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Update event',
   description: 'Update an existing event',
@@ -449,7 +449,7 @@ router.put(
   eventController.updateEvent.bind(eventController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Delete event',
   description: 'Delete an event',
@@ -488,7 +488,7 @@ router.delete(
 );
 
 // Event registrations (RESTful)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Register for event',
   description: 'Register for an event',
@@ -534,7 +534,7 @@ router.post(
   eventController.registerForEvent.bind(eventController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Unregister from event',
   description: 'Unregister from an event',
@@ -572,7 +572,7 @@ router.delete(
 );
 
 // Custom notifications (event owners only)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get event notification usage',
   description: 'Get notification usage statistics for an event',
@@ -610,7 +610,7 @@ router.get(
   eventController.getEventNotificationUsage.bind(eventController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Send custom notification',
   description: 'Send a custom notification to event participants',
@@ -658,7 +658,7 @@ router.post(
 );
 
 // Event reviews (authenticated users only)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Create event review',
   description: 'Create a review for an event',
@@ -719,7 +719,7 @@ router.post(
   eventReviewController.createReview.bind(eventReviewController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Update event review',
   description: 'Update an existing review for an event',
@@ -772,7 +772,7 @@ router.put(
   eventReviewController.updateReview.bind(eventReviewController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Delete event review',
   description: 'Delete a review for an event',
@@ -809,7 +809,7 @@ router.delete(
   eventReviewController.deleteReview.bind(eventReviewController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get user event review',
   description: 'Get the current user review for an event',
@@ -853,7 +853,7 @@ router.get(
   eventReviewController.getUserEventReview.bind(eventReviewController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Check review eligibility',
   description: 'Check if user is eligible to review an event',
@@ -891,7 +891,7 @@ router.get(
 );
 
 // Event management (organization owners/admins only)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Cancel event',
   description: 'Cancel an event',
@@ -929,7 +929,7 @@ router.post(
   eventController.cancelEvent.bind(eventController)
 );
 
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Complete event',
   description: 'Mark an event as completed',
@@ -968,7 +968,7 @@ router.post(
 );
 
 // Analytics routes (require event management permission)
-oapi.path({
+oapi.validPath({
   tags: ['Events'],
   summary: 'Get event analytics',
   description: 'Get analytics data for an event',

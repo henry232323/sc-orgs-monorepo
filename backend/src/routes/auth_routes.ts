@@ -13,7 +13,7 @@ const hrActivityController = new HRActivityController();
 
 // Discord OAuth routes
 router.get('/discord', 
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Initiate Discord OAuth login',
     description: 'Redirects user to Discord OAuth authorization page to begin authentication flow',
@@ -36,7 +36,7 @@ router.get('/discord',
 );
 
 router.get('/discord/callback',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Discord OAuth callback',
     description: 'Handles Discord OAuth callback and creates JWT token for authenticated user',
@@ -87,7 +87,7 @@ router.get('/discord/callback',
 
 // Auth failure route
 router.get('/failure', 
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Authentication failure',
     description: 'Endpoint called when Discord OAuth authentication fails',
@@ -113,7 +113,7 @@ router.get('/failure',
 
 // Protected routes (require JWT)
 router.get('/me',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get current user',
     description: 'Returns the currently authenticated user information',
@@ -140,7 +140,7 @@ router.get('/me',
 );
 
 router.get('/user/:id',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user by ID',
     description: 'Returns user information for the specified user ID',
@@ -179,7 +179,7 @@ router.get('/user/:id',
 );
 
 router.post('/verify-rsi',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Verify RSI account',
     description: 'Verifies user RSI account using verification code',
@@ -217,7 +217,7 @@ router.post('/verify-rsi',
 );
 
 router.post('/generate-verification-code',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Generate RSI verification code',
     description: 'Generates a verification code for RSI account verification',
@@ -243,7 +243,7 @@ router.post('/generate-verification-code',
   authController.generateVerificationCode.bind(authController)
 );
 router.get('/verification-code',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user verification code',
     description: 'Retrieves the current verification code for the authenticated user',
@@ -278,7 +278,7 @@ router.get('/verification-code',
 );
 
 router.post('/logout',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Logout user',
     description: 'Logs out the current user and invalidates their session',
@@ -306,7 +306,7 @@ router.post('/logout',
 
 // Dashboard routes
 router.get('/dashboard/stats',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user dashboard statistics',
     description: 'Returns statistics for the user dashboard',
@@ -341,7 +341,7 @@ router.get('/dashboard/stats',
 );
 
 router.get('/dashboard/rating-summary',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user rating summary',
     description: 'Returns rating summary for the authenticated user',
@@ -384,7 +384,7 @@ router.get('/dashboard/rating-summary',
 );
 
 router.get('/dashboard/organizations',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user organizations',
     description: 'Returns organizations associated with the authenticated user',
@@ -425,7 +425,7 @@ router.get('/dashboard/organizations',
 );
 
 router.get('/dashboard/events',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user events',
     description: 'Returns events associated with the authenticated user',
@@ -486,7 +486,7 @@ router.get('/dashboard/events',
 
 // User activity endpoint
 router.get('/activity',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user activity',
     description: 'Returns activity log for the authenticated user',
@@ -528,7 +528,7 @@ router.get('/activity',
 
 // HR-specific user activity endpoint
 router.get('/hr-activities',
-  oapi.path({
+  oapi.validPath({
     tags: ['Authentication'],
     summary: 'Get user HR activities',
     description: 'Returns HR-specific activity log for the authenticated user',

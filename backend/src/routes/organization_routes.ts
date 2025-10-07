@@ -19,7 +19,7 @@ const hrAnalyticsController = new HRAnalyticsController();
 
 // Public routes (no authentication required)
 router.get('/',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'List organizations',
     description: 'Get a paginated list of all organizations',
@@ -75,7 +75,7 @@ router.get('/',
 );
 
 router.get('/search',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Search organizations',
     description: 'Search organizations by name, description, or tags',
@@ -157,7 +157,7 @@ router.get('/search',
 );
 
 router.get('/:rsi_org_id',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization by RSI ID',
     description: 'Get detailed information about a specific organization',
@@ -192,7 +192,7 @@ router.get('/:rsi_org_id',
   organizationController.getOrganization.bind(organizationController)
 );
 router.put('/:rsi_org_id',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Update organization',
     description: 'Update organization information (requires organization permissions)',
@@ -247,7 +247,7 @@ router.put('/:rsi_org_id',
 
 // Protected routes (require JWT)
 router.post('/',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Create organization',
     description: 'Create a new organization',
@@ -293,7 +293,7 @@ router.post('/',
 );
 
 router.put('/spectrum/:rsi_org_id',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Update organization by Spectrum ID',
     description: 'Update organization information using Spectrum ID',
@@ -346,7 +346,7 @@ router.put('/spectrum/:rsi_org_id',
 );
 
 router.delete('/:rsi_org_id',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Delete organization',
     description: 'Delete an organization (requires organization admin permissions)',
@@ -390,7 +390,7 @@ router.delete('/:rsi_org_id',
 
 // Organization verification and registration
 router.post('/:rsi_org_id/generate-verification',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Generate organization verification',
     description: 'Generate verification code for organization ownership',
@@ -441,7 +441,7 @@ router.post('/:rsi_org_id/generate-verification',
 );
 
 router.post('/:rsi_org_id/verify',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Verify organization ownership',
     description: 'Verify organization ownership using verification code',
@@ -504,7 +504,7 @@ router.post('/:rsi_org_id/verify',
 );
 
 router.post('/:rsi_org_id/complete-registration',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Complete organization registration',
     description: 'Complete the organization registration process',
@@ -552,7 +552,7 @@ router.post('/:rsi_org_id/complete-registration',
 
 // Organization upvoting (by spectrum ID)
 router.post('/spectrum/:rsi_org_id/upvote',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Upvote organization',
     description: 'Upvote an organization by Spectrum ID',
@@ -599,7 +599,7 @@ router.post('/spectrum/:rsi_org_id/upvote',
 );
 
 router.delete('/spectrum/:rsi_org_id/upvote',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Remove upvote',
     description: 'Remove upvote from an organization',
@@ -638,7 +638,7 @@ router.delete('/spectrum/:rsi_org_id/upvote',
 );
 
 router.get('/spectrum/:rsi_org_id/upvote/status',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get upvote status',
     description: 'Check if user has upvoted an organization',
@@ -684,7 +684,7 @@ router.get('/spectrum/:rsi_org_id/upvote/status',
 
 // Organization events
 router.get('/:rsi_org_id/events',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization events',
     description: 'Get events for a specific organization',
@@ -753,7 +753,7 @@ router.get('/:rsi_org_id/events',
 
 // Organization members
 router.get('/:rsi_org_id/members',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization members',
     description: 'Get members of a specific organization',
@@ -824,7 +824,7 @@ router.get('/:rsi_org_id/members',
 );
 
 router.post('/:rsi_org_id/members',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Add organization member',
     description: 'Add a member to an organization',
@@ -885,7 +885,7 @@ router.post('/:rsi_org_id/members',
 );
 
 router.put('/:rsi_org_id/members/:userId',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Update member role',
     description: 'Update a member role in an organization',
@@ -952,7 +952,7 @@ router.put('/:rsi_org_id/members/:userId',
 );
 
 router.delete('/:rsi_org_id/members/:userId',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Remove organization member',
     description: 'Remove a member from an organization',
@@ -1003,7 +1003,7 @@ router.delete('/:rsi_org_id/members/:userId',
 
 // Home page routes (public)
 router.get('/featured',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get featured organizations',
     description: 'Get featured organizations for the home page',
@@ -1033,7 +1033,7 @@ router.get('/featured',
 );
 
 router.get('/stats/home',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get home page statistics',
     description: 'Get statistics for the home page',
@@ -1064,7 +1064,7 @@ router.get('/stats/home',
 
 // Organization invites (by spectrum ID)
 router.get('/spectrum/:rsi_org_id/invites',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization invite codes',
     description: 'Get invite codes for an organization',
@@ -1124,7 +1124,7 @@ router.get('/spectrum/:rsi_org_id/invites',
 );
 
 router.post('/spectrum/:rsi_org_id/invites',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Generate invite code',
     description: 'Generate a new invite code for an organization',
@@ -1187,7 +1187,7 @@ router.post('/spectrum/:rsi_org_id/invites',
 );
 
 router.delete('/spectrum/:rsi_org_id/invites/:inviteId',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Delete invite code',
     description: 'Delete an invite code for an organization',
@@ -1236,7 +1236,7 @@ router.delete('/spectrum/:rsi_org_id/invites/:inviteId',
 );
 
 router.post('/join/:inviteCode',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Join organization with invite',
     description: 'Join an organization using an invite code',
@@ -1286,7 +1286,7 @@ router.post('/join/:inviteCode',
 
 // Organization reviews (public read)
 router.get('/:rsi_org_id/reviews',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization reviews',
     description: 'Get reviews for a specific organization',
@@ -1351,7 +1351,7 @@ router.get('/:rsi_org_id/reviews',
 );
 
 router.get('/:rsi_org_id/reviews/summary',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization rating summary',
     description: 'Get rating summary for a specific organization',
@@ -1403,7 +1403,7 @@ router.get('/:rsi_org_id/reviews/summary',
 
 // Analytics routes (require VIEW_ANALYTICS permission)
 router.get('/:rsi_org_id/analytics/views',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization analytics',
     description: 'Get view analytics for an organization (requires VIEW_ANALYTICS permission)',
@@ -1457,7 +1457,7 @@ router.get('/:rsi_org_id/analytics/views',
 );
 
 router.get('/:rsi_org_id/analytics/events',
-  oapi.path({
+  oapi.validPath({
     tags: ['Organizations'],
     summary: 'Get organization event analytics',
     description: 'Get event analytics for an organization (requires VIEW_ANALYTICS permission)',
@@ -1529,7 +1529,7 @@ router.get('/:rsi_org_id/analytics/events',
 
 // HR Analytics routes (require HR_MANAGER or VIEW_ANALYTICS permission)
 router.get('/:id/hr-analytics/dashboard',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics dashboard',
     description: 'Get main HR analytics dashboard metrics',
@@ -1579,7 +1579,7 @@ router.get('/:id/hr-analytics/dashboard',
 );
 
 router.get('/:id/hr-analytics/reports',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get detailed HR analytics reports',
     description: 'Get detailed HR analytics reports with filtering options',
@@ -1652,7 +1652,7 @@ router.get('/:id/hr-analytics/reports',
 );
 
 router.get('/:id/hr-analytics/trends',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics trends',
     description: 'Get trend analysis for specific HR metrics',
@@ -1723,7 +1723,7 @@ router.get('/:id/hr-analytics/trends',
 );
 
 router.get('/:id/hr-analytics/alerts',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics alerts',
     description: 'Get current alerts based on metric thresholds',
@@ -1780,7 +1780,7 @@ router.get('/:id/hr-analytics/alerts',
 );
 
 router.post('/:id/hr-analytics/export',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Export HR analytics data',
     description: 'Export analytics data in various formats',
@@ -1837,7 +1837,7 @@ router.post('/:id/hr-analytics/export',
 );
 
 router.get('/:id/hr-analytics/summary',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics summary',
     description: 'Get high-level summary metrics for quick overview',
@@ -1887,7 +1887,7 @@ router.get('/:id/hr-analytics/summary',
 );
 
 router.post('/:id/hr-analytics/refresh-cache',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Refresh HR analytics cache',
     description: 'Manually refresh analytics cache',
@@ -1965,7 +1965,7 @@ const hrActivityController = new HRActivityController();
 
 // Submit application
 router.post('/:id/applications',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Submit application',
     description: 'Submit a new application to an organization',
@@ -2019,7 +2019,7 @@ router.post('/:id/applications',
 
 // List applications
 router.get('/:id/applications',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'List applications',
     description: 'Get applications for an organization with filtering and pagination',
@@ -2083,7 +2083,7 @@ router.get('/:id/applications',
 
 // Get specific application
 router.get('/:id/applications/:applicationId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get application',
     description: 'Get a specific application by ID',
@@ -2127,7 +2127,7 @@ router.get('/:id/applications/:applicationId',
 
 // Update application status
 router.put('/:id/applications/:applicationId/status',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Update application status',
     description: 'Update the status of an application',
@@ -2182,7 +2182,7 @@ router.put('/:id/applications/:applicationId/status',
 
 // Bulk update applications
 router.post('/:id/applications/bulk-update',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Bulk update applications',
     description: 'Update multiple applications at once',
@@ -2263,7 +2263,7 @@ router.post('/:id/applications/bulk-update',
 
 // Get application analytics
 router.get('/:id/applications/analytics',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get application analytics',
     description: 'Get application analytics and statistics',
@@ -2329,7 +2329,7 @@ router.get('/:id/applications/analytics',
 
 // Onboarding template management
 router.get('/:id/onboarding/templates',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get onboarding templates',
     description: 'Get onboarding templates for an organization',
@@ -2392,7 +2392,7 @@ router.get('/:id/onboarding/templates',
 );
 
 router.post('/:id/onboarding/templates',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Create onboarding template',
     description: 'Create a new onboarding template for an organization',
@@ -2453,7 +2453,7 @@ router.post('/:id/onboarding/templates',
 );
 
 router.get('/:id/onboarding/templates/:templateId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get onboarding template',
     description: 'Get a specific onboarding template',
@@ -2502,7 +2502,7 @@ router.get('/:id/onboarding/templates/:templateId',
 );
 
 router.put('/:id/onboarding/templates/:templateId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Update onboarding template',
     description: 'Update an existing onboarding template',
@@ -2561,7 +2561,7 @@ router.put('/:id/onboarding/templates/:templateId',
 );
 
 router.delete('/:id/onboarding/templates/:templateId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Delete onboarding template',
     description: 'Delete an onboarding template',
@@ -2611,7 +2611,7 @@ router.delete('/:id/onboarding/templates/:templateId',
 
 // Onboarding progress management
 router.get('/:id/onboarding/progress',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get all onboarding progress',
     description: 'Get onboarding progress for all users in an organization',
@@ -2677,7 +2677,7 @@ router.get('/:id/onboarding/progress',
 );
 
 router.get('/:id/onboarding/progress/:userId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get user onboarding progress',
     description: 'Get onboarding progress for a specific user',
@@ -2726,7 +2726,7 @@ router.get('/:id/onboarding/progress/:userId',
 );
 
 router.put('/:id/onboarding/progress/:userId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Update user onboarding progress',
     description: 'Update onboarding progress for a specific user',
@@ -2785,7 +2785,7 @@ router.put('/:id/onboarding/progress/:userId',
 );
 
 router.post('/:id/onboarding/progress',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Create onboarding progress',
     description: 'Create onboarding progress for a user',
@@ -2846,7 +2846,7 @@ router.post('/:id/onboarding/progress',
 
 // Task completion
 router.post('/:id/onboarding/tasks/:taskId/complete',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Complete onboarding task',
     description: 'Mark an onboarding task as completed',
@@ -2913,7 +2913,7 @@ router.post('/:id/onboarding/tasks/:taskId/complete',
 
 // Analytics and reporting
 router.get('/:id/onboarding/analytics',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get onboarding analytics',
     description: 'Get onboarding analytics and statistics',
@@ -2954,7 +2954,7 @@ router.get('/:id/onboarding/analytics',
 );
 
 router.get('/:id/onboarding/overdue',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get overdue onboarding progress',
     description: 'Get list of overdue onboarding progress',
@@ -2998,7 +2998,7 @@ router.get('/:id/onboarding/overdue',
 );
 
 router.post('/:id/onboarding/mark-overdue',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Mark overdue onboarding progress',
     description: 'Mark onboarding progress as overdue (system operation)',
@@ -3048,7 +3048,7 @@ router.post('/:id/onboarding/mark-overdue',
 
 // Create performance review
 router.post('/:id/performance/reviews',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Create performance review',
     description: 'Create a new performance review for an organization member',
@@ -3143,7 +3143,7 @@ router.post('/:id/performance/reviews',
 
 // List performance reviews
 router.get('/:id/performance/reviews',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'List performance reviews',
     description: 'Get performance reviews for an organization with filtering and pagination',
@@ -3241,7 +3241,7 @@ router.get('/:id/performance/reviews',
 
 // Get specific performance review
 router.get('/:id/performance/reviews/:reviewId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get performance review',
     description: 'Get a specific performance review by ID',
@@ -3312,7 +3312,7 @@ router.get('/:id/performance/reviews/:reviewId',
 
 // Update performance review
 router.put('/:id/performance/reviews/:reviewId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Update performance review',
     description: 'Update a performance review',
@@ -3400,7 +3400,7 @@ router.put('/:id/performance/reviews/:reviewId',
 
 // Get performance analytics
 router.get('/:id/performance/analytics',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get performance analytics',
     description: 'Get performance analytics for an organization',
@@ -3458,7 +3458,7 @@ router.get('/:id/performance/analytics',
 
 // Get performance trends
 router.get('/:id/performance/trends',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get performance trends',
     description: 'Get performance trends over time for an organization',
@@ -3516,7 +3516,7 @@ router.get('/:id/performance/trends',
 
 // Get due reviews
 router.get('/:id/performance/due-reviews',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get due reviews',
     description: 'Get upcoming performance reviews that are due',
@@ -3578,7 +3578,7 @@ router.get('/:id/performance/due-reviews',
 
 // Create performance goal
 router.post('/:id/performance/goals',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Create performance goal',
     description: 'Create a new performance goal',
@@ -3653,7 +3653,7 @@ router.post('/:id/performance/goals',
 
 // Update performance goal
 router.put('/:id/performance/goals/:goalId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Update performance goal',
     description: 'Update a performance goal',
@@ -3730,7 +3730,7 @@ router.put('/:id/performance/goals/:goalId',
 
 // Update goal progress
 router.put('/:id/performance/goals/:goalId/progress',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Update goal progress',
     description: 'Update progress for a performance goal',
@@ -3804,7 +3804,7 @@ router.put('/:id/performance/goals/:goalId/progress',
 
 // Get overdue goals
 router.get('/:id/performance/goals/overdue',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get overdue goals',
     description: 'Get overdue performance goals for an organization',
@@ -3862,7 +3862,7 @@ router.get('/:id/performance/goals/overdue',
 
 // List all available skills
 router.get('/:id/skills',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'List skills',
     description: 'Get a list of all available skills with optional filtering',
@@ -3942,7 +3942,7 @@ router.get('/:id/skills',
 
 // Create a new skill (admin only)
 router.post('/:id/skills',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Create skill',
     description: 'Create a new skill (admin only)',
@@ -4006,7 +4006,7 @@ router.post('/:id/skills',
 
 // Get organization skills
 router.get('/:id/skills/organization',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get organization skills',
     description: 'Get skills for organization members with filtering',
@@ -4082,7 +4082,7 @@ router.get('/:id/skills/organization',
 
 // Add skill to user
 router.post('/:id/skills/user',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Add user skill',
     description: 'Add a skill to the current user',
@@ -4144,7 +4144,7 @@ router.post('/:id/skills/user',
 
 // Get user skills
 router.get('/:id/skills/user/:userId?',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get user skills',
     description: 'Get skills for a specific user (or current user if no userId provided)',
@@ -4219,7 +4219,7 @@ router.get('/:id/skills/user/:userId?',
 
 // Verify user skill
 router.put('/:id/skills/:skillId/verify',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Verify user skill',
     description: 'Verify a user\'s skill (requires appropriate permissions)',
@@ -4282,7 +4282,7 @@ router.put('/:id/skills/:skillId/verify',
 
 // Update user skill
 router.put('/:id/skills/user/:userSkillId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Update user skill',
     description: 'Update a user\'s skill',
@@ -4348,7 +4348,7 @@ router.put('/:id/skills/user/:userSkillId',
 
 // Remove user skill
 router.delete('/:id/skills/user/:userSkillId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Remove user skill',
     description: 'Remove a user\'s skill',
@@ -4397,7 +4397,7 @@ router.delete('/:id/skills/user/:userSkillId',
 
 // Get skill analytics
 router.get('/:id/skills/analytics',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get skill analytics',
     description: 'Get skill analytics for the organization',
@@ -4441,7 +4441,7 @@ router.get('/:id/skills/analytics',
 
 // Create certification
 router.post('/:id/skills/certifications',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Create certification',
     description: 'Create a new certification',
@@ -4503,7 +4503,7 @@ router.post('/:id/skills/certifications',
 
 // Get organization certifications
 router.get('/:id/skills/certifications',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get organization certifications',
     description: 'Get certifications for the organization',
@@ -4576,7 +4576,7 @@ router.get('/:id/skills/certifications',
 
 // Get user certifications
 router.get('/:id/skills/certifications/user/:userId?',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get user certifications',
     description: 'Get certifications for a specific user',
@@ -4627,7 +4627,7 @@ router.get('/:id/skills/certifications/user/:userId?',
 
 // Get expiring certifications
 router.get('/:id/skills/certifications/expiring',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get expiring certifications',
     description: 'Get certifications expiring soon',
@@ -4678,7 +4678,7 @@ router.get('/:id/skills/certifications/expiring',
 
 // Update certification
 router.put('/:id/skills/certifications/:certificationId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Update certification',
     description: 'Update a certification',
@@ -4745,7 +4745,7 @@ router.put('/:id/skills/certifications/:certificationId',
 
 // Delete certification
 router.delete('/:id/skills/certifications/:certificationId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Delete certification',
     description: 'Delete a certification',
@@ -4798,7 +4798,7 @@ router.delete('/:id/skills/certifications/:certificationId',
 // Get all skills statistics
 router.get('/:id/skills/statistics',
   loggedRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Get all skills statistics',
     description: 'Get statistics for all skills in the organization',
@@ -4891,7 +4891,7 @@ router.get('/:id/skills/statistics',
 // Get specific skill statistics
 router.get('/:id/skills/:skillId/statistics',
   loggedRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Get skill statistics',
     description: 'Get statistics for a specific skill',
@@ -4963,7 +4963,7 @@ router.get('/:id/skills/:skillId/statistics',
 // Get skills statistics by category
 router.get('/:id/skills/statistics/category/:category',
   loggedRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Get category statistics',
     description: 'Get statistics for skills in a specific category',
@@ -5033,7 +5033,7 @@ router.get('/:id/skills/statistics/category/:category',
 // Get organization skills overview
 router.get('/:id/skills/statistics/overview',
   loggedRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Get skills overview',
     description: 'Get comprehensive organization skills overview',
@@ -5113,7 +5113,7 @@ router.get('/:id/skills/statistics/overview',
 // Get skills statistics summary
 router.get('/:id/skills/statistics/summary',
   loggedRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Get statistics summary',
     description: 'Get skill statistics summary for dashboard',
@@ -5178,7 +5178,7 @@ router.get('/:id/skills/statistics/summary',
 // Get verification trends
 router.get('/:id/skills/statistics/trends',
   loggedRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Get verification trends',
     description: 'Get skill verification trends over time',
@@ -5241,7 +5241,7 @@ router.get('/:id/skills/statistics/trends',
 // Get skill gap analysis
 router.post('/:id/skills/statistics/gaps',
   hrOperationsRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Get skill gap analysis',
     description: 'Perform skill gap analysis for the organization',
@@ -5320,7 +5320,7 @@ router.post('/:id/skills/statistics/gaps',
 // Refresh statistics cache
 router.post('/:id/skills/statistics/refresh',
   hrOperationsRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Refresh statistics cache',
     description: 'Refresh the skills statistics cache for the organization',
@@ -5362,7 +5362,7 @@ router.post('/:id/skills/statistics/refresh',
 // Clear statistics cache
 router.delete('/:id/skills/statistics/cache',
   hrOperationsRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Clear statistics cache',
     description: 'Clear the skills statistics cache for the organization',
@@ -5411,7 +5411,7 @@ router.delete('/:id/skills/statistics/cache',
 // Export skill statistics
 router.get('/:id/skills/statistics/export',
   analyticsRateLimit,
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Skills Statistics'],
     summary: 'Export skill statistics',
     description: 'Export skill statistics data in JSON or CSV format',
@@ -5472,7 +5472,7 @@ router.get('/:id/skills/statistics/export',
 
 // Upload document
 router.post('/:id/documents',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Upload document',
     description: 'Upload a new document to an organization',
@@ -5560,7 +5560,7 @@ router.post('/:id/documents',
 
 // List documents
 router.get('/:id/documents',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'List documents',
     description: 'Get documents for an organization with filtering and pagination',
@@ -5663,7 +5663,7 @@ router.get('/:id/documents',
 
 // Get specific document
 router.get('/:id/documents/:documentId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document',
     description: 'Get a specific document by ID',
@@ -5734,7 +5734,7 @@ router.get('/:id/documents/:documentId',
 
 // Update document
 router.put('/:id/documents/:documentId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Update document',
     description: 'Update document metadata',
@@ -5825,7 +5825,7 @@ router.put('/:id/documents/:documentId',
 
 // Delete document
 router.delete('/:id/documents/:documentId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Delete document',
     description: 'Delete a document',
@@ -5874,7 +5874,7 @@ router.delete('/:id/documents/:documentId',
 
 // Acknowledge document
 router.put('/:id/documents/:documentId/acknowledge',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Acknowledge document',
     description: 'Acknowledge a document that requires acknowledgment',
@@ -5932,7 +5932,7 @@ router.put('/:id/documents/:documentId/acknowledge',
 
 // Search documents
 router.get('/:id/documents/search',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Search documents',
     description: 'Search documents by title and description',
@@ -6020,7 +6020,7 @@ router.get('/:id/documents/search',
 
 // Get document version history
 router.get('/:id/documents/:documentId/history',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document history',
     description: 'Get version history for a document',
@@ -6080,7 +6080,7 @@ router.get('/:id/documents/:documentId/history',
 
 // Get folder structure
 router.get('/:id/documents/folders',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get folder structure',
     description: 'Get folder structure for the organization',
@@ -6122,7 +6122,7 @@ router.get('/:id/documents/folders',
 
 // Get document acknowledgments
 router.get('/:id/documents/:documentId/acknowledgments',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document acknowledgments',
     description: 'Get acknowledgments for a document (admin only)',
@@ -6201,7 +6201,7 @@ router.get('/:id/documents/:documentId/acknowledgments',
 
 // Get compliance report
 router.get('/:id/documents/compliance-report',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get compliance report',
     description: 'Get compliance report for the organization (admin only)',
@@ -6251,7 +6251,7 @@ router.get('/:id/documents/compliance-report',
 
 // Get pending acknowledgments for current user
 router.get('/:id/documents/pending-acknowledgments',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get pending acknowledgments',
     description: 'Get pending acknowledgments for the current user',
@@ -6314,7 +6314,7 @@ router.get('/:id/documents/pending-acknowledgments',
 
 // Get document acknowledgment status
 router.get('/:id/documents/:documentId/acknowledgment-status',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document acknowledgment status',
     description: 'Get acknowledgment status for a specific document',
@@ -6384,7 +6384,7 @@ router.get('/:id/documents/:documentId/acknowledgment-status',
 
 // Bulk acknowledge documents
 router.post('/:id/documents/bulk-acknowledge',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Bulk acknowledge documents',
     description: 'Acknowledge multiple documents at once',
@@ -6457,7 +6457,7 @@ router.post('/:id/documents/bulk-acknowledge',
 
 // List documents with acknowledgment status
 router.get('/:id/documents/with-acknowledgment-status',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Documents'],
     summary: 'List documents with acknowledgment status',
     description: 'Get documents with acknowledgment status for current user',
@@ -6568,7 +6568,7 @@ router.get('/:id/documents/with-acknowledgment-status',
 
 // Get organization HR activities
 router.get('/:id/hr-activities',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get organization HR activities',
     description: 'Get paginated HR activities for an organization with filtering options',
@@ -6677,7 +6677,7 @@ router.get('/:id/hr-activities',
 
 // Get organization HR activity statistics
 router.get('/:id/hr-activities/stats',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get organization HR activity statistics',
     description: 'Get statistical data about HR activities for an organization',
@@ -6760,7 +6760,7 @@ router.get('/:id/hr-activities/stats',
 
 // Get individual HR activity by ID
 router.get('/hr-activities/:activityId',
-  oapi.path({
+  oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get HR activity by ID',
     description: 'Get detailed information about a specific HR activity',

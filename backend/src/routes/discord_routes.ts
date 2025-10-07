@@ -17,7 +17,7 @@ const discordService = new DiscordService();
  * @desc Get Discord server information for an organization (read-only)
  * @access Private (Organization Member)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Get organization Discord server',
   description: 'Get Discord server information for a specific organization',
@@ -61,7 +61,7 @@ router.get(
  * @desc Disconnect Discord server from organization
  * @access Private (Organization Admin)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Disconnect Discord server',
   description: 'Disconnect Discord server from organization',
@@ -108,7 +108,7 @@ router.delete(
  * @desc Get Discord servers connected to user's organizations (read-only)
  * @access Private (Authenticated User)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Get user Discord servers',
   description: 'Get Discord servers connected to user organizations',
@@ -139,7 +139,7 @@ router.get(
  * @desc Handle Discord webhook interactions (slash commands)
  * @access Public (Discord webhook with signature validation)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Handle Discord webhook',
   description: 'Handle Discord webhook interactions and slash commands',
@@ -176,7 +176,7 @@ router.post(
  * @desc Check Discord service health
  * @access Public
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Discord health check',
   description: 'Check the health status of Discord services',
@@ -202,7 +202,7 @@ router.get(
  * @desc Register Discord slash commands
  * @access Private (Admin)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Register Discord slash commands',
   description: 'Register Discord slash commands for the application',
@@ -237,7 +237,7 @@ router.post(
  * @desc Sync all pending Discord events
  * @access Private (Admin)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Sync pending Discord events',
   description: 'Sync all pending Discord events',
@@ -270,7 +270,7 @@ router.post(
  * @desc Retry all failed Discord events
  * @access Private (Admin)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Retry failed Discord events',
   description: 'Retry all failed Discord event synchronizations',
@@ -303,7 +303,7 @@ router.post(
  * @desc Sync all events for a specific organization
  * @access Private (Organization Admin)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Sync organization Discord events',
   description: 'Sync all Discord events for a specific organization',
@@ -356,7 +356,7 @@ router.post(
  * @desc Get Discord event sync statistics
  * @access Private (Admin)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Get Discord sync statistics',
   description: 'Get Discord event synchronization statistics',
@@ -389,7 +389,7 @@ router.get(
  * @desc Cleanup cancelled Discord events
  * @access Private (Admin)
  */
-oapi.path({
+oapi.validPath({
   tags: ['Discord'],
   summary: 'Cleanup cancelled Discord events',
   description: 'Cleanup cancelled Discord events from the system',

@@ -10,7 +10,7 @@ const notificationController = new NotificationController();
 router.use(requireLogin as any);
 
 // GET /api/notifications - Get notifications for the current user
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Get user notifications',
   description: 'Get paginated list of notifications for the current user',
@@ -63,7 +63,7 @@ oapi.path({
 router.get('/', notificationController.getNotifications as any);
 
 // GET /api/notifications/stats - Get notification statistics
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Get notification statistics',
   description: 'Get notification statistics for the current user',
@@ -87,7 +87,7 @@ oapi.path({
 router.get('/stats', notificationController.getNotificationStats as any);
 
 // GET /api/notifications/preferences - Get notification preferences
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Get notification preferences',
   description: 'Get notification preferences for the current user',
@@ -114,7 +114,7 @@ router.get(
 );
 
 // GET /api/notifications/:id - Get a specific notification
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Get notification by ID',
   description: 'Get a specific notification by its ID',
@@ -148,7 +148,7 @@ oapi.path({
 router.get('/:id', notificationController.getNotificationById as any);
 
 // PUT /api/notifications/:id - Update a notification
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Update notification',
   description: 'Update a specific notification',
@@ -191,7 +191,7 @@ oapi.path({
 router.put('/:id', notificationController.updateNotification as any);
 
 // POST /api/notifications/mark-read - Mark multiple notifications as read
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Mark notifications as read',
   description: 'Mark multiple notifications as read',
@@ -227,7 +227,7 @@ router.post(
 );
 
 // POST /api/notifications/mark-all-read - Mark all notifications as read
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Mark all notifications as read',
   description: 'Mark all notifications as read for the current user',
@@ -254,7 +254,7 @@ router.post(
 );
 
 // POST /api/notifications - Create a notification (for internal use)
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Create notification',
   description: 'Create a new notification (internal use)',
@@ -287,7 +287,7 @@ oapi.path({
 router.post('/', notificationController.createNotification as any);
 
 // PUT /api/notifications/preferences - Update notification preferences
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Update notification preferences',
   description: 'Update notification preferences for the current user',
@@ -323,7 +323,7 @@ router.put(
 );
 
 // PATCH /api/notifications/:id/read - Mark notification as read when clicked
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Mark notification as read',
   description: 'Mark a specific notification as read',
@@ -357,7 +357,7 @@ oapi.path({
 router.patch('/:id/read', notificationController.markNotificationAsRead as any);
 
 // PATCH /api/notifications/events/:eventId/mark-read - Mark all event notifications as read
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Mark event notifications as read',
   description: 'Mark all notifications for a specific event as read',
@@ -394,7 +394,7 @@ router.patch(
 );
 
 // POST /api/notifications/bulk-read - Mark all notifications as read
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Bulk mark all notifications as read',
   description: 'Mark all notifications as read for the current user',
@@ -418,7 +418,7 @@ oapi.path({
 router.post('/bulk-read', notificationController.bulkMarkAllAsRead as any);
 
 // DELETE /api/notifications/bulk - Delete all notifications
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Bulk delete all notifications',
   description: 'Delete all notifications for the current user',
@@ -445,7 +445,7 @@ router.delete(
 );
 
 // DELETE /api/notifications - Delete multiple notifications (existing functionality)
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Delete multiple notifications',
   description: 'Delete multiple notifications by their IDs',
@@ -478,7 +478,7 @@ oapi.path({
 router.delete('/', notificationController.deleteNotifications as any);
 
 // DELETE /api/notifications/:id - Delete a specific notification
-oapi.path({
+oapi.validPath({
   tags: ['Notifications'],
   summary: 'Delete notification',
   description: 'Delete a specific notification by its ID',

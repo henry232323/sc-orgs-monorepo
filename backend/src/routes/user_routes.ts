@@ -7,7 +7,7 @@ const router: Router = Router();
 const userController = new UserController();
 
 // Get public user profile by RSI handle (no auth required)
-oapi.path({
+oapi.validPath({
   
   
   tags: ['Users'],
@@ -59,7 +59,7 @@ router.get(
 );
 
 // Get user's organizations with management info
-oapi.path({
+oapi.validPath({
   
   
   tags: ['Users'],
@@ -95,7 +95,7 @@ router.get(
 );
 
 // Leave an organization
-oapi.path({
+oapi.validPath({
   
   
   tags: ['Users'],
@@ -161,7 +161,7 @@ router.post(
 );
 
 // Toggle organization visibility (hide/unhide)
-oapi.path({
+oapi.validPath({
   
   
   tags: ['Users'],
