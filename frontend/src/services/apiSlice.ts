@@ -1181,6 +1181,23 @@ export const apiSlice = createApi({
       ],
     }),
 
+    // Search organization members
+    searchOrganizationMembers: builder.query<
+      { id: string; rsi_handle: string }[],
+      { organizationId: string; query: string; limit?: number }
+    >({
+      query: ({ organizationId, query, limit = 10 }) => {
+        const params = new URLSearchParams({
+          q: query,
+          limit: limit.toString(),
+        });
+        return `/api/organizations/${organizationId}/members/search?${params.toString()}`;
+      },
+      transformResponse: (response: ApiSuccessResponse<{ id: string; rsi_handle: string }[]>) =>
+        response.data,
+      keepUnusedDataFor: 60, // Cache for 1 minute (members change frequently)
+    }),
+
     generateInviteCode: builder.mutation<
       any,
       {

@@ -884,6 +884,70 @@ router.post('/:rsi_org_id/members',
   organizationController.addMember.bind(organizationController)
 );
 
+// Search organization members
+router.get('/:rsi_org_id/members/search',
+  oapi.validPath({
+    tags: ['Organizations'],
+    summary: 'Search organization members',
+    description: 'Search for organization members by name or handle',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'rsi_org_id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'q',
+        in: 'query',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Search query'
+      },
+      {
+        name: 'limit',
+        in: 'query',
+        schema: { type: 'integer' as const, minimum: 1, maximum: 50, default: 10 },
+        description: 'Number of results to return'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Search results',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: {
+                  type: 'array' as const,
+                  items: {
+                    type: 'object' as const,
+                    properties: {
+                      id: { type: 'string' as const },
+                      rsi_handle: { type: 'string' as const }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
+  organizationController.searchMembers.bind(organizationController)
+);
+
 router.put('/:rsi_org_id/members/:userId',
   oapi.validPath({
     tags: ['Organizations'],

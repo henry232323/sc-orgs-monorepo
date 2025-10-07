@@ -3,9 +3,6 @@ import {
   Button,
   Paper,
   Dialog,
-  Input,
-  Textarea,
-  RadioGroup,
   SectionTitle,
   ComponentTitle,
   ComponentSubtitle,
@@ -14,11 +11,11 @@ import {
 } from '../ui';
 import {
   useGetPerformanceReviewsQuery,
-  useCreatePerformanceReviewMutation,
   useGetPerformanceAnalyticsQuery,
   useGetHREventAnalyticsQuery,
 } from '../../services/apiSlice';
-import type { PerformanceReview, CreatePerformanceReviewData } from '../../types/hr';
+import PerformanceReviewForm from './performance_review_form';
+import type { PerformanceReview } from '../../types/hr';
 import {
   TrophyIcon,
   PlusIcon,
@@ -43,18 +40,6 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
   const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null);
   const [page, setPage] = useState(1);
 
-  // Form state for creating/editing reviews
-  const [formData, setFormData] = useState<Partial<CreatePerformanceReviewData>>({
-    reviewee_id: '',
-    review_period_start: '',
-    review_period_end: '',
-    ratings: {},
-    overall_rating: 3,
-    strengths: [],
-    areas_for_improvement: [],
-    goals: [],
-  });
-
   // Fetch data
   const { data: reviewsData, isLoading } = useGetPerformanceReviewsQuery({
     organizationId,
@@ -72,81 +57,6 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
     startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // Last 90 days
     endDate: new Date().toISOString(),
   });
-
-  // Mutations
-  const [createReview] = useCreatePerformanceReviewMutation();
-
-  // Rating categories for performance reviews
-  const ratingCategories = [
-    { key: 'technical_skills', label: 'Technical Skills', description: 'Proficiency in required technical areas' },
-    { key: 'communication', label: 'Communication', description: 'Verbal and written communication effectiveness' },
-    { key: 'teamwork', label: 'Teamwork', description: 'Collaboration and team contribution' },
-    { key: 'leadership', label: 'Leadership', description: 'Leadership abilities and initiative' },
-    { key: 'reliability', label: 'Reliability', description: 'Consistency and dependability' },
-    { key: 'problem_solving', label: 'Problem Solving', description: 'Analytical and creative problem-solving skills' },
-  ];
-
-  // Rating scale options
-  const ratingOptions = [
-    { value: 1, label: '1 - Needs Improvement', description: 'Below expectations' },
-    { value: 2, label: '2 - Developing', description: 'Approaching expectations' },
-    { value: 3, label: '3 - Meets Expectations', description: 'Fully meets expectations' },
-    { value: 4, label: '4 - Exceeds Expectations', description: 'Consistently exceeds expectations' },
-    { value: 5, label: '5 - Outstanding', description: 'Exceptional performance' },
-  ];
-
-  // Handle form submission
-  const handleCreateReview = async () => {
-    if (!formData.reviewee_id || !formData.review_period_start || !formData.review_period_end) {
-      return;
-    }
-
-    try {
-      await createReview({
-        organizationId,
-        data: formData as CreatePerformanceReviewData,
-      }).unwrap();
-      
-      // Reset form and close modal
-      setFormData({
-        reviewee_id: '',
-        review_period_start: '',
-        review_period_end: '',
-        ratings: {},
-        overall_rating: 3,
-        strengths: [],
-        areas_for_improvement: [],
-        goals: [],
-      });
-      setShowCreateModal(false);
-    } catch (error) {
-      console.error('Failed to create performance review:', error);
-    }
-  };
-
-  // Handle rating change
-  const handleRatingChange = (category: string, rating: number) => {
-    setFormData(prev => ({
-      ...prev,
-      ratings: {
-        ...prev.ratings,
-        [category]: { score: rating, comments: prev.ratings?.[category]?.comments || '' },
-      },
-    }));
-  };
-
-  // Handle rating comment change
-  const handleRatingCommentChange = (category: string, comments: string) => {
-    setFormData(prev => ({
-      ...prev,
-      ratings: {
-        ...prev.ratings,
-        [category]: { score: prev.ratings?.[category]?.score || 3, comments },
-      },
-    }));
-  };
-
-
 
   // Get status color for reviews
   const getStatusColor = (status: PerformanceReview['status']) => {
@@ -167,15 +77,6 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
       month: 'short',
       day: 'numeric',
     });
-  };
-
-  // Calculate overall rating from individual ratings
-  const calculateOverallRating = () => {
-    const ratings = Object.values(formData.ratings || {});
-    if (ratings.length === 0) return 3;
-    
-    const sum = ratings.reduce((acc, rating) => acc + rating.score, 0);
-    return Math.round(sum / ratings.length);
   };
 
   return (
@@ -406,17 +307,6 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
                         size='sm'
                         onClick={() => {
                           setSelectedReview(review);
-                          // Set form data for editing
-                          setFormData({
-                            reviewee_id: review.reviewee_id,
-                            review_period_start: review.review_period_start,
-                            review_period_end: review.review_period_end,
-                            ratings: review.ratings,
-                            overall_rating: review.overall_rating,
-                            strengths: review.strengths,
-                            areas_for_improvement: review.areas_for_improvement,
-                            goals: review.goals,
-                          });
                           setShowCreateModal(true);
                         }}
                       >
@@ -477,138 +367,22 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
         onClose={() => {
           setShowCreateModal(false);
           setSelectedReview(null);
-          setFormData({
-            reviewee_id: '',
-            review_period_start: '',
-            review_period_end: '',
-            ratings: {},
-            overall_rating: 3,
-            strengths: [],
-            areas_for_improvement: [],
-            goals: [],
-          });
         }}
         title={selectedReview ? 'Edit Performance Review' : 'Create Performance Review'}
         size='xl'
       >
-        <div className='space-y-[var(--spacing-card-lg)] max-h-[70vh] overflow-y-auto'>
-          {/* Basic Information */}
-          <div>
-            <ComponentTitle className='mb-4'>Basic Information</ComponentTitle>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <ComponentSubtitle className='text-tertiary mb-2'>
-                  Reviewee ID
-                </ComponentSubtitle>
-                <Input
-                  value={formData.reviewee_id || ''}
-                  onChange={(value) => setFormData(prev => ({ ...prev, reviewee_id: value }))}
-                  placeholder='Enter reviewee ID'
-                  className='w-full'
-                />
-              </div>
-              
-              <div>
-                <ComponentSubtitle className='text-tertiary mb-2'>
-                  Review Period
-                </ComponentSubtitle>
-                <div className='grid grid-cols-2 gap-2'>
-                  <input
-                    type='date'
-                    value={formData.review_period_start || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, review_period_start: e.target.value }))}
-                    className='px-3 py-2 bg-glass border border-glass-border rounded-[var(--radius-glass-sm)] text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent'
-                  />
-                  <input
-                    type='date'
-                    value={formData.review_period_end || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, review_period_end: e.target.value }))}
-                    className='px-3 py-2 bg-glass border border-glass-border rounded-[var(--radius-glass-sm)] text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent'
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Rating Categories */}
-          <div>
-            <ComponentTitle className='mb-4'>Performance Ratings</ComponentTitle>
-            <div className='space-y-6'>
-              {ratingCategories.map((category) => (
-                <Paper key={category.key} variant='glass-subtle' size='sm'>
-                  <div className='mb-3'>
-                    <ComponentSubtitle className='text-primary mb-1'>
-                      {category.label}
-                    </ComponentSubtitle>
-                    <p className='text-xs text-tertiary'>
-                      {category.description}
-                    </p>
-                  </div>
-                  
-                  <RadioGroup
-                    options={ratingOptions}
-                    value={formData.ratings?.[category.key]?.score || 3}
-                    onChange={(rating) => handleRatingChange(category.key, rating)}
-                    variant='buttons'
-                    size='sm'
-                    className='mb-3'
-                  />
-                  
-                  <Textarea
-                    value={formData.ratings?.[category.key]?.comments || ''}
-                    onChange={(comments) => handleRatingCommentChange(category.key, comments)}
-                    placeholder='Add comments for this category...'
-                    rows={2}
-                    className='w-full'
-                  />
-                </Paper>
-              ))}
-            </div>
-          </div>
-
-          {/* Overall Rating Display */}
-          <div>
-            <ComponentTitle className='mb-4'>Overall Rating</ComponentTitle>
-            <Paper variant='glass-subtle' size='md' className='text-center'>
-              <StatMedium className='text-accent-blue mb-2'>
-                {calculateOverallRating()}/5
-              </StatMedium>
-              <ComponentSubtitle className='text-tertiary'>
-                Calculated from individual ratings
-              </ComponentSubtitle>
-            </Paper>
-          </div>
-
-          {/* Action Buttons */}
-          <div className='flex items-center justify-end gap-[var(--gap-button)] pt-4 border-t border-glass-border'>
-            <Button
-              variant='ghost'
-              onClick={() => {
-                setShowCreateModal(false);
-                setSelectedReview(null);
-                setFormData({
-                  reviewee_id: '',
-                  review_period_start: '',
-                  review_period_end: '',
-                  ratings: {},
-                  overall_rating: 3,
-                  strengths: [],
-                  areas_for_improvement: [],
-                  goals: [],
-                });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant='primary'
-              onClick={handleCreateReview}
-              disabled={!formData.reviewee_id || !formData.review_period_start || !formData.review_period_end}
-            >
-              {selectedReview ? 'Update Review' : 'Create Review'}
-            </Button>
-          </div>
-        </div>
+        <PerformanceReviewForm
+          {...(selectedReview && { existingReview: selectedReview })}
+          onSuccess={(_review) => {
+            setShowCreateModal(false);
+            setSelectedReview(null);
+            // Refresh the reviews list
+          }}
+          onCancel={() => {
+            setShowCreateModal(false);
+            setSelectedReview(null);
+          }}
+        />
       </Dialog>
 
       {/* View Review Modal */}
@@ -665,12 +439,11 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
               <ComponentTitle className='mb-4'>Ratings Breakdown</ComponentTitle>
               <div className='space-y-4'>
                 {Object.entries(selectedReview.ratings).map(([category, rating]) => {
-                  const categoryInfo = ratingCategories.find(cat => cat.key === category);
                   return (
                     <Paper key={category} variant='glass-subtle' size='sm'>
                       <div className='flex items-center justify-between mb-2'>
                         <ComponentSubtitle className='text-primary'>
-                          {categoryInfo?.label || category}
+                          {category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </ComponentSubtitle>
                         <StatSmall className='text-accent-blue'>
                           {rating.score}/5

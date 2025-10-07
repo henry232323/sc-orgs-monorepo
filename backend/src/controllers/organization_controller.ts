@@ -1853,4 +1853,44 @@ export class OrganizationController {
       });
     }
   }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/members/search
+   * Search organization members
+   */
+  async searchMembers(req: Request, res: Response): Promise<void> {
+    try {
+      const organizationId = req.org!.id;
+      const { q, limit = 10 } = req.query;
+
+      if (!q || typeof q !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Search query is required'
+        });
+        return;
+      }
+
+      const members = await db('organization_members')
+        .join('users', 'organization_members.user_id', 'users.id')
+        .where('organization_members.organization_id', organizationId)
+        .where('users.rsi_handle', 'ilike', `%${q}%`)
+        .select('users.id', 'users.rsi_handle')
+        .limit(parseInt(limit as string))
+        .orderBy('users.rsi_handle');
+
+      res.json({
+        success: true,
+        data: members
+      });
+    } catch (error) {
+      console.error('Error searching members:', error);
+      console.error('Organization ID:', req.org?.id);
+      console.error('Query:', req.query);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to search members'
+      });
+    }
+  }
 }

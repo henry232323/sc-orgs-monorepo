@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption } from '@headlessui/react';
 import Paper from '../ui/Paper';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
@@ -10,22 +11,30 @@ import { ComponentTitle, ComponentSubtitle, StatMedium } from '../ui/Typography'
 import {
   useCreatePerformanceReviewMutation,
   useUpdatePerformanceReviewMutation,
+  useGetSkillsQuery,
   useGetPerformanceReviewsQuery,
+  useGetOrganizationMembersQuery,
 } from '../../services/apiSlice';
 import type { 
   CreatePerformanceReviewData, 
   PerformanceReview, 
-  PerformanceGoal 
+  PerformanceGoal,
+  Skill,
 } from '../../types/hr';
 
 interface PerformanceReviewFormProps {
-  revieweeId: string;
   existingReview?: PerformanceReview;
   onSuccess?: (review: PerformanceReview) => void;
   onCancel?: () => void;
 }
 
+interface Member {
+  id: string;
+  rsi_handle: string;
+}
+
 interface FormData {
+  reviewee_id: string;
   review_period_start: string;
   review_period_end: string;
   ratings: {
@@ -41,6 +50,7 @@ interface FormData {
 }
 
 interface FormErrors {
+  reviewee_id?: string;
   review_period_start?: string;
   review_period_end?: string;
   ratings?: { [category: string]: string };
@@ -51,15 +61,6 @@ interface FormErrors {
   submit?: string;
 }
 
-const RATING_CATEGORIES = [
-  { key: 'leadership', label: 'Leadership & Initiative', description: 'Ability to lead and take initiative' },
-  { key: 'teamwork', label: 'Teamwork & Collaboration', description: 'Works well with others' },
-  { key: 'communication', label: 'Communication', description: 'Clear and effective communication' },
-  { key: 'reliability', label: 'Reliability & Attendance', description: 'Consistent participation and reliability' },
-  { key: 'skill_development', label: 'Skill Development', description: 'Growth and learning in Star Citizen skills' },
-  { key: 'organization_contribution', label: 'Organization Contribution', description: 'Overall contribution to the organization' },
-];
-
 const RATING_OPTIONS = [
   { value: 1, label: '1 - Needs Improvement', description: 'Below expectations' },
   { value: 2, label: '2 - Developing', description: 'Approaching expectations' },
@@ -69,7 +70,6 @@ const RATING_OPTIONS = [
 ];
 
 const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
-  revieweeId,
   existingReview,
   onSuccess,
   onCancel,
@@ -78,16 +78,41 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   const [createReview, { isLoading: isCreating }] = useCreatePerformanceReviewMutation();
   const [updateReview, { isLoading: isUpdating }] = useUpdatePerformanceReviewMutation();
   
+  // Member search state
+  const [memberSearch, setMemberSearch] = useState('');
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+
+  // API queries
+  const { data: skillsResponse } = useGetSkillsQuery(
+    { organizationId: organizationId! },
+    { skip: !organizationId }
+  );
+  const skills = skillsResponse?.data || [];
+
+  const { data: membersResponse } = useGetOrganizationMembersQuery(
+    organizationId!,
+    { skip: !organizationId }
+  );
+  const allMembers = membersResponse || [];
+  
+  // Filter members based on search
+  const memberSearchResults = memberSearch.length >= 2 
+    ? allMembers.filter((member: Member) => 
+        member.rsi_handle.toLowerCase().includes(memberSearch.toLowerCase())
+      ).slice(0, 10)
+    : [];
+  
   // Get historical reviews for comparison
   const { data: historicalReviews } = useGetPerformanceReviewsQuery(
     { 
       organizationId: organizationId!, 
-      filters: { reviewee_id: revieweeId } 
+      ...(selectedMember?.id && { filters: { reviewee_id: selectedMember.id } })
     },
-    { skip: !organizationId || !revieweeId }
+    { skip: !organizationId || !selectedMember?.id }
   );
 
   const [formData, setFormData] = useState<FormData>({
+    reviewee_id: '',
     review_period_start: '',
     review_period_end: '',
     ratings: {},
@@ -107,9 +132,25 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   });
 
   // Initialize form with existing review data
+  // Initialize ratings when skills are loaded
+  useEffect(() => {
+    if (skills.length > 0 && Object.keys(formData.ratings).length === 0) {
+      setFormData(prev => ({
+        ...prev,
+        ratings: skills.reduce((acc: { [key: string]: { score: number; comments?: string } }, skill: Skill) => ({
+          ...acc,
+          [skill.id]: { score: 3, comments: '' }
+        }), {})
+      }));
+    }
+  }, [skills, formData.ratings]);
+
+  // Initialize form with default values or existing review
   useEffect(() => {
     if (existingReview) {
+      setSelectedMember({ id: existingReview.reviewee_id, rsi_handle: 'Loading...' });
       setFormData({
+        reviewee_id: existingReview.reviewee_id,
         review_period_start: existingReview.review_period_start?.split('T')[0] || '',
         review_period_end: existingReview.review_period_end?.split('T')[0] || '',
         ratings: existingReview.ratings || {},
@@ -131,12 +172,10 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
       startDate.setMonth(startDate.getMonth() - 3);
       
       setFormData({
+        reviewee_id: '',
         review_period_start: startDate.toISOString().split('T')[0] || '',
         review_period_end: endDate.toISOString().split('T')[0] || '',
-        ratings: RATING_CATEGORIES.reduce((acc, category) => ({
-          ...acc,
-          [category.key]: { score: 3, comments: '' }
-        }), {} as { [key: string]: { score: number; comments?: string } }),
+        ratings: {},
         overall_rating: 3,
         strengths: [],
         areas_for_improvement: [],
@@ -162,12 +201,17 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
       }
     }
 
-    // Validate ratings
+    // Validate member selection
+    if (!selectedMember) {
+      newErrors.reviewee_id = 'Please select a member to review';
+    }
+
+    // Validate ratings for each skill
     const ratingErrors: { [key: string]: string } = {};
-    RATING_CATEGORIES.forEach(category => {
-      const rating = formData.ratings[category.key];
+    skills.forEach(skill => {
+      const rating = formData.ratings[skill.id];
       if (!rating || rating.score < 1 || rating.score > 5) {
-        ratingErrors[category.key] = 'Rating is required';
+        ratingErrors[skill.id] = 'Rating is required';
       }
     });
 
@@ -196,11 +240,11 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
 
     try {
       const reviewData: CreatePerformanceReviewData = {
-        reviewee_id: revieweeId,
+        reviewee_id: selectedMember!.id,
         review_period_start: formData.review_period_start,
         review_period_end: formData.review_period_end,
         ratings: Object.fromEntries(
-          Object.entries(formData.ratings).map(([key, value]) => [
+          Object.entries(formData.ratings).map(([key, value]: [string, { score: number; comments?: string }]) => [
             key,
             { score: value.score, comments: value.comments || '' }
           ])
@@ -247,7 +291,7 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
 
     // Update overall rating as average
     const newRatings = { ...formData.ratings, [category]: { ...formData.ratings[category], score } };
-    const scores = Object.values(newRatings).map(r => r.score).filter(s => s > 0);
+    const scores = Object.values(newRatings).map((r: { score: number }) => r.score).filter((s: number) => s > 0);
     const average = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 3;
     
     setFormData(prev => ({ ...prev, overall_rating: average }));
@@ -377,6 +421,49 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
       </Paper>
 
       <form onSubmit={handleSubmit} className="space-y-[var(--spacing-section)]">
+        {/* Member Selection */}
+        <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
+          <ComponentTitle className="mb-4">Select Member</ComponentTitle>
+          <div className="relative">
+            <Combobox
+              value={selectedMember}
+              onChange={(member: Member | null) => {
+                setSelectedMember(member);
+                setMemberSearch('');
+              }}
+            >
+              <ComboboxInput
+                className="w-full py-2 px-3 bg-glass border border-glass-border rounded-[var(--radius-glass-sm)] text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent"
+                placeholder="Type to search by RSI handle..."
+                displayValue={(member: Member | null) => member?.rsi_handle || ''}
+                onChange={(event) => setMemberSearch(event.target.value)}
+              />
+              
+              {memberSearchResults.length > 0 && (
+                <ComboboxOptions className="absolute z-10 w-full mt-1 bg-dark-glass border border-glass-border rounded-[var(--radius-dropdown)] shadow-[var(--shadow-glass-lg)] backdrop-blur-[var(--blur-glass-strong)] max-h-60 overflow-auto">
+                  {memberSearchResults.map((member: Member) => (
+                    <ComboboxOption
+                      key={member.id}
+                      value={member}
+                      className={({ focus }) =>
+                        `group flex cursor-pointer items-center px-4 py-2 text-sm text-white transition-all duration-150 ${
+                          focus ? 'bg-accent-blue/20' : ''
+                        } border-b border-white/10 last:border-b-0`
+                      }
+                    >
+                      <div className="font-medium">{member.rsi_handle}</div>
+                    </ComboboxOption>
+                  ))}
+                </ComboboxOptions>
+              )}
+            </Combobox>
+            
+            {errors.reviewee_id && (
+              <p className="text-red-500 text-sm mt-1">{errors.reviewee_id}</p>
+            )}
+          </div>
+        </Paper>
+
         {/* Review Period */}
         <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
           <ComponentTitle className="mb-4">Review Period</ComponentTitle>
@@ -404,31 +491,34 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
         <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
           <ComponentTitle className="mb-4">Performance Ratings</ComponentTitle>
           <div className="space-y-6">
-            {RATING_CATEGORIES.map((category) => (
-              <div key={category.key} className="space-y-4">
+            {skills.map((skill: Skill) => (
+              <div key={skill.id} className="space-y-4">
                 <div>
-                  <h4 className="font-semibold text-primary">{category.label}</h4>
-                  <p className="text-sm text-secondary">{category.description}</p>
+                  <h4 className="font-semibold text-primary">{skill.name}</h4>
+                  <p className="text-sm text-secondary">{skill.description || `${skill.category} skill`}</p>
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Category: {skill.category}
+                  </span>
                 </div>
                 
                 <RadioGroup
                   options={RATING_OPTIONS}
-                  value={formData.ratings[category.key]?.score || 3}
-                  onChange={(score) => handleRatingChange(category.key, score)}
+                  value={formData.ratings[skill.id]?.score || 3}
+                  onChange={(score) => handleRatingChange(skill.id, score)}
                   variant="buttons"
                   size="sm"
                 />
                 
                 <Textarea
-                  placeholder={`Comments on ${category.label.toLowerCase()}...`}
-                  value={formData.ratings[category.key]?.comments || ''}
-                  onChange={(value) => handleRatingCommentChange(category.key, value)}
+                  placeholder={`Comments on ${skill.name.toLowerCase()}...`}
+                  value={formData.ratings[skill.id]?.comments || ''}
+                  onChange={(value) => handleRatingCommentChange(skill.id, value)}
                   rows={2}
                   maxLength={500}
                 />
                 
-                {errors.ratings?.[category.key] && (
-                  <p className="text-error text-sm">{errors.ratings[category.key]}</p>
+                {errors.ratings?.[skill.id] && (
+                  <p className="text-error text-sm">{errors.ratings[skill.id]}</p>
                 )}
               </div>
             ))}
