@@ -1,0 +1,184 @@
+/* Print-friendly styles for DocumentViewer */
+@media print {
+  /* Hide non-essential elements when printing */
+  .document-viewer-actions {
+    display: none !important;
+  }
+  
+  /* Ensure proper page breaks */
+  .document-viewer-content {
+    page-break-inside: avoid;
+  }
+  
+  .document-viewer-content h1,
+  .document-viewer-content h2,
+  .document-viewer-content h3,
+  .document-viewer-content h4,
+  .document-viewer-content h5,
+  .document-viewer-content h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+  
+  /* Ensure tables don't break awkwardly */
+  .document-viewer-content table {
+    page-break-inside: avoid;
+  }
+  
+  /* Ensure code blocks don't break awkwardly */
+  .document-viewer-content pre {
+    page-break-inside: avoid;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  /* Ensure blockquotes don't break awkwardly */
+  .document-viewer-content blockquote {
+    page-break-inside: avoid;
+  }
+  
+  /* Print-friendly colors */
+  .document-viewer-content {
+    color: #000 !important;
+    background: #fff !important;
+  }
+  
+  .document-viewer-content h1,
+  .document-viewer-content h2,
+  .document-viewer-content h3,
+  .document-viewer-content h4,
+  .document-viewer-content h5,
+  .document-viewer-content h6 {
+    color: #000 !important;
+  }
+  
+  .document-viewer-content a {
+    color: #0066cc !important;
+    text-decoration: underline !important;
+  }
+  
+  .document-viewer-content code {
+    background: #f5f5f5 !important;
+    border: 1px solid #ddd !important;
+    color: #333 !important;
+  }
+  
+  .document-viewer-content pre {
+    background: #f8f8f8 !important;
+    border: 1px solid #ddd !important;
+    color: #333 !important;
+  }
+  
+  .document-viewer-content blockquote {
+    background: #f9f9f9 !important;
+    border-left: 4px solid #ccc !important;
+    color: #666 !important;
+  }
+  
+  .document-viewer-content table {
+    border-collapse: collapse !important;
+  }
+  
+  .document-viewer-content th,
+  .document-viewer-content td {
+    border: 1px solid #ddd !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  
+  .document-viewer-content th {
+    background: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+  
+  /* Ensure proper margins for print */
+  .document-viewer-content {
+    margin: 0 !important;
+    padding: 20px !important;
+  }
+  
+  /* Hide shadows and glass effects */
+  .document-viewer-content * {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Enhanced markdown styling for screen */
+@media screen {
+  .document-viewer-content {
+    line-height: 1.7;
+  }
+  
+  .document-viewer-content h1 {
+    margin-top: 0;
+  }
+  
+  .document-viewer-content h2:not(:first-child) {
+    margin-top: 2rem;
+  }
+  
+  .document-viewer-content h3:not(:first-child) {
+    margin-top: 1.5rem;
+  }
+  
+  /* Enhanced code block styling */
+  .document-viewer-content pre {
+    position: relative;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  
+  .document-viewer-content pre code {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  /* Enhanced table styling */
+  .document-viewer-content table {
+    font-size: 0.9rem;
+  }
+  
+  .document-viewer-content th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+  
+  /* Enhanced list styling */
+  .document-viewer-content ul ul,
+  .document-viewer-content ol ol,
+  .document-viewer-content ul ol,
+  .document-viewer-content ol ul {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Task list styling */
+  .document-viewer-content .task-list-item {
+    list-style: none;
+  }
+  
+  .document-viewer-content .task-list-item input[type="checkbox"] {
+    margin-right: 0.5rem;
+    margin-top: 0.125rem;
+  }
+  
+  /* Enhanced blockquote styling */
+  .document-viewer-content blockquote p:last-child {
+    margin-bottom: 0;
+  }
+  
+  /* Image styling */
+  .document-viewer-content img {
+    display: block;
+    margin: 1.5rem auto;
+  }
+  
+  /* Horizontal rule styling */
+  .document-viewer-content hr {
+    margin: 2rem 0;
+  }
+}

@@ -119,28 +119,28 @@
   - Add word count and reading time estimation
   - _Requirements: 2.6, 9.2_
 
-- [ ] 5. Enhanced Document Viewer Component
+- [x] 5. Enhanced Document Viewer Component
   - Update DocumentViewer to handle both file and markdown documents
   - Implement markdown rendering using react-markdown with GFM support
   - Add print-friendly styling for rendered markdown content
   - Maintain acknowledgment functionality for markdown documents
   - _Requirements: 4.1, 4.2, 4.4, 4.5_
 
-- [ ] 5.1 Update DocumentViewer component structure
+- [x] 5.1 Update DocumentViewer component structure
   - Add document type detection and conditional rendering
   - Implement markdown rendering using react-markdown
   - Maintain existing file document display functionality
   - Add proper error handling for rendering failures
   - _Requirements: 4.1, 6.2_
 
-- [ ] 5.2 Implement markdown rendering features
+- [x] 5.2 Implement markdown rendering features
   - Configure react-markdown with GitHub Flavored Markdown support
   - Add syntax highlighting for code blocks
   - Implement table rendering and styling
   - Add support for task lists and other GFM features
   - _Requirements: 4.2_
 
-- [ ] 5.3 Add print and export functionality
+- [x] 5.3 Add print and export functionality
   - Create print-friendly CSS for rendered markdown
   - Add export buttons for different formats
   - Implement client-side export for HTML, PDF, and markdown
