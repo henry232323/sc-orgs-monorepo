@@ -8,6 +8,7 @@ export { default as Dialog } from './Dialog';
 export { default as ConfirmationDialog } from './ConfirmationDialog';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as Tabs } from './Tabs';
+export { ErrorDisplay } from './ErrorDisplay';
 export { default as Listbox } from './Listbox';
 export { default as Switch } from './Switch';
 export { default as ToggleSwitch } from './ToggleSwitch';

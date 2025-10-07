@@ -94,15 +94,9 @@ export const VerifyRsiRequestSchema = {
       description: 'RSI handle to verify',
       minLength: 1,
       maxLength: 50
-    },
-    verification_code: { 
-      type: 'string' as const,
-      description: 'Verification code from RSI profile',
-      minLength: 6,
-      maxLength: 6
     }
   },
-  required: ['rsi_handle', 'verification_code']
+  required: ['rsi_handle']
 };
 
 export const VerifyRsiResponseSchema = {

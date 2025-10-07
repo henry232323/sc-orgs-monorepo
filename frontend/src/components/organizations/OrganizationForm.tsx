@@ -21,6 +21,11 @@ import {
   convertNamesToCodes,
   isValidLanguageName,
 } from '../../utils/languageMapping';
+import { 
+  extractValidationErrors, 
+  hasValidationErrors
+} from '../../utils/errorHandling';
+import { ErrorDisplay } from '../ui/ErrorDisplay';
 import { SEARCH_TAGS, TagType } from '../tags';
 
 interface OrganizationFormData {
@@ -69,6 +74,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = () => {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [apiError, setApiError] = useState<any>(null);
 
   // RTK Query hooks for data fetching and mutations
   const {
@@ -80,9 +86,9 @@ const OrganizationForm: React.FC<OrganizationFormProps> = () => {
     skip: !isEditing, // Only fetch if we're editing
   });
 
-  const [createOrganization, { isLoading: isCreating, error: createError }] =
+  const [createOrganization, { isLoading: isCreating }] =
     useCreateOrganizationMutation();
-  const [updateOrganization, { isLoading: isUpdating, error: updateError }] =
+  const [updateOrganization, { isLoading: isUpdating }] =
     useUpdateOrganizationMutation();
 
   // Get user's verification code
@@ -208,8 +214,17 @@ const OrganizationForm: React.FC<OrganizationFormProps> = () => {
       // Navigate back to organizations list
       navigate('/organizations');
     } catch (error) {
-      // Error handling is automatic with RTK Query
       console.error('Failed to save organization:', error);
+      
+      // Handle validation errors
+      if (hasValidationErrors(error)) {
+        const validationErrors = extractValidationErrors(error);
+        setErrors(validationErrors);
+      } else {
+        setErrors({});
+      }
+      
+      setApiError(error);
     }
   };
 
@@ -223,16 +238,6 @@ const OrganizationForm: React.FC<OrganizationFormProps> = () => {
 
   const isLoading =
     isCreating || isUpdating || (isEditing && isLoadingOrganization);
-  const error = createError || updateError;
-
-  // Helper function to get error message
-  const getErrorMessage = (error: any) => {
-    // Check for RTK Query error structure
-    if (error?.data?.error) return error.data.error;
-    if (error?.data?.message) return error.data.message;
-    if (error?.message) return error.message;
-    return 'Failed to save organization. Please try again.';
-  };
 
   // Show loading state only for initial data fetch, not for form submission
   if (isEditing && isLoadingOrganization) {
@@ -290,17 +295,12 @@ const OrganizationForm: React.FC<OrganizationFormProps> = () => {
       )}
 
       {/* Form Submission Error Display */}
-      {error && (
-        <Paper
-          variant='glass'
-          size='lg'
-          className='border-red-500/20 bg-red-500/10 mb-6'
-        >
-          <div className='text-red-400 text-center'>
-            <p className='font-semibold'>Error</p>
-            <p className='text-sm'>{getErrorMessage(error)}</p>
-          </div>
-        </Paper>
+      {apiError && (
+        <ErrorDisplay 
+          error={apiError} 
+          title="Failed to save organization"
+          className="mb-6"
+        />
       )}
 
       <form onSubmit={handleSubmit} className='space-y-8'>

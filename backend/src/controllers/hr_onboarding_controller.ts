@@ -12,7 +12,7 @@ export class HROnboardingController {
   // Template management endpoints
   async getTemplates(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const { is_active, limit, offset } = req.query;
 
       const filters = {
@@ -44,7 +44,7 @@ export class HROnboardingController {
 
   async createTemplate(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const templateData: CreateHROnboardingTemplateData = {
         organization_id: organizationId,
         ...req.body,
@@ -199,7 +199,7 @@ export class HROnboardingController {
   // Progress tracking endpoints
   async getProgress(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const { userId } = req.params;
 
       const progress = await this.onboardingModel.findProgressByUserAndOrganization(organizationId, userId);
@@ -238,7 +238,7 @@ export class HROnboardingController {
 
   async updateProgress(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const { userId } = req.params;
       const updateData: UpdateHROnboardingProgressData = req.body;
 
@@ -279,7 +279,7 @@ export class HROnboardingController {
 
   async createProgress(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const progressData: CreateHROnboardingProgressData = {
         organization_id: organizationId,
         ...req.body,
@@ -333,7 +333,7 @@ export class HROnboardingController {
 
   async getAllProgress(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const { status, limit, offset } = req.query;
 
       const filters = {
@@ -366,7 +366,7 @@ export class HROnboardingController {
   // Task completion endpoint
   async completeTask(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const { taskId } = req.params;
       const { user_id } = req.body;
 
@@ -431,7 +431,7 @@ export class HROnboardingController {
   // Analytics and reporting endpoints
   async getAnalytics(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
 
       const statistics = await this.onboardingModel.getOnboardingStatistics(organizationId);
       const overdueProgress = await this.onboardingModel.getOverdueProgress(organizationId);
@@ -456,7 +456,7 @@ export class HROnboardingController {
 
   async getOverdueProgress(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
 
       const overdueProgress = await this.onboardingModel.getOverdueProgress(organizationId);
 

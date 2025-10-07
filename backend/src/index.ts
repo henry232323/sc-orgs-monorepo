@@ -17,6 +17,7 @@ import reputationRoutes from './routes/reputation_routes';
 import openapiRoutes from './routes/openapi_routes';
 import logger from './config/logger';
 import { authenticateJWT } from './middleware/auth';
+import { errorHandler } from './middleware/errorHandler';
 import { TaskScheduler } from './services/task_scheduler';
 import { DiscordCommandService } from './services/discord_command_service';
 
@@ -173,23 +174,7 @@ app.use('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use(
-  (
-    err: Error,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction
-  ) => {
-    console.error('Error:', err);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message:
-        process.env.NODE_ENV === 'development'
-          ? err.message
-          : 'Something went wrong',
-    });
-  }
-);
+app.use(errorHandler);
 
 // Initialize task scheduler
 let taskScheduler: TaskScheduler;

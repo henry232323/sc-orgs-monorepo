@@ -17,7 +17,7 @@ export class HRActivityController {
    */
   async getOrganizationActivities(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const user = getUserFromRequest(req);
 
       if (!user?.id) {
@@ -175,7 +175,7 @@ export class HRActivityController {
    */
   async getActivityById(req: Request, res: Response): Promise<void> {
     try {
-      const activityId = req.params.id;
+      const activityId = req.org!.id;
       const user = getUserFromRequest(req);
 
       if (!user?.id) {
@@ -221,7 +221,7 @@ export class HRActivityController {
    */
   async getOrganizationActivityStats(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      const organizationId = req.org!.id;
       const user = getUserFromRequest(req);
 
       if (!user?.id) {
@@ -291,7 +291,7 @@ export class HRActivityController {
    */
   async deleteActivity(req: Request, res: Response): Promise<void> {
     try {
-      const activityId = req.params.id;
+      const activityId = req.org!.id;
       const user = getUserFromRequest(req);
 
       if (!user?.id) {

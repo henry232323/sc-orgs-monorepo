@@ -105,12 +105,6 @@ export const CreateOrganizationRequestSchema = {
       description: 'RSI organization ID',
       minLength: 1
     },
-    name: { 
-      type: 'string' as const,
-      description: 'Organization name',
-      minLength: 1,
-      maxLength: 100
-    },
     description: { 
       type: 'string' as const,
       nullable: true,
@@ -119,15 +113,19 @@ export const CreateOrganizationRequestSchema = {
     },
     website: { 
       type: 'string' as const,
-      nullable: true,
       description: 'Organization website URL',
-      format: 'uri' as const
+      anyOf: [
+        { const: '' },
+        { format: 'uri' as const }
+      ]
     },
     discord_invite: { 
       type: 'string' as const,
-      nullable: true,
       description: 'Discord server invite link',
-      format: 'uri' as const
+      anyOf: [
+        { const: '' },
+        { format: 'uri' as const }
+      ]
     },
     spectrum_url: { 
       type: 'string' as const,
@@ -157,7 +155,7 @@ export const CreateOrganizationRequestSchema = {
       minItems: 1,
       maxItems: 5
     },
-    activity_tags: {
+    focus_tags: {
       type: 'array' as const,
       items: { 
         type: 'string' as const,
@@ -168,7 +166,7 @@ export const CreateOrganizationRequestSchema = {
       maxItems: 5
     }
   },
-  required: ['rsi_org_id', 'name', 'playstyle_tags', 'activity_tags', 'languages']
+  required: ['rsi_org_id', 'playstyle_tags', 'focus_tags', 'languages']
 };
 
 export const UpdateOrganizationRequestSchema = {

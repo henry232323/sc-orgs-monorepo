@@ -18,26 +18,9 @@ export class HRAnalyticsController {
    */
   async getDashboardMetrics(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
       const { period_days = '30' } = req.query;
-
-      // Validate organization access
-      const user = getUserFromRequest(req);
-      if (!user) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
-      // Check if user has access to this organization
-      const hasAccess = await this.analyticsService.checkOrganizationAccess(
-        user.id,
-        organizationId
-      );
-
-      if (!hasAccess) {
-        res.status(403).json({ error: 'Access denied to organization analytics' });
-        return;
-      }
 
       const periodDays = parseInt(period_days as string);
       const endDate = new Date();
@@ -106,7 +89,8 @@ export class HRAnalyticsController {
    */
   async getDetailedReports(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
       const {
         period_start,
         period_end,
@@ -114,23 +98,6 @@ export class HRAnalyticsController {
         comparison_period = 'false',
         format = 'json',
       } = req.query;
-
-      // Validate organization access
-      const user = getUserFromRequest(req);
-      if (!user) {
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
-      const hasAccess = await this.analyticsService.checkOrganizationAccess(
-        user.id,
-        organizationId
-      );
-
-      if (!hasAccess) {
-        res.status(403).json({ error: 'Access denied to organization analytics' });
-        return;
-      }
 
       // Parse date parameters
       let startDate: Date;
@@ -237,7 +204,8 @@ export class HRAnalyticsController {
    */
   async getTrendAnalysis(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
       const { metric_name, period_months = '12' } = req.query;
 
       const user = getUserFromRequest(req);
@@ -291,7 +259,8 @@ export class HRAnalyticsController {
    */
   async getAlerts(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
 
       const user = getUserFromRequest(req);
       if (!user) {
@@ -356,7 +325,8 @@ export class HRAnalyticsController {
    */
   async exportAnalytics(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
       const {
         format = 'json',
         period_start,
@@ -474,7 +444,8 @@ export class HRAnalyticsController {
    */
   async getSummaryMetrics(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
 
       const user = getUserFromRequest(req);
       if (!user) {
@@ -534,7 +505,8 @@ export class HRAnalyticsController {
    */
   async refreshCache(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = req.params.id;
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
 
       const user = getUserFromRequest(req);
       if (!user) {
@@ -592,6 +564,46 @@ export class HRAnalyticsController {
     } catch (error) {
       console.error('Error refreshing cache:', error);
       res.status(500).json({ error: 'Failed to refresh analytics cache' });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/hr/event-analytics
+   * Get HR event analytics
+   */
+  async getEventAnalytics(req: Request, res: Response): Promise<void> {
+    try {
+      // Organization is already resolved and permissions checked by middleware
+      const organizationId = req.org!.id;
+      const { start_date, end_date } = req.query;
+
+      // Default to last 90 days if no dates provided
+      const endDate = end_date ? new Date(end_date as string) : new Date();
+      const startDate = start_date ? new Date(start_date as string) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+      // Get event analytics data (placeholder implementation)
+      const eventAnalytics = {
+        total_events: 0,
+        events_by_type: {},
+        attendance_rate: 0,
+        average_rating: 0,
+        upcoming_events: 0,
+        period: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString()
+        }
+      };
+
+      res.json({
+        success: true,
+        data: eventAnalytics
+      });
+    } catch (error) {
+      console.error('Error getting HR event analytics:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get HR event analytics'
+      });
     }
   }
 }

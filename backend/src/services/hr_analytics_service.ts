@@ -15,6 +15,15 @@ export class HRAnalyticsService {
    */
   async checkOrganizationAccess(userId: string, organizationId: string): Promise<boolean> {
     try {
+      // First check if user is the organization owner
+      const organization = await db('organizations')
+        .where({ id: organizationId })
+        .first();
+
+      if (organization && organization.owner_id === userId) {
+        return true; // Organization owner always has access
+      }
+
       // Check if user is a member of the organization
       const membership = await db('organization_members')
         .where({ user_id: userId, organization_id: organizationId, is_active: true })

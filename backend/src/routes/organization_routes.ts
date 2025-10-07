@@ -4,7 +4,7 @@ import { EventReviewController } from '../controllers/event_review_controller';
 import { AnalyticsController } from '../controllers/analytics_controller';
 import { HRAnalyticsController } from '../controllers/hr_analytics_controller';
 import { requireLogin } from '../middleware/auth';
-import { requireOrganizationPermission, requireOrganizationAnalyticsPermission } from '../middleware/permissions';
+import { requireOrganizationPermission, requireOrganizationAnalyticsPermission, requireResolvedOrganizationPermission } from '../middleware/permissions';
 import { recordOrganizationView } from '../middleware/view_tracking';
 import { resolveOrganization } from '../middleware/organization_resolver';
 import { validateHRRequest, sanitizeRequest } from '../middleware/openapi_validation';
@@ -1528,7 +1528,7 @@ router.get('/:rsi_org_id/analytics/events',
 );
 
 // HR Analytics routes (require HR_MANAGER or VIEW_ANALYTICS permission)
-router.get('/:id/hr-analytics/dashboard',
+router.get('/:rsi_org_id/hr-analytics/dashboard',
   oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics dashboard',
@@ -1536,11 +1536,11 @@ router.get('/:id/hr-analytics/dashboard',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
-        description: 'Organization ID'
+        description: 'RSI Organization ID'
       },
       {
         name: 'period_days',
@@ -1578,7 +1578,7 @@ router.get('/:id/hr-analytics/dashboard',
   hrAnalyticsController.getDashboardMetrics.bind(hrAnalyticsController)
 );
 
-router.get('/:id/hr-analytics/reports',
+router.get('/:rsi_org_id/hr-analytics/reports',
   oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get detailed HR analytics reports',
@@ -1586,7 +1586,7 @@ router.get('/:id/hr-analytics/reports',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -1651,7 +1651,7 @@ router.get('/:id/hr-analytics/reports',
   hrAnalyticsController.getDetailedReports.bind(hrAnalyticsController)
 );
 
-router.get('/:id/hr-analytics/trends',
+router.get('/:rsi_org_id/hr-analytics/trends',
   oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics trends',
@@ -1659,7 +1659,7 @@ router.get('/:id/hr-analytics/trends',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -1722,7 +1722,7 @@ router.get('/:id/hr-analytics/trends',
   hrAnalyticsController.getTrendAnalysis.bind(hrAnalyticsController)
 );
 
-router.get('/:id/hr-analytics/alerts',
+router.get('/:rsi_org_id/hr-analytics/alerts',
   oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics alerts',
@@ -1730,7 +1730,7 @@ router.get('/:id/hr-analytics/alerts',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -1779,7 +1779,7 @@ router.get('/:id/hr-analytics/alerts',
   hrAnalyticsController.getAlerts.bind(hrAnalyticsController)
 );
 
-router.post('/:id/hr-analytics/export',
+router.post('/:rsi_org_id/hr-analytics/export',
   oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Export HR analytics data',
@@ -1787,7 +1787,7 @@ router.post('/:id/hr-analytics/export',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -1836,7 +1836,7 @@ router.post('/:id/hr-analytics/export',
   hrAnalyticsController.exportAnalytics.bind(hrAnalyticsController)
 );
 
-router.get('/:id/hr-analytics/summary',
+router.get('/:rsi_org_id/hr-analytics/summary',
   oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Get HR analytics summary',
@@ -1844,7 +1844,7 @@ router.get('/:id/hr-analytics/summary',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -1886,7 +1886,7 @@ router.get('/:id/hr-analytics/summary',
   hrAnalyticsController.getSummaryMetrics.bind(hrAnalyticsController)
 );
 
-router.post('/:id/hr-analytics/refresh-cache',
+router.post('/:rsi_org_id/hr-analytics/refresh-cache',
   oapi.validPath({
     tags: ['HR Analytics'],
     summary: 'Refresh HR analytics cache',
@@ -1894,7 +1894,7 @@ router.post('/:id/hr-analytics/refresh-cache',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -1939,6 +1939,60 @@ router.post('/:id/hr-analytics/refresh-cache',
   hrAnalyticsController.refreshCache.bind(hrAnalyticsController)
 );
 
+// HR Event Analytics
+router.get('/:rsi_org_id/hr/event-analytics',
+  oapi.validPath({
+    tags: ['HR Analytics'],
+    summary: 'Get HR event analytics',
+    description: 'Get HR event analytics and statistics',
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: 'rsi_org_id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Organization RSI ID'
+      },
+      {
+        name: 'start_date',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date-time' },
+        description: 'Start date for analytics period'
+      },
+      {
+        name: 'end_date',
+        in: 'query',
+        schema: { type: 'string' as const, format: 'date-time' },
+        description: 'End date for analytics period'
+      }
+    ],
+    responses: {
+      200: {
+        description: 'HR event analytics data',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: { type: 'object' as const }
+              }
+            }
+          }
+        }
+      },
+      401: { $ref: '#/components/responses/Unauthorized' },
+      403: { $ref: '#/components/responses/Forbidden' },
+      500: { $ref: '#/components/responses/InternalServerError' }
+    }
+  }),
+  requireLogin as any,
+  resolveOrganization,
+  requireOrganizationAnalyticsPermission,
+  hrAnalyticsController.getEventAnalytics.bind(hrAnalyticsController)
+);
+
 // HR Onboarding routes
 import { HROnboardingController } from '../controllers/hr_onboarding_controller';
 // HR Performance routes
@@ -1964,7 +2018,7 @@ const hrActivityController = new HRActivityController();
 // HR Application Management routes
 
 // Submit application
-router.post('/:id/applications',
+router.post('/:rsi_org_id/applications',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'Submit application',
@@ -1972,7 +2026,7 @@ router.post('/:id/applications',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2018,7 +2072,7 @@ router.post('/:id/applications',
 );
 
 // List applications
-router.get('/:id/applications',
+router.get('/:rsi_org_id/applications',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'List applications',
@@ -2026,7 +2080,7 @@ router.get('/:id/applications',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2076,13 +2130,13 @@ router.get('/:id/applications',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   loggedRateLimit(hrOperationsRateLimit),
   hrApplicationController.listApplications.bind(hrApplicationController)
 );
 
 // Get specific application
-router.get('/:id/applications/:applicationId',
+router.get('/:rsi_org_id/applications/:applicationId',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get application',
@@ -2090,7 +2144,7 @@ router.get('/:id/applications/:applicationId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2121,12 +2175,12 @@ router.get('/:id/applications/:applicationId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrApplicationController.getApplication.bind(hrApplicationController)
 );
 
 // Update application status
-router.put('/:id/applications/:applicationId/status',
+router.put('/:rsi_org_id/applications/:applicationId/status',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'Update application status',
@@ -2134,7 +2188,7 @@ router.put('/:id/applications/:applicationId/status',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2174,14 +2228,14 @@ router.put('/:id/applications/:applicationId/status',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   sanitizeRequest(),
   validateHRRequest('updateApplicationStatus'),
   hrApplicationController.updateApplicationStatus.bind(hrApplicationController)
 );
 
 // Bulk update applications
-router.post('/:id/applications/bulk-update',
+router.post('/:rsi_org_id/applications/bulk-update',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'Bulk update applications',
@@ -2189,7 +2243,7 @@ router.post('/:id/applications/bulk-update',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2255,14 +2309,14 @@ router.post('/:id/applications/bulk-update',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   loggedRateLimit(bulkOperationsRateLimit),
   sanitizeRequest(),
   hrApplicationController.bulkUpdateApplications.bind(hrApplicationController)
 );
 
 // Get application analytics
-router.get('/:id/applications/analytics',
+router.get('/:rsi_org_id/applications/analytics',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get application analytics',
@@ -2270,7 +2324,7 @@ router.get('/:id/applications/analytics',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2328,7 +2382,7 @@ router.get('/:id/applications/analytics',
 );
 
 // Onboarding template management
-router.get('/:id/onboarding/templates',
+router.get('/:rsi_org_id/onboarding/templates',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get onboarding templates',
@@ -2336,7 +2390,7 @@ router.get('/:id/onboarding/templates',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2387,11 +2441,11 @@ router.get('/:id/onboarding/templates',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.getTemplates.bind(hrOnboardingController)
 );
 
-router.post('/:id/onboarding/templates',
+router.post('/:rsi_org_id/onboarding/templates',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Create onboarding template',
@@ -2399,7 +2453,7 @@ router.post('/:id/onboarding/templates',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2446,13 +2500,13 @@ router.post('/:id/onboarding/templates',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   sanitizeRequest(),
   validateHRRequest('createOnboardingTemplate'),
   hrOnboardingController.createTemplate.bind(hrOnboardingController)
 );
 
-router.get('/:id/onboarding/templates/:templateId',
+router.get('/:rsi_org_id/onboarding/templates/:templateId',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get onboarding template',
@@ -2460,7 +2514,7 @@ router.get('/:id/onboarding/templates/:templateId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2497,11 +2551,11 @@ router.get('/:id/onboarding/templates/:templateId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.getTemplate.bind(hrOnboardingController)
 );
 
-router.put('/:id/onboarding/templates/:templateId',
+router.put('/:rsi_org_id/onboarding/templates/:templateId',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Update onboarding template',
@@ -2509,7 +2563,7 @@ router.put('/:id/onboarding/templates/:templateId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2556,11 +2610,11 @@ router.put('/:id/onboarding/templates/:templateId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.updateTemplate.bind(hrOnboardingController)
 );
 
-router.delete('/:id/onboarding/templates/:templateId',
+router.delete('/:rsi_org_id/onboarding/templates/:templateId',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Delete onboarding template',
@@ -2568,7 +2622,7 @@ router.delete('/:id/onboarding/templates/:templateId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2605,12 +2659,12 @@ router.delete('/:id/onboarding/templates/:templateId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.deleteTemplate.bind(hrOnboardingController)
 );
 
 // Onboarding progress management
-router.get('/:id/onboarding/progress',
+router.get('/:rsi_org_id/onboarding/progress',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get all onboarding progress',
@@ -2618,7 +2672,7 @@ router.get('/:id/onboarding/progress',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2672,11 +2726,11 @@ router.get('/:id/onboarding/progress',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.getAllProgress.bind(hrOnboardingController)
 );
 
-router.get('/:id/onboarding/progress/:userId',
+router.get('/:rsi_org_id/onboarding/progress/:userId',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get user onboarding progress',
@@ -2684,7 +2738,7 @@ router.get('/:id/onboarding/progress/:userId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2721,11 +2775,11 @@ router.get('/:id/onboarding/progress/:userId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.getProgress.bind(hrOnboardingController)
 );
 
-router.put('/:id/onboarding/progress/:userId',
+router.put('/:rsi_org_id/onboarding/progress/:userId',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Update user onboarding progress',
@@ -2733,7 +2787,7 @@ router.put('/:id/onboarding/progress/:userId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2780,11 +2834,11 @@ router.put('/:id/onboarding/progress/:userId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.updateProgress.bind(hrOnboardingController)
 );
 
-router.post('/:id/onboarding/progress',
+router.post('/:rsi_org_id/onboarding/progress',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Create onboarding progress',
@@ -2792,7 +2846,7 @@ router.post('/:id/onboarding/progress',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2840,12 +2894,12 @@ router.post('/:id/onboarding/progress',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.createProgress.bind(hrOnboardingController)
 );
 
 // Task completion
-router.post('/:id/onboarding/tasks/:taskId/complete',
+router.post('/:rsi_org_id/onboarding/tasks/:taskId/complete',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Complete onboarding task',
@@ -2853,7 +2907,7 @@ router.post('/:id/onboarding/tasks/:taskId/complete',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2907,12 +2961,12 @@ router.post('/:id/onboarding/tasks/:taskId/complete',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.completeTask.bind(hrOnboardingController)
 );
 
 // Analytics and reporting
-router.get('/:id/onboarding/analytics',
+router.get('/:rsi_org_id/onboarding/analytics',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get onboarding analytics',
@@ -2920,7 +2974,7 @@ router.get('/:id/onboarding/analytics',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2949,11 +3003,11 @@ router.get('/:id/onboarding/analytics',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.getAnalytics.bind(hrOnboardingController)
 );
 
-router.get('/:id/onboarding/overdue',
+router.get('/:rsi_org_id/onboarding/overdue',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Get overdue onboarding progress',
@@ -2961,7 +3015,7 @@ router.get('/:id/onboarding/overdue',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -2993,11 +3047,11 @@ router.get('/:id/onboarding/overdue',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.getOverdueProgress.bind(hrOnboardingController)
 );
 
-router.post('/:id/onboarding/mark-overdue',
+router.post('/:rsi_org_id/onboarding/mark-overdue',
   oapi.validPath({
     tags: ['HR Onboarding'],
     summary: 'Mark overdue onboarding progress',
@@ -3005,7 +3059,7 @@ router.post('/:id/onboarding/mark-overdue',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3040,14 +3094,14 @@ router.post('/:id/onboarding/mark-overdue',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrOnboardingController.markOverdueProgress.bind(hrOnboardingController)
 );
 
 // HR Performance Review routes
 
 // Create performance review
-router.post('/:id/performance/reviews',
+router.post('/:rsi_org_id/performance/reviews',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Create performance review',
@@ -3055,7 +3109,7 @@ router.post('/:id/performance/reviews',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3135,14 +3189,14 @@ router.post('/:id/performance/reviews',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   sanitizeRequest(),
   validateHRRequest('createPerformanceReview'),
   hrPerformanceController.createReview.bind(hrPerformanceController)
 );
 
 // List performance reviews
-router.get('/:id/performance/reviews',
+router.get('/:rsi_org_id/performance/reviews',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'List performance reviews',
@@ -3150,7 +3204,7 @@ router.get('/:id/performance/reviews',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3235,12 +3289,12 @@ router.get('/:id/performance/reviews',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrPerformanceController.listReviews.bind(hrPerformanceController)
 );
 
 // Get specific performance review
-router.get('/:id/performance/reviews/:reviewId',
+router.get('/:rsi_org_id/performance/reviews/:reviewId',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get performance review',
@@ -3248,7 +3302,7 @@ router.get('/:id/performance/reviews/:reviewId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3306,12 +3360,12 @@ router.get('/:id/performance/reviews/:reviewId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrPerformanceController.getReview.bind(hrPerformanceController)
 );
 
 // Update performance review
-router.put('/:id/performance/reviews/:reviewId',
+router.put('/:rsi_org_id/performance/reviews/:reviewId',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Update performance review',
@@ -3319,7 +3373,7 @@ router.put('/:id/performance/reviews/:reviewId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3394,12 +3448,12 @@ router.put('/:id/performance/reviews/:reviewId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrPerformanceController.updateReview.bind(hrPerformanceController)
 );
 
 // Get performance analytics
-router.get('/:id/performance/analytics',
+router.get('/:rsi_org_id/performance/analytics',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get performance analytics',
@@ -3407,7 +3461,7 @@ router.get('/:id/performance/analytics',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3457,7 +3511,7 @@ router.get('/:id/performance/analytics',
 );
 
 // Get performance trends
-router.get('/:id/performance/trends',
+router.get('/:rsi_org_id/performance/trends',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get performance trends',
@@ -3465,7 +3519,7 @@ router.get('/:id/performance/trends',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3515,7 +3569,7 @@ router.get('/:id/performance/trends',
 );
 
 // Get due reviews
-router.get('/:id/performance/due-reviews',
+router.get('/:rsi_org_id/performance/due-reviews',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get due reviews',
@@ -3523,7 +3577,7 @@ router.get('/:id/performance/due-reviews',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3570,14 +3624,14 @@ router.get('/:id/performance/due-reviews',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrPerformanceController.getDueReviews.bind(hrPerformanceController)
 );
 
 // Performance Goal Management
 
 // Create performance goal
-router.post('/:id/performance/goals',
+router.post('/:rsi_org_id/performance/goals',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Create performance goal',
@@ -3585,7 +3639,7 @@ router.post('/:id/performance/goals',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3647,12 +3701,12 @@ router.post('/:id/performance/goals',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrPerformanceController.createGoal.bind(hrPerformanceController)
 );
 
 // Update performance goal
-router.put('/:id/performance/goals/:goalId',
+router.put('/:rsi_org_id/performance/goals/:goalId',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Update performance goal',
@@ -3660,7 +3714,7 @@ router.put('/:id/performance/goals/:goalId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3724,12 +3778,12 @@ router.put('/:id/performance/goals/:goalId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrPerformanceController.updateGoal.bind(hrPerformanceController)
 );
 
 // Update goal progress
-router.put('/:id/performance/goals/:goalId/progress',
+router.put('/:rsi_org_id/performance/goals/:goalId/progress',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Update goal progress',
@@ -3737,7 +3791,7 @@ router.put('/:id/performance/goals/:goalId/progress',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3798,12 +3852,12 @@ router.put('/:id/performance/goals/:goalId/progress',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrPerformanceController.updateGoalProgress.bind(hrPerformanceController)
 );
 
 // Get overdue goals
-router.get('/:id/performance/goals/overdue',
+router.get('/:rsi_org_id/performance/goals/overdue',
   oapi.validPath({
     tags: ['HR Performance'],
     summary: 'Get overdue goals',
@@ -3811,7 +3865,7 @@ router.get('/:id/performance/goals/overdue',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3854,14 +3908,14 @@ router.get('/:id/performance/goals/overdue',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrPerformanceController.getOverdueGoals.bind(hrPerformanceController)
 );
 
 // HR Skills routes
 
 // List all available skills
-router.get('/:id/skills',
+router.get('/:rsi_org_id/skills',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'List skills',
@@ -3869,7 +3923,7 @@ router.get('/:id/skills',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -3941,7 +3995,7 @@ router.get('/:id/skills',
 );
 
 // Create a new skill (admin only)
-router.post('/:id/skills',
+router.post('/:rsi_org_id/skills',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Create skill',
@@ -3949,7 +4003,7 @@ router.post('/:id/skills',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4000,12 +4054,12 @@ router.post('/:id/skills',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillController.createSkill.bind(hrSkillController)
 );
 
 // Get organization skills
-router.get('/:id/skills/organization',
+router.get('/:rsi_org_id/skills/organization',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get organization skills',
@@ -4013,7 +4067,7 @@ router.get('/:id/skills/organization',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4076,12 +4130,12 @@ router.get('/:id/skills/organization',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillController.getOrganizationSkills.bind(hrSkillController)
 );
 
 // Add skill to user
-router.post('/:id/skills/user',
+router.post('/:rsi_org_id/skills/user',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Add user skill',
@@ -4089,7 +4143,7 @@ router.post('/:id/skills/user',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4143,7 +4197,7 @@ router.post('/:id/skills/user',
 );
 
 // Get user skills
-router.get('/:id/skills/user/:userId?',
+router.get('/:rsi_org_id/skills/user/:userId?',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get user skills',
@@ -4151,7 +4205,7 @@ router.get('/:id/skills/user/:userId?',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4218,7 +4272,7 @@ router.get('/:id/skills/user/:userId?',
 );
 
 // Verify user skill
-router.put('/:id/skills/:skillId/verify',
+router.put('/:rsi_org_id/skills/:skillId/verify',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Verify user skill',
@@ -4226,7 +4280,7 @@ router.put('/:id/skills/:skillId/verify',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4276,12 +4330,12 @@ router.put('/:id/skills/:skillId/verify',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillController.verifyUserSkill.bind(hrSkillController)
 );
 
 // Update user skill
-router.put('/:id/skills/user/:userSkillId',
+router.put('/:rsi_org_id/skills/user/:userSkillId',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Update user skill',
@@ -4289,7 +4343,7 @@ router.put('/:id/skills/user/:userSkillId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4347,7 +4401,7 @@ router.put('/:id/skills/user/:userSkillId',
 );
 
 // Remove user skill
-router.delete('/:id/skills/user/:userSkillId',
+router.delete('/:rsi_org_id/skills/user/:userSkillId',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Remove user skill',
@@ -4355,7 +4409,7 @@ router.delete('/:id/skills/user/:userSkillId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4396,7 +4450,7 @@ router.delete('/:id/skills/user/:userSkillId',
 );
 
 // Get skill analytics
-router.get('/:id/skills/analytics',
+router.get('/:rsi_org_id/skills/analytics',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get skill analytics',
@@ -4404,7 +4458,7 @@ router.get('/:id/skills/analytics',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4440,7 +4494,7 @@ router.get('/:id/skills/analytics',
 // Certification routes
 
 // Create certification
-router.post('/:id/skills/certifications',
+router.post('/:rsi_org_id/skills/certifications',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Create certification',
@@ -4448,7 +4502,7 @@ router.post('/:id/skills/certifications',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4497,12 +4551,12 @@ router.post('/:id/skills/certifications',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillController.createCertification.bind(hrSkillController)
 );
 
 // Get organization certifications
-router.get('/:id/skills/certifications',
+router.get('/:rsi_org_id/skills/certifications',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get organization certifications',
@@ -4510,7 +4564,7 @@ router.get('/:id/skills/certifications',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4570,12 +4624,12 @@ router.get('/:id/skills/certifications',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillController.getOrganizationCertifications.bind(hrSkillController)
 );
 
 // Get user certifications
-router.get('/:id/skills/certifications/user/:userId?',
+router.get('/:rsi_org_id/skills/certifications/user/:userId?',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get user certifications',
@@ -4583,7 +4637,7 @@ router.get('/:id/skills/certifications/user/:userId?',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4626,7 +4680,7 @@ router.get('/:id/skills/certifications/user/:userId?',
 );
 
 // Get expiring certifications
-router.get('/:id/skills/certifications/expiring',
+router.get('/:rsi_org_id/skills/certifications/expiring',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Get expiring certifications',
@@ -4634,7 +4688,7 @@ router.get('/:id/skills/certifications/expiring',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4672,12 +4726,12 @@ router.get('/:id/skills/certifications/expiring',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillController.getExpiringCertifications.bind(hrSkillController)
 );
 
 // Update certification
-router.put('/:id/skills/certifications/:certificationId',
+router.put('/:rsi_org_id/skills/certifications/:certificationId',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Update certification',
@@ -4685,7 +4739,7 @@ router.put('/:id/skills/certifications/:certificationId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4739,12 +4793,12 @@ router.put('/:id/skills/certifications/:certificationId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillController.updateCertification.bind(hrSkillController)
 );
 
 // Delete certification
-router.delete('/:id/skills/certifications/:certificationId',
+router.delete('/:rsi_org_id/skills/certifications/:certificationId',
   oapi.validPath({
     tags: ['HR Skills'],
     summary: 'Delete certification',
@@ -4752,7 +4806,7 @@ router.delete('/:id/skills/certifications/:certificationId',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4789,14 +4843,14 @@ router.delete('/:id/skills/certifications/:certificationId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillController.deleteCertification.bind(hrSkillController)
 );
 
 // HR Skills Statistics routes
 
 // Get all skills statistics
-router.get('/:id/skills/statistics',
+router.get('/:rsi_org_id/skills/statistics',
   loggedRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -4804,7 +4858,7 @@ router.get('/:id/skills/statistics',
     description: 'Get statistics for all skills in the organization',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4884,12 +4938,12 @@ router.get('/:id/skills/statistics',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillStatisticsController.getAllSkillsStatistics.bind(hrSkillStatisticsController)
 );
 
 // Get specific skill statistics
-router.get('/:id/skills/:skillId/statistics',
+router.get('/:rsi_org_id/skills/:skillId/statistics',
   loggedRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -4897,7 +4951,7 @@ router.get('/:id/skills/:skillId/statistics',
     description: 'Get statistics for a specific skill',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -4956,12 +5010,12 @@ router.get('/:id/skills/:skillId/statistics',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillStatisticsController.getSkillStatistics.bind(hrSkillStatisticsController)
 );
 
 // Get skills statistics by category
-router.get('/:id/skills/statistics/category/:category',
+router.get('/:rsi_org_id/skills/statistics/category/:category',
   loggedRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -4969,7 +5023,7 @@ router.get('/:id/skills/statistics/category/:category',
     description: 'Get statistics for skills in a specific category',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5026,12 +5080,12 @@ router.get('/:id/skills/statistics/category/:category',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillStatisticsController.getSkillStatisticsByCategory.bind(hrSkillStatisticsController)
 );
 
 // Get organization skills overview
-router.get('/:id/skills/statistics/overview',
+router.get('/:rsi_org_id/skills/statistics/overview',
   loggedRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -5039,7 +5093,7 @@ router.get('/:id/skills/statistics/overview',
     description: 'Get comprehensive organization skills overview',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5106,12 +5160,12 @@ router.get('/:id/skills/statistics/overview',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillStatisticsController.getOrganizationSkillsOverview.bind(hrSkillStatisticsController)
 );
 
 // Get skills statistics summary
-router.get('/:id/skills/statistics/summary',
+router.get('/:rsi_org_id/skills/statistics/summary',
   loggedRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -5119,7 +5173,7 @@ router.get('/:id/skills/statistics/summary',
     description: 'Get skill statistics summary for dashboard',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5171,12 +5225,12 @@ router.get('/:id/skills/statistics/summary',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillStatisticsController.getSkillStatisticsSummary.bind(hrSkillStatisticsController)
 );
 
 // Get verification trends
-router.get('/:id/skills/statistics/trends',
+router.get('/:rsi_org_id/skills/statistics/trends',
   loggedRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -5184,7 +5238,7 @@ router.get('/:id/skills/statistics/trends',
     description: 'Get skill verification trends over time',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5234,12 +5288,12 @@ router.get('/:id/skills/statistics/trends',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   hrSkillStatisticsController.getSkillVerificationTrends.bind(hrSkillStatisticsController)
 );
 
 // Get skill gap analysis
-router.post('/:id/skills/statistics/gaps',
+router.post('/:rsi_org_id/skills/statistics/gaps',
   hrOperationsRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -5247,7 +5301,7 @@ router.post('/:id/skills/statistics/gaps',
     description: 'Perform skill gap analysis for the organization',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5318,7 +5372,7 @@ router.post('/:id/skills/statistics/gaps',
 );
 
 // Refresh statistics cache
-router.post('/:id/skills/statistics/refresh',
+router.post('/:rsi_org_id/skills/statistics/refresh',
   hrOperationsRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -5326,7 +5380,7 @@ router.post('/:id/skills/statistics/refresh',
     description: 'Refresh the skills statistics cache for the organization',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5355,12 +5409,12 @@ router.post('/:id/skills/statistics/refresh',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillStatisticsController.refreshStatisticsCache.bind(hrSkillStatisticsController)
 );
 
 // Clear statistics cache
-router.delete('/:id/skills/statistics/cache',
+router.delete('/:rsi_org_id/skills/statistics/cache',
   hrOperationsRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -5368,7 +5422,7 @@ router.delete('/:id/skills/statistics/cache',
     description: 'Clear the skills statistics cache for the organization',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5404,12 +5458,12 @@ router.delete('/:id/skills/statistics/cache',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrSkillStatisticsController.clearStatisticsCache.bind(hrSkillStatisticsController)
 );
 
 // Export skill statistics
-router.get('/:id/skills/statistics/export',
+router.get('/:rsi_org_id/skills/statistics/export',
   analyticsRateLimit,
   oapi.validPath({
     tags: ['HR Skills Statistics'],
@@ -5417,7 +5471,7 @@ router.get('/:id/skills/statistics/export',
     description: 'Export skill statistics data in JSON or CSV format',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5471,14 +5525,14 @@ router.get('/:id/skills/statistics/export',
 // HR Document Management routes
 
 // Upload document
-router.post('/:id/documents',
+router.post('/:rsi_org_id/documents',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Upload document',
     description: 'Upload a new document to an organization',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5554,19 +5608,19 @@ router.post('/:id/documents',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrDocumentController.uploadDocument.bind(hrDocumentController)
 );
 
 // List documents
-router.get('/:id/documents',
+router.get('/:rsi_org_id/documents',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'List documents',
     description: 'Get documents for an organization with filtering and pagination',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5662,14 +5716,14 @@ router.get('/:id/documents',
 );
 
 // Get specific document
-router.get('/:id/documents/:documentId',
+router.get('/:rsi_org_id/documents/:documentId',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document',
     description: 'Get a specific document by ID',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5733,14 +5787,14 @@ router.get('/:id/documents/:documentId',
 );
 
 // Update document
-router.put('/:id/documents/:documentId',
+router.put('/:rsi_org_id/documents/:documentId',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Update document',
     description: 'Update document metadata',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5819,19 +5873,19 @@ router.put('/:id/documents/:documentId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrDocumentController.updateDocument.bind(hrDocumentController)
 );
 
 // Delete document
-router.delete('/:id/documents/:documentId',
+router.delete('/:rsi_org_id/documents/:documentId',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Delete document',
     description: 'Delete a document',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5868,19 +5922,19 @@ router.delete('/:id/documents/:documentId',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrDocumentController.deleteDocument.bind(hrDocumentController)
 );
 
 // Acknowledge document
-router.put('/:id/documents/:documentId/acknowledge',
+router.put('/:rsi_org_id/documents/:documentId/acknowledge',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Acknowledge document',
     description: 'Acknowledge a document that requires acknowledgment',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -5931,14 +5985,14 @@ router.put('/:id/documents/:documentId/acknowledge',
 );
 
 // Search documents
-router.get('/:id/documents/search',
+router.get('/:rsi_org_id/documents/search',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Search documents',
     description: 'Search documents by title and description',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6019,14 +6073,14 @@ router.get('/:id/documents/search',
 );
 
 // Get document version history
-router.get('/:id/documents/:documentId/history',
+router.get('/:rsi_org_id/documents/:documentId/history',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document history',
     description: 'Get version history for a document',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6079,14 +6133,14 @@ router.get('/:id/documents/:documentId/history',
 );
 
 // Get folder structure
-router.get('/:id/documents/folders',
+router.get('/:rsi_org_id/documents/folders',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get folder structure',
     description: 'Get folder structure for the organization',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6121,14 +6175,14 @@ router.get('/:id/documents/folders',
 );
 
 // Get document acknowledgments
-router.get('/:id/documents/:documentId/acknowledgments',
+router.get('/:rsi_org_id/documents/:documentId/acknowledgments',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document acknowledgments',
     description: 'Get acknowledgments for a document (admin only)',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6195,19 +6249,19 @@ router.get('/:id/documents/:documentId/acknowledgments',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrDocumentController.getDocumentAcknowledgments.bind(hrDocumentController)
 );
 
 // Get compliance report
-router.get('/:id/documents/compliance-report',
+router.get('/:rsi_org_id/documents/compliance-report',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get compliance report',
     description: 'Get compliance report for the organization (admin only)',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6245,19 +6299,19 @@ router.get('/:id/documents/compliance-report',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('MANAGE_MEMBERS'),
+  requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
   hrDocumentController.getComplianceReport.bind(hrDocumentController)
 );
 
 // Get pending acknowledgments for current user
-router.get('/:id/documents/pending-acknowledgments',
+router.get('/:rsi_org_id/documents/pending-acknowledgments',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get pending acknowledgments',
     description: 'Get pending acknowledgments for the current user',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6313,14 +6367,14 @@ router.get('/:id/documents/pending-acknowledgments',
 );
 
 // Get document acknowledgment status
-router.get('/:id/documents/:documentId/acknowledgment-status',
+router.get('/:rsi_org_id/documents/:documentId/acknowledgment-status',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Get document acknowledgment status',
     description: 'Get acknowledgment status for a specific document',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6383,7 +6437,7 @@ router.get('/:id/documents/:documentId/acknowledgment-status',
 );
 
 // Bulk acknowledge documents
-router.post('/:id/documents/bulk-acknowledge',
+router.post('/:rsi_org_id/documents/bulk-acknowledge',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'Bulk acknowledge documents',
@@ -6410,7 +6464,7 @@ router.post('/:id/documents/bulk-acknowledge',
     },
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6456,14 +6510,14 @@ router.post('/:id/documents/bulk-acknowledge',
 );
 
 // List documents with acknowledgment status
-router.get('/:id/documents/with-acknowledgment-status',
+router.get('/:rsi_org_id/documents/with-acknowledgment-status',
   oapi.validPath({
     tags: ['HR Documents'],
     summary: 'List documents with acknowledgment status',
     description: 'Get documents with acknowledgment status for current user',
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6567,7 +6621,7 @@ router.get('/:id/documents/with-acknowledgment-status',
 // HR Activity Management routes
 
 // Get organization HR activities
-router.get('/:id/hr-activities',
+router.get('/:rsi_org_id/hr-activities',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get organization HR activities',
@@ -6575,7 +6629,7 @@ router.get('/:id/hr-activities',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6670,13 +6724,13 @@ router.get('/:id/hr-activities',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_MEMBERS'),
+  requireResolvedOrganizationPermission('VIEW_MEMBERS'),
   loggedRateLimit(hrOperationsRateLimit),
   hrActivityController.getOrganizationActivities.bind(hrActivityController)
 );
 
 // Get organization HR activity statistics
-router.get('/:id/hr-activities/stats',
+router.get('/:rsi_org_id/hr-activities/stats',
   oapi.validPath({
     tags: ['HR Management'],
     summary: 'Get organization HR activity statistics',
@@ -6684,7 +6738,7 @@ router.get('/:id/hr-activities/stats',
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'rsi_org_id',
         in: 'path',
         required: true,
         schema: { type: 'string' as const },
@@ -6753,7 +6807,7 @@ router.get('/:id/hr-activities/stats',
   }),
   requireLogin as any,
   resolveOrganization,
-  requireOrganizationPermission('VIEW_ANALYTICS'),
+  requireResolvedOrganizationPermission('VIEW_ANALYTICS'),
   loggedRateLimit(analyticsRateLimit),
   hrActivityController.getOrganizationActivityStats.bind(hrActivityController)
 );

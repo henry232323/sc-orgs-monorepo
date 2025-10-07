@@ -76,6 +76,15 @@ This repository contains three key documents that guide the development process:
 - **Invitation system** with controlled access codes
 - **Tag-based categorization** (language, playstyle, focus)
 
+### HR Management System
+- **Real-time HR Analytics** with comprehensive metrics and insights
+- **Skills Matrix Management** with verification tracking and statistics
+- **Document Library** with acknowledgment tracking and role-based access
+- **Application Tracking** with status management and analytics
+- **Performance Reviews** with goal tracking and evaluation workflows
+- **Onboarding Management** with automated checklists and progress tracking
+- **Activity Feed** with real-time HR event tracking across all modules
+
 ### Discovery & Interaction
 - **Advanced search and filtering** for organizations
 - **Upvoting system** (once per week per organization)
@@ -201,10 +210,18 @@ API documentation is automatically generated and available at `/api/docs` when t
 
 ## 📚 Additional Resources
 
+### Development Documentation
+- **[HR Data Integration Guide](./docs/HR_DATA_INTEGRATION.md)**: Comprehensive guide for HR system integration patterns
+- **[HR Components Documentation](./docs/components/HR_COMPONENTS.md)**: Complete documentation of HR components and their data dependencies
+- **[API Integration Guide](./docs/API_INTEGRATION_GUIDE.md)**: Detailed API usage examples and best practices
+- **[OpenAPI Specification](./docs/api/hr-endpoints.yaml)**: Complete API specification for HR endpoints
+
+### External Resources
 - **Headless UI Documentation**: [https://headlessui.com/](https://headlessui.com/)
 - **Passport.js Discord Strategy**: [https://www.passportjs.org/packages/passport-discord/](https://www.passportjs.org/packages/passport-discord/)
 - **OpenAPI Package**: [https://www.npmjs.com/package/@wesleytodd/openapi](https://www.npmjs.com/package/@wesleytodd/openapi)
 - **Star Citizen Spectrum API**: Community-driven API documentation
+- **RTK Query Documentation**: [https://redux-toolkit.js.org/rtk-query/overview](https://redux-toolkit.js.org/rtk-query/overview)
 
 ## 📄 License
 
