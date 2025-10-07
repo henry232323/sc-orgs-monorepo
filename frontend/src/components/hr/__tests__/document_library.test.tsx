@@ -37,14 +37,14 @@ const mockDocuments: Document[] = [
     organization_id: 'test-org',
     title: 'Organization Handbook',
     description: 'Complete guide to organization policies',
-    file_path: '/documents/handbook.pdf',
-    file_type: 'application/pdf',
-    file_size: 2048576,
+    content: '# Organization Handbook\n\nComplete guide to organization policies',
+    word_count: 150,
+    estimated_reading_time: 2,
     folder_path: '/',
     version: 1,
     requires_acknowledgment: true,
     access_roles: ['member'],
-    uploaded_by: 'admin-user',
+    created_by: 'admin-user',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   },
@@ -53,14 +53,14 @@ const mockDocuments: Document[] = [
     organization_id: 'test-org',
     title: 'Training Materials',
     description: 'Pilot training documentation',
-    file_path: '/documents/training/pilot-guide.pdf',
-    file_type: 'application/pdf',
-    file_size: 1024768,
+    content: '# Training Materials\n\nPilot training documentation',
+    word_count: 300,
+    estimated_reading_time: 3,
     folder_path: '/training',
     version: 2,
     requires_acknowledgment: false,
     access_roles: ['pilot', 'trainer'],
-    uploaded_by: 'trainer-user',
+    created_by: 'trainer-user',
     created_at: '2024-01-15T00:00:00Z',
     updated_at: '2024-01-20T00:00:00Z',
   },
@@ -69,14 +69,14 @@ const mockDocuments: Document[] = [
     organization_id: 'test-org',
     title: 'Safety Protocols',
     description: 'Emergency procedures and safety guidelines',
-    file_path: '/documents/safety/protocols.md',
-    file_type: 'text/markdown',
-    file_size: 51200,
+    content: '# Safety Protocols\n\nEmergency procedures and safety guidelines',
+    word_count: 200,
+    estimated_reading_time: 2,
     folder_path: '/safety',
     version: 1,
     requires_acknowledgment: true,
     access_roles: ['member'],
-    uploaded_by: 'safety-officer',
+    created_by: 'safety-officer',
     created_at: '2024-02-01T00:00:00Z',
     updated_at: '2024-02-01T00:00:00Z',
   },
@@ -180,22 +180,22 @@ describe('DocumentLibrary', () => {
     }, { timeout: 500 });
   });
 
-  it('shows upload button when allowUpload is true', () => {
+  it('shows create button when allowCreate is true', () => {
     renderWithProvider(
       <DocumentLibrary 
         onDocumentSelect={mockOnDocumentSelect} 
-        allowUpload={true} 
+        allowCreate={true} 
       />
     );
     
-    expect(screen.getByText('Upload Document')).toBeInTheDocument();
+    expect(screen.getByText('Create Document')).toBeInTheDocument();
   });
 
-  it('hides upload button when allowUpload is false', () => {
+  it('hides create button when allowCreate is false', () => {
     renderWithProvider(
       <DocumentLibrary 
         onDocumentSelect={mockOnDocumentSelect} 
-        allowUpload={false} 
+        allowCreate={false} 
       />
     );
     

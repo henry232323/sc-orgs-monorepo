@@ -1181,23 +1181,6 @@ export const apiSlice = createApi({
       ],
     }),
 
-    // Search organization members
-    searchOrganizationMembers: builder.query<
-      { id: string; rsi_handle: string }[],
-      { organizationId: string; query: string; limit?: number }
-    >({
-      query: ({ organizationId, query, limit = 10 }) => {
-        const params = new URLSearchParams({
-          q: query,
-          limit: limit.toString(),
-        });
-        return `/api/organizations/${organizationId}/members/search?${params.toString()}`;
-      },
-      transformResponse: (response: ApiSuccessResponse<{ id: string; rsi_handle: string }[]>) =>
-        response.data,
-      keepUnusedDataFor: 60, // Cache for 1 minute (members change frequently)
-    }),
-
     generateInviteCode: builder.mutation<
       any,
       {
@@ -1696,7 +1679,6 @@ export const apiSlice = createApi({
         ];
       },
       keepUnusedDataFor: 600, // Cache for 10 minutes (analytics change less frequently)
-      // Disable refetch on focus for analytics (they don't need real-time updates)
     }),
 
     getHRReports: builder.query<
@@ -1768,6 +1750,8 @@ export const apiSlice = createApi({
       },
       keepUnusedDataFor: 90, // Cache for 1.5 minutes (applications change frequently)
       // Enable refetch on focus for applications
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
     }),
 
     createApplication: builder.mutation<
@@ -2120,6 +2104,8 @@ export const apiSlice = createApi({
           : [{ type: 'Skill', id: organizationId }],
       keepUnusedDataFor: 900, // Cache for 15 minutes (skills don't change often)
       // Disable refetch on focus for skills list
+      refetchOnFocus: false,
+      refetchOnReconnect: false,
     }),
 
     createSkill: builder.mutation<
@@ -2259,6 +2245,66 @@ export const apiSlice = createApi({
       transformResponse: (response: ApiSuccessResponse<import('../types/hr').Document>) =>
         response.data,
       invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Document', id: organizationId },
+      ],
+    }),
+
+    createDocument: builder.mutation<
+      import('../types/hr').Document,
+      { 
+        organizationId: string; 
+        data: {
+          title: string;
+          description?: string;
+          content: string;
+          folder_path: string;
+          requires_acknowledgment: boolean;
+          access_roles: string[];
+        }
+      }
+    >({
+      query: ({ organizationId, data }) => ({
+        url: `/api/organizations/${organizationId}/documents`,
+        method: 'POST',
+        body: data,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').Document>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId }) => [
+        { type: 'Document', id: organizationId },
+      ],
+    }),
+
+    updateDocument: builder.mutation<
+      import('../types/hr').Document,
+      { 
+        organizationId: string; 
+        documentId: string;
+        data: {
+          title?: string;
+          description?: string;
+          content?: string;
+          folder_path?: string;
+          requires_acknowledgment?: boolean;
+          access_roles?: string[];
+        }
+      }
+    >({
+      query: ({ organizationId, documentId, data }) => ({
+        url: `/api/organizations/${organizationId}/documents/${documentId}`,
+        method: 'PUT',
+        body: data,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      transformResponse: (response: ApiSuccessResponse<import('../types/hr').Document>) =>
+        response.data,
+      invalidatesTags: (_, __, { organizationId, documentId }) => [
+        { type: 'Document', id: documentId },
         { type: 'Document', id: organizationId },
       ],
     }),
@@ -2621,7 +2667,9 @@ export const apiSlice = createApi({
       ],
       keepUnusedDataFor: 180, // 3 minutes cache (activities change frequently)
       // Enable refetch on focus for real-time updates
+      refetchOnFocus: true,
       // Enable refetch on reconnect
+      refetchOnReconnect: true,
     }),
 
     // Skills Statistics endpoints
@@ -2641,6 +2689,8 @@ export const apiSlice = createApi({
       ],
       keepUnusedDataFor: 900, // 15 minutes cache for statistics (they change less frequently)
       // Disable refetch on focus for statistics (they don't need real-time updates)
+      refetchOnFocus: false,
+      refetchOnReconnect: false,
     }),
 
     // Document Acknowledgment Status endpoints
@@ -2658,6 +2708,8 @@ export const apiSlice = createApi({
       ],
       keepUnusedDataFor: 240, // 4 minutes cache (acknowledgments change moderately)
       // Enable refetch on focus for acknowledgment status
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
     }),
 
     // Reputation System endpoints
@@ -3298,6 +3350,8 @@ export const {
   // Document Management hooks
   useGetDocumentsQuery,
   useUploadDocumentMutation,
+  useCreateDocumentMutation,
+  useUpdateDocumentMutation,
   useAcknowledgeDocumentMutation,
   useSearchDocumentsQuery,
 

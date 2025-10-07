@@ -147,35 +147,35 @@
   - Create download functionality for exported files
   - _Requirements: 4.5, 8.1_
 
-- [ ] 6. Document Library Integration
+- [x] 6. Document Library Integration
   - Update DocumentLibrary component to support markdown document creation
   - Remove file upload interface and replace with markdown editor
   - Implement unified document list showing both file and markdown documents
   - Add document type indicators and appropriate actions for each type
   - _Requirements: 1.1, 1.2, 1.4, 6.2, 9.1_
 
-- [ ] 6.1 Remove file upload functionality completely
+- [x] 6.1 Remove file upload functionality completely
   - Remove all file upload UI components and buttons
   - Remove file selection inputs and upload forms
   - Update component props to remove upload-related features
   - Replace with markdown document creation interface
   - _Requirements: 1.1, 1.4_
 
-- [ ] 6.2 Integrate markdown editor into document library
+- [x] 6.2 Integrate markdown editor into document library
   - Add "Create Document" button that opens markdown editor
   - Implement modal or inline editing interface
   - Add document metadata form (title, description, folder, etc.)
   - Create save and cancel functionality for new documents
   - _Requirements: 2.1, 9.1_
 
-- [ ] 6.3 Update document list display for markdown-only
+- [x] 6.3 Update document list display for markdown-only
   - Remove document type indicators (all documents are markdown)
   - Update document cards to show word count and reading time
   - Implement edit functionality for all documents
   - Add export functionality buttons for each document
   - _Requirements: 6.2, 6.3_
 
-- [ ] 6.4 Enhance search and filtering for content
+- [x] 6.4 Enhance search and filtering for content
   - Update search to include full-text search on markdown content
   - Remove document type filters (all documents are markdown)
   - Implement search result highlighting within content

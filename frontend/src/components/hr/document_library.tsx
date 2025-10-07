@@ -4,10 +4,12 @@ import {
   FolderIcon, 
   DocumentIcon, 
   MagnifyingGlassIcon,
-  CloudArrowUpIcon,
+  PlusIcon,
   EyeIcon,
   CheckCircleIcon,
   ClockIcon,
+  PencilIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 import Paper from '../ui/Paper';
 import Input from '../ui/Input';
@@ -16,17 +18,21 @@ import Chip from '../ui/Chip';
 
 import SidebarItem from '../ui/SidebarItem';
 import { ComponentTitle, ComponentSubtitle, Caption } from '../ui/Typography';
+import MarkdownEditor from './document/MarkdownEditor';
+import { DocumentExportService } from '../../services/DocumentExportService';
 import {
   useGetDocumentsQuery,
-  useUploadDocumentMutation,
+  useSearchDocumentsQuery,
   useAcknowledgeDocumentMutation,
   useGetDocumentAcknowledmentStatusQuery,
+  useCreateDocumentMutation,
+  useUpdateDocumentMutation,
 } from '../../services/apiSlice';
 import type { Document, DocumentFilters } from '../../types/hr';
 
 interface DocumentLibraryProps {
   onDocumentSelect?: (document: Document) => void;
-  allowUpload?: boolean;
+  allowCreate?: boolean;
   showAcknowledgments?: boolean;
 }
 
@@ -39,20 +45,16 @@ interface FolderStructure {
 
 const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   onDocumentSelect,
-  allowUpload = true,
+  allowCreate = true,
   showAcknowledgments = true,
 }) => {
   const { organizationId } = useParams<{ organizationId: string }>();
   const [currentFolder, setCurrentFolder] = useState('/');
   const [searchQuery, setSearchQuery] = useState('');
   const [, setSelectedDocument] = useState<Document | null>(null);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadMetadata, setUploadMetadata] = useState({
-    title: '',
-    description: '',
-    requires_acknowledgment: false,
-    access_roles: [] as string[],
-  });
+  const [isCreatingDocument, setIsCreatingDocument] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [exportingDocument, setExportingDocument] = useState<string | null>(null);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -61,11 +63,26 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Close export dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      setExportingDocument(null);
+    };
+
+    if (exportingDocument) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+    
+    return undefined;
+  }, [exportingDocument]);
+
   const filters: DocumentFilters = useMemo(() => ({
     ...(currentFolder !== '/' && { folder_path: currentFolder }),
     ...(debouncedSearch && { title: debouncedSearch }),
   }), [currentFolder, debouncedSearch]);
 
+  // Use search query when there's a search term, otherwise use regular documents query
   const {
     data: documentsResponse,
     isLoading,
@@ -73,19 +90,36 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     refetch,
   } = useGetDocumentsQuery(
     { organizationId: organizationId!, filters },
-    { skip: !organizationId }
+    { skip: !organizationId || !!debouncedSearch }
   );
 
-  const [uploadDocument, { isLoading: isUploading }] = useUploadDocumentMutation();
+  const {
+    data: searchResponse,
+    isLoading: isSearching,
+    error: searchError,
+    refetch: refetchSearch,
+  } = useSearchDocumentsQuery(
+    { organizationId: organizationId!, query: debouncedSearch },
+    { skip: !organizationId || !debouncedSearch }
+  );
+
+  // Combine results from both queries
+  const finalResponse = debouncedSearch ? searchResponse : documentsResponse;
+  const finalIsLoading = debouncedSearch ? isSearching : isLoading;
+  const finalError = debouncedSearch ? searchError : error;
+  const finalRefetch = debouncedSearch ? refetchSearch : refetch;
+
   const [acknowledgeDocument, { isLoading: isAcknowledging }] = useAcknowledgeDocumentMutation();
+  const [createDocument, { isLoading: isCreating }] = useCreateDocumentMutation();
+  const [updateDocument, { isLoading: isUpdating }] = useUpdateDocumentMutation();
 
   // Build folder structure from documents
   const folderStructure = useMemo((): FolderStructure => {
-    if (!documentsResponse?.data) return {};
+    if (!finalResponse?.data) return {};
 
     const structure: FolderStructure = {};
     
-    documentsResponse.data.forEach(doc => {
+    finalResponse.data.forEach(doc => {
       const pathParts = doc.folder_path.split('/').filter(Boolean);
       let current = structure;
       
@@ -106,52 +140,23 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     });
 
     return structure;
-  }, [documentsResponse]);
+  }, [finalResponse]);
 
   const getCurrentFolderDocuments = useCallback((): Document[] => {
-    if (!documentsResponse?.data) return [];
+    if (!finalResponse?.data) return [];
     
-    return documentsResponse.data.filter(doc => 
+    // If searching, return all results regardless of folder
+    if (debouncedSearch) {
+      return finalResponse.data;
+    }
+    
+    return finalResponse.data.filter(doc => 
       doc.folder_path === currentFolder ||
       (currentFolder === '/' && doc.folder_path === '')
     );
-  }, [documentsResponse, currentFolder]);
+  }, [finalResponse, currentFolder, debouncedSearch]);
 
-  const handleFileUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!uploadFile || !organizationId || !uploadMetadata.title.trim()) {
-      return;
-    }
 
-    try {
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-      formData.append('title', uploadMetadata.title);
-      formData.append('description', uploadMetadata.description);
-      formData.append('folder_path', currentFolder);
-      formData.append('requires_acknowledgment', uploadMetadata.requires_acknowledgment.toString());
-      formData.append('access_roles', JSON.stringify(uploadMetadata.access_roles));
-
-      await uploadDocument({
-        organizationId,
-        data: formData,
-      }).unwrap();
-
-      // Reset form
-      setUploadFile(null);
-      setUploadMetadata({
-        title: '',
-        description: '',
-        requires_acknowledgment: false,
-        access_roles: [],
-      });
-
-      refetch();
-    } catch (error) {
-      console.error('Failed to upload document:', error);
-    }
-  };
 
   const handleDocumentAcknowledge = async (documentId: string) => {
     if (!organizationId) return;
@@ -163,7 +168,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       }).unwrap();
 
       // Refetch both documents list and acknowledgment status
-      refetch();
+      finalRefetch();
       
       // Note: The acknowledgment status will be automatically refetched due to cache invalidation
       // when the component re-renders after the documents list is updated
@@ -173,20 +178,105 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const formatReadingTime = (minutes: number): string => {
+    if (minutes < 1) return '< 1 min read';
+    return `${minutes} min read`;
   };
 
-  const getDocumentIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return '📄';
-    if (fileType.includes('image')) return '🖼️';
-    if (fileType.includes('video')) return '🎥';
-    if (fileType.includes('text') || fileType.includes('markdown')) return '📝';
-    return '📄';
+  const highlightSearchTerm = (text: string, searchTerm: string): React.ReactNode => {
+    if (!searchTerm || !text) return text;
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <mark key={index} className="bg-yellow-200 px-1 rounded">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
+
+  const handleSaveDocument = async (content: string, metadata: {
+    title: string;
+    description?: string;
+    folder_path: string;
+    requires_acknowledgment: boolean;
+    access_roles: string[];
+  }) => {
+    if (!organizationId) return;
+
+    try {
+      if (editingDocument) {
+        // Update existing document
+        await updateDocument({
+          organizationId,
+          documentId: editingDocument.id,
+          data: {
+            ...metadata,
+            content,
+          },
+        }).unwrap();
+      } else {
+        // Create new document
+        await createDocument({
+          organizationId,
+          data: {
+            ...metadata,
+            content,
+          },
+        }).unwrap();
+      }
+
+      // Reset state and refetch documents
+      setIsCreatingDocument(false);
+      setEditingDocument(null);
+      finalRefetch();
+    } catch (error) {
+      console.error('Failed to save document:', error);
+      throw error; // Re-throw to let MarkdownEditor handle the error
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsCreatingDocument(false);
+    setEditingDocument(null);
+  };
+
+  const handleExportDocument = async (doc: Document, format: 'html' | 'pdf' | 'markdown') => {
+    try {
+      const metadata = {
+        title: doc.title,
+        description: doc.description || '',
+        version: doc.version,
+        created_at: doc.created_at,
+        updated_at: doc.updated_at,
+        word_count: doc.word_count || 0,
+        estimated_reading_time: doc.estimated_reading_time || 0,
+        folder_path: doc.folder_path,
+        requires_acknowledgment: doc.requires_acknowledgment,
+        access_roles: doc.access_roles,
+      };
+
+      switch (format) {
+        case 'html':
+          const htmlContent = DocumentExportService.exportToHtml(doc.content || '', metadata);
+          DocumentExportService.downloadFile(htmlContent, `${doc.title}.html`, 'text/html');
+          break;
+        case 'pdf':
+          await DocumentExportService.exportToPdf(doc.content || '', metadata);
+          break;
+        case 'markdown':
+          const markdownContent = DocumentExportService.exportToMarkdown(doc.content || '', metadata);
+          DocumentExportService.downloadFile(markdownContent, `${doc.title}.md`, 'text/markdown');
+          break;
+      }
+    } catch (error) {
+      console.error('Failed to export document:', error);
+    }
   };
 
   const useDocumentAcknowledgmentStatus = (doc: Document) => {
@@ -278,7 +368,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
           <div className="p-4 border-b border-glass-border">
             <ComponentTitle className="mb-2">Folders</ComponentTitle>
             <Input
-              placeholder="Search documents..."
+              placeholder="Search documents and content..."
               value={searchQuery}
               onChange={setSearchQuery}
               icon={<MagnifyingGlassIcon />}
@@ -287,27 +377,42 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
           </div>
           
           <div className="p-2 overflow-y-auto">
-            <SidebarItem
-              icon={<FolderIcon />}
-              onClick={() => setCurrentFolder('/')}
-              className={currentFolder === '/' ? 'bg-glass-elevated' : ''}
-            >
-              Root
-            </SidebarItem>
-            
-            {Object.entries(folderStructure).map(([folderName, folder]) => (
-              <SidebarItem
-                key={folderName}
-                icon={<FolderIcon />}
-                onClick={() => setCurrentFolder(`/${folderName}`)}
-                className={currentFolder === `/${folderName}` ? 'bg-glass-elevated' : ''}
-              >
-                {folderName}
-                <span className="ml-auto text-xs text-muted">
-                  {folder.documents.length}
-                </span>
-              </SidebarItem>
-            ))}
+            {debouncedSearch ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-secondary">
+                  Searching all documents...
+                </p>
+                {finalResponse?.total && (
+                  <p className="text-xs text-muted mt-1">
+                    {finalResponse.total} results found
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <SidebarItem
+                  icon={<FolderIcon />}
+                  onClick={() => setCurrentFolder('/')}
+                  className={currentFolder === '/' ? 'bg-glass-elevated' : ''}
+                >
+                  Root
+                </SidebarItem>
+                
+                {Object.entries(folderStructure).map(([folderName, folder]) => (
+                  <SidebarItem
+                    key={folderName}
+                    icon={<FolderIcon />}
+                    onClick={() => setCurrentFolder(`/${folderName}`)}
+                    className={currentFolder === `/${folderName}` ? 'bg-glass-elevated' : ''}
+                  >
+                    {folderName}
+                    <span className="ml-auto text-xs text-muted">
+                      {folder.documents.length}
+                    </span>
+                  </SidebarItem>
+                ))}
+              </>
+            )}
           </div>
         </Paper>
       </div>
@@ -323,116 +428,54 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                   Document Library
                 </ComponentTitle>
                 <ComponentSubtitle>
-                  Current folder: {currentFolder === '/' ? 'Root' : currentFolder}
+                  {debouncedSearch 
+                    ? `Search results for "${debouncedSearch}"` 
+                    : `Current folder: ${currentFolder === '/' ? 'Root' : currentFolder}`
+                  }
                 </ComponentSubtitle>
               </div>
               
-              {allowUpload && (
+              {allowCreate && (
                 <Button
                   variant="primary"
-                  onClick={() => document.getElementById('file-upload')?.click()}
-                  disabled={isUploading}
+                  onClick={() => setIsCreatingDocument(true)}
                 >
-                  <CloudArrowUpIcon className="w-4 h-4" />
-                  Upload Document
+                  <PlusIcon className="w-4 h-4" />
+                  Create Document
                 </Button>
               )}
             </div>
           </Paper>
 
-          {/* Upload Form */}
-          {allowUpload && uploadFile && (
-            <Paper variant="glass-elevated" className="p-[var(--spacing-card-lg)]">
-              <ComponentTitle className="mb-4">Upload Document</ComponentTitle>
-              <form onSubmit={handleFileUpload} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Document Title"
-                    value={uploadMetadata.title}
-                    onChange={(value) => setUploadMetadata(prev => ({ ...prev, title: value }))}
-                    placeholder="Enter document title..."
-                    required
+          {/* Markdown Editor Modal */}
+          {(isCreatingDocument || editingDocument) && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <ComponentTitle>
+                    {editingDocument ? 'Edit Document' : 'Create New Document'}
+                  </ComponentTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                
+                <div className="flex-1 overflow-hidden">
+                  <MarkdownEditor
+                    initialContent={editingDocument?.content || ''}
+                    {...(editingDocument && { document: editingDocument })}
+                    onSave={handleSaveDocument}
+                    onCancel={handleCancelEdit}
+                    isLoading={isCreating || isUpdating}
                   />
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-secondary">File:</span>
-                    <span className="text-sm text-primary">{uploadFile.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setUploadFile(null)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
                 </div>
-                
-                <Input
-                  label="Description (Optional)"
-                  value={uploadMetadata.description}
-                  onChange={(value) => setUploadMetadata(prev => ({ ...prev, description: value }))}
-                  placeholder="Brief description of the document..."
-                />
-                
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={uploadMetadata.requires_acknowledgment}
-                      onChange={(e) => setUploadMetadata(prev => ({ 
-                        ...prev, 
-                        requires_acknowledgment: e.target.checked 
-                      }))}
-                      className="sr-only"
-                    />
-                    <div className={`w-4 h-4 border-2 rounded transition-all ${
-                      uploadMetadata.requires_acknowledgment 
-                        ? 'bg-brand-secondary border-brand-secondary' 
-                        : 'border-glass-border'
-                    }`}>
-                      {uploadMetadata.requires_acknowledgment && (
-                        <CheckCircleIcon className="w-3 h-3 text-white" />
-                      )}
-                    </div>
-                    <span className="text-sm text-secondary">Requires acknowledgment</span>
-                  </label>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={isUploading || !uploadMetadata.title.trim()}
-                  >
-                    {isUploading ? 'Uploading...' : 'Upload'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setUploadFile(null)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </Paper>
+              </div>
+            </div>
           )}
-
-          {/* Hidden file input */}
-          <input
-            id="file-upload"
-            type="file"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                setUploadFile(file);
-                setUploadMetadata(prev => ({ 
-                  ...prev, 
-                  title: file.name.replace(/\.[^/.]+$/, '') 
-                }));
-              }
-            }}
-            accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.gif"
-          />
 
           {/* Document List */}
           <Paper variant="glass-subtle" className="p-[var(--spacing-card-lg)]">
@@ -440,7 +483,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
               Documents ({currentDocuments.length})
             </ComponentTitle>
             
-            {isLoading ? (
+            {finalIsLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="animate-pulse">
@@ -448,10 +491,10 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                   </div>
                 ))}
               </div>
-            ) : error ? (
+            ) : finalError ? (
               <div className="text-center py-8">
                 <p className="text-error mb-4">Failed to load documents</p>
-                <Button variant="secondary" onClick={() => refetch()}>
+                <Button variant="secondary" onClick={() => finalRefetch()}>
                   Retry
                 </Button>
               </div>
@@ -459,13 +502,13 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
               <div className="text-center py-8">
                 <DocumentIcon className="w-12 h-12 text-muted mx-auto mb-4" />
                 <p className="text-secondary">No documents in this folder</p>
-                {allowUpload && (
+                {allowCreate && (
                   <Button
                     variant="secondary"
                     className="mt-4"
-                    onClick={() => document.getElementById('file-upload')?.click()}
+                    onClick={() => setIsCreatingDocument(true)}
                   >
-                    Upload First Document
+                    Create First Document
                   </Button>
                 )}
               </div>
@@ -485,21 +528,24 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="text-2xl flex-shrink-0">
-                          {getDocumentIcon(doc.file_type)}
+                          📝
                         </div>
                         
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-primary truncate">
-                            {doc.title}
+                            {highlightSearchTerm(doc.title, debouncedSearch)}
                           </h4>
                           {doc.description && (
                             <p className="text-sm text-secondary truncate">
-                              {doc.description}
+                              {highlightSearchTerm(doc.description, debouncedSearch)}
                             </p>
                           )}
                           <div className="flex items-center gap-4 mt-1">
                             <Caption>
-                              {formatFileSize(doc.file_size)}
+                              {doc.word_count || 0} words
+                            </Caption>
+                            <Caption>
+                              {formatReadingTime(doc.estimated_reading_time || 0)}
                             </Caption>
                             <Caption>
                               v{doc.version}
@@ -534,12 +580,71 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                           size="sm"
                           onClick={(e) => {
                             e?.stopPropagation();
-                            // Open document in new tab
-                            window.open(`/api/documents/${doc.id}/download`, '_blank');
+                            setEditingDocument(doc);
+                          }}
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </Button>
+                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e?.stopPropagation();
+                            onDocumentSelect?.(doc);
                           }}
                         >
                           <EyeIcon className="w-4 h-4" />
                         </Button>
+
+                        {/* Export dropdown */}
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e?.stopPropagation();
+                              setExportingDocument(exportingDocument === doc.id ? null : doc.id);
+                            }}
+                          >
+                            <ArrowDownTrayIcon className="w-4 h-4" />
+                          </Button>
+                          
+                          {exportingDocument === doc.id && (
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
+                              <button
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 first:rounded-t-md"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExportDocument(doc, 'html');
+                                  setExportingDocument(null);
+                                }}
+                              >
+                                Export as HTML
+                              </button>
+                              <button
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExportDocument(doc, 'pdf');
+                                  setExportingDocument(null);
+                                }}
+                              >
+                                Export as PDF
+                              </button>
+                              <button
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 last:rounded-b-md"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExportDocument(doc, 'markdown');
+                                  setExportingDocument(null);
+                                }}
+                              >
+                                Export as Markdown
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Paper>
