@@ -11,6 +11,14 @@ try {
   JSDOM = null;
 }
 import logger from '../config/logger';
+import { 
+  MarkdownValidationError, 
+  MarkdownSanitizationError, 
+  MarkdownRenderingError,
+  MarkdownSecurityError,
+  MarkdownContentTooLargeError,
+  MarkdownProcessingTimeoutError
+} from '../errors/markdown_errors';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -115,32 +123,32 @@ export class MarkdownProcessingService {
     try {
       // Basic content validation
       if (!content || typeof content !== 'string') {
-        errors.push('Content must be a non-empty string');
-        return {
-          isValid: false,
-          errors,
-          warnings,
-          wordCount: 0,
-          estimatedReadingTime: 0,
-        };
+        throw new MarkdownValidationError(
+          'Content must be a non-empty string',
+          ['Content must be a non-empty string'],
+          [],
+          { contentType: typeof content }
+        );
       }
 
       const trimmedContent = content.trim();
       if (trimmedContent.length === 0) {
-        errors.push('Content cannot be empty');
-        return {
-          isValid: false,
-          errors,
-          warnings,
-          wordCount: 0,
-          estimatedReadingTime: 0,
-        };
+        throw new MarkdownValidationError(
+          'Content cannot be empty',
+          ['Content cannot be empty'],
+          [],
+          { contentLength: content.length }
+        );
       }
 
       // Content length validation
       const maxLength = options.maxContentLength || this.DEFAULT_MAX_CONTENT_LENGTH;
       if (content.length > maxLength) {
-        errors.push(`Content exceeds maximum length of ${maxLength} characters`);
+        throw new MarkdownContentTooLargeError(
+          content.length,
+          maxLength,
+          { operation: 'validation' }
+        );
       }
 
       // Calculate word count and reading time
@@ -150,7 +158,12 @@ export class MarkdownProcessingService {
       // Word count validation
       const maxWordCount = options.maxWordCount || this.DEFAULT_MAX_WORD_COUNT;
       if (wordCount > maxWordCount) {
-        errors.push(`Content exceeds maximum word count of ${maxWordCount} words`);
+        throw new MarkdownValidationError(
+          `Content exceeds maximum word count of ${maxWordCount} words`,
+          [`Content exceeds maximum word count of ${maxWordCount} words (current: ${wordCount})`],
+          [],
+          { wordCount, maxWordCount }
+        );
       }
 
       // Markdown syntax validation
@@ -163,11 +176,24 @@ export class MarkdownProcessingService {
           warnings.push(...securityIssues);
         }
       } catch (markdownError) {
-        errors.push(`Invalid markdown syntax: ${markdownError instanceof Error ? markdownError.message : 'Unknown error'}`);
+        throw new MarkdownRenderingError(
+          `Invalid markdown syntax: ${markdownError instanceof Error ? markdownError.message : 'Unknown error'}`,
+          content,
+          'syntax_validation',
+          { originalError: markdownError }
+        );
       }
 
       // Security validation
       const securityValidation = this.validateContentSecurity(content, options);
+      if (securityValidation.errors.length > 0 && options.strictMode) {
+        throw new MarkdownSecurityError(
+          'Content contains security violations',
+          securityValidation.errors,
+          content,
+          { strictMode: true }
+        );
+      }
       errors.push(...securityValidation.errors);
       warnings.push(...securityValidation.warnings);
 
@@ -187,18 +213,25 @@ export class MarkdownProcessingService {
         estimatedReadingTime,
       };
     } catch (error) {
+      // Re-throw known markdown errors
+      if (error instanceof MarkdownValidationError || 
+          error instanceof MarkdownContentTooLargeError ||
+          error instanceof MarkdownRenderingError ||
+          error instanceof MarkdownSecurityError) {
+        throw error;
+      }
+
       logger.error('Error validating markdown content', {
         error: error instanceof Error ? error.message : 'Unknown error',
         contentLength: content?.length || 0,
       });
 
-      return {
-        isValid: false,
-        errors: ['Failed to validate markdown content'],
-        warnings: [],
-        wordCount: 0,
-        estimatedReadingTime: 0,
-      };
+      throw new MarkdownValidationError(
+        'Failed to validate markdown content',
+        ['An unexpected error occurred during validation'],
+        [],
+        { originalError: error }
+      );
     }
   }
 
@@ -243,7 +276,8 @@ export class MarkdownProcessingService {
         contentLength: content?.length || 0,
       });
 
-      // Fallback: return the original content with basic cleanup
+      // For text extraction, we don't throw errors but provide fallback
+      // This ensures search functionality continues to work even with problematic content
       return content
         .replace(/[#*_`~\[\]()]/g, '') // Remove basic markdown characters
         .replace(/\s+/g, ' ')
@@ -314,8 +348,12 @@ export class MarkdownProcessingService {
         contentLength: content?.length || 0,
       });
 
-      // Return original content if sanitization fails
-      return content;
+      throw new MarkdownSanitizationError(
+        'Failed to sanitize markdown content',
+        content,
+        undefined,
+        { originalError: error }
+      );
     }
   }
 
@@ -496,7 +534,12 @@ export class MarkdownProcessingService {
         contentLength: content?.length || 0,
       });
 
-      return '';
+      throw new MarkdownRenderingError(
+        'Failed to render markdown to HTML',
+        content,
+        'html_rendering',
+        { originalError: error }
+      );
     }
   }
 
