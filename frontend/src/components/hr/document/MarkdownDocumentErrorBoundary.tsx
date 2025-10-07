@@ -168,7 +168,7 @@ const MarkdownDocumentErrorBoundary: React.FC<MarkdownDocumentErrorBoundaryProps
     }
   };
 
-  const getSuggestions = (errorType: string, operation: string): string[] => {
+  const getSuggestions = (errorType: string, _operation: string): string[] => {
     switch (errorType) {
       case 'validation':
         return [

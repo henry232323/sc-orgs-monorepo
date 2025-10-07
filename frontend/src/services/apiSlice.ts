@@ -1749,9 +1749,6 @@ export const apiSlice = createApi({
           : [{ type: 'Application', id: organizationId }];
       },
       keepUnusedDataFor: 90, // Cache for 1.5 minutes (applications change frequently)
-      // Enable refetch on focus for applications
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
     }),
 
     createApplication: builder.mutation<
@@ -2103,9 +2100,6 @@ export const apiSlice = createApi({
           ]
           : [{ type: 'Skill', id: organizationId }],
       keepUnusedDataFor: 900, // Cache for 15 minutes (skills don't change often)
-      // Disable refetch on focus for skills list
-      refetchOnFocus: false,
-      refetchOnReconnect: false,
     }),
 
     createSkill: builder.mutation<
@@ -2666,10 +2660,8 @@ export const apiSlice = createApi({
         ...(result?.data.map(activity => ({ type: 'HRActivity' as const, id: activity.id })) || []),
       ],
       keepUnusedDataFor: 180, // 3 minutes cache (activities change frequently)
-      // Enable refetch on focus for real-time updates
-      refetchOnFocus: true,
-      // Enable refetch on reconnect
-      refetchOnReconnect: true,
+
+
     }),
 
     // Skills Statistics endpoints
@@ -2688,9 +2680,8 @@ export const apiSlice = createApi({
         })) : []),
       ],
       keepUnusedDataFor: 900, // 15 minutes cache for statistics (they change less frequently)
-      // Disable refetch on focus for statistics (they don't need real-time updates)
-      refetchOnFocus: false,
-      refetchOnReconnect: false,
+
+
     }),
 
     // Document Acknowledgment Status endpoints
@@ -2707,9 +2698,8 @@ export const apiSlice = createApi({
         { type: 'Document', id: documentId },
       ],
       keepUnusedDataFor: 240, // 4 minutes cache (acknowledgments change moderately)
-      // Enable refetch on focus for acknowledgment status
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
+
+
     }),
 
     // Reputation System endpoints

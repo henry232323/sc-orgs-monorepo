@@ -300,6 +300,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       window.document.addEventListener('keydown', handleKeyDown);
       return () => window.document.removeEventListener('keydown', handleKeyDown);
     }
+    return undefined;
   }, [handleKeyDown]);
 
   // Warn about unsaved changes when navigating away
@@ -315,6 +316,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       window.addEventListener('beforeunload', handleBeforeUnload);
       return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }
+    return undefined;
   }, [hasUnsavedChanges]);
 
   // Calculate word count and reading time
@@ -386,11 +388,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   return (
     <div className={`markdown-editor ${className}`}>
       {/* Header with metadata form */}
-      <div className="bg-white border-b border-gray-200 p-4">
+      <div className="bg-dark-glass border-b border-glass-border p-4 backdrop-blur-[var(--blur-glass-strong)]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="title" className="block text-sm font-semibold text-primary mb-2">
               Title *
             </label>
             <input
@@ -398,7 +400,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               id="title"
               value={metadata.title}
               onChange={(e) => handleMetadataChange('title', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-glass-border rounded-[var(--radius-glass-sm)] bg-dark-glass text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-glass-focus transition-all duration-[var(--duration-normal)]"
               placeholder="Enter document title"
               disabled={isLoading}
             />
@@ -406,7 +408,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
           {/* Folder Path */}
           <div>
-            <label htmlFor="folder_path" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="folder_path" className="block text-sm font-semibold text-primary mb-2">
               Folder Path
             </label>
             <input
@@ -414,7 +416,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               id="folder_path"
               value={metadata.folder_path}
               onChange={(e) => handleMetadataChange('folder_path', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-glass-border rounded-[var(--radius-glass-sm)] bg-dark-glass text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-glass-focus transition-all duration-[var(--duration-normal)]"
               placeholder="/path/to/folder"
               disabled={isLoading}
             />
@@ -422,7 +424,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
           {/* Description */}
           <div className="md:col-span-2">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="description" className="block text-sm font-semibold text-primary mb-2">
               Description
             </label>
             <textarea
@@ -430,7 +432,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               value={metadata.description || ''}
               onChange={(e) => handleMetadataChange('description', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-glass-border rounded-[var(--radius-glass-sm)] bg-dark-glass text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-glass-focus transition-all duration-[var(--duration-normal)]"
               placeholder="Brief description of the document"
               disabled={isLoading}
             />
@@ -443,24 +445,24 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 type="checkbox"
                 checked={metadata.requires_acknowledgment}
                 onChange={(e) => handleMetadataChange('requires_acknowledgment', e.target.checked)}
-                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mr-2 h-4 w-4 text-[var(--color-accent-blue)] focus:ring-glass-focus border-glass-border rounded"
                 disabled={isLoading}
               />
-              <span className="text-sm text-gray-700">Requires acknowledgment</span>
+              <span className="text-sm text-secondary">Requires acknowledgment</span>
             </label>
           </div>
         </div>
 
         {/* Validation Errors */}
         {validationErrors.length > 0 && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="mt-4 p-3 bg-error/10 border border-error/20 rounded-[var(--radius-glass-sm)]">
             <div className="flex">
-              <svg className="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="h-5 w-5 text-error mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <div>
-                <h3 className="text-sm font-medium text-red-800">Please fix the following errors:</h3>
-                <ul className="mt-1 text-sm text-red-700 list-disc list-inside">
+                <h3 className="text-sm font-semibold text-error">Please fix the following errors:</h3>
+                <ul className="mt-1 text-sm text-error/80 list-disc list-inside">
                   {validationErrors.map((error, index) => (
                     <li key={index}>{error}</li>
                   ))}
@@ -472,13 +474,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       </div>
 
       {/* Custom Toolbar */}
-      <div className="bg-gray-50 border-b border-gray-200 p-2">
+      <div className="bg-white/5 border-b border-glass-border p-2 backdrop-blur-[var(--blur-glass-strong)]">
         <div className="flex flex-wrap items-center gap-1">
           {/* Formatting buttons */}
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('**', '**', 'bold text')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Bold (Ctrl+B)"
             disabled={isLoading}
           >
@@ -490,7 +492,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('*', '*', 'italic text')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Italic (Ctrl+I)"
             disabled={isLoading}
           >
@@ -502,7 +504,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('`', '`', 'code')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Code (Ctrl+`)"
             disabled={isLoading}
           >
@@ -511,12 +513,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             </svg>
           </button>
 
-          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <div className="w-px h-6 bg-white/20 mx-1"></div>
 
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('## ', '', 'Heading')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Heading (Ctrl+H)"
             disabled={isLoading}
           >
@@ -528,7 +530,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('[', '](https://example.com)', 'link text')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Link (Ctrl+K)"
             disabled={isLoading}
           >
@@ -540,7 +542,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('- ', '', 'List item')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Bullet List"
             disabled={isLoading}
           >
@@ -552,7 +554,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('```\n', '\n```', 'code block')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Code Block"
             disabled={isLoading}
           >
@@ -564,7 +566,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('| Header 1 | Header 2 |\n|----------|----------|\n| ', ' | Cell 2 |', 'Cell 1')}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Table"
             disabled={isLoading}
           >
@@ -573,13 +575,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             </svg>
           </button>
 
-          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <div className="w-px h-6 bg-white/20 mx-1"></div>
 
           {/* Help button */}
           <button
             type="button"
             onClick={() => setShowHelpPanel(!showHelpPanel)}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
             title="Markdown Help"
             disabled={isLoading}
           >
@@ -589,11 +591,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           </button>
 
           {/* Keyboard shortcuts help */}
-          <div className="text-xs text-gray-500 ml-2">
+          <div className="text-xs text-tertiary ml-2">
             <span className="hidden sm:inline">
-              Shortcuts: <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">Ctrl+S</kbd> Save, 
-              <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs ml-1">Ctrl+B</kbd> Bold, 
-              <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs ml-1">Ctrl+I</kbd> Italic
+              Shortcuts: <kbd className="px-1 py-0.5 bg-white/10 rounded text-xs">Ctrl+S</kbd> Save, 
+              <kbd className="px-1 py-0.5 bg-white/10 rounded text-xs ml-1">Ctrl+B</kbd> Bold, 
+              <kbd className="px-1 py-0.5 bg-white/10 rounded text-xs ml-1">Ctrl+I</kbd> Italic
             </span>
           </div>
         </div>
@@ -601,13 +603,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       {/* Markdown Help Panel */}
       {showHelpPanel && (
-        <div className="bg-blue-50 border-b border-blue-200 p-4">
+        <div className="bg-[var(--color-accent-blue)]/10 border-b border-[var(--color-accent-blue)]/20 p-4 backdrop-blur-[var(--blur-glass-strong)]">
           <div className="max-w-4xl">
-            <h3 className="text-sm font-medium text-blue-900 mb-3">Markdown Quick Reference</h3>
+            <h3 className="text-sm font-semibold text-primary mb-3">Markdown Quick Reference</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
               <div>
-                <h4 className="font-medium text-blue-800 mb-2">Text Formatting</h4>
-                <div className="space-y-1 text-blue-700">
+                <h4 className="font-semibold text-primary mb-2">Text Formatting</h4>
+                <div className="space-y-1 text-secondary">
                   <div><code>**bold**</code> → <strong>bold</strong></div>
                   <div><code>*italic*</code> → <em>italic</em></div>
                   <div><code>`code`</code> → <code>code</code></div>
@@ -616,8 +618,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               </div>
               
               <div>
-                <h4 className="font-medium text-blue-800 mb-2">Headings</h4>
-                <div className="space-y-1 text-blue-700">
+                <h4 className="font-semibold text-primary mb-2">Headings</h4>
+                <div className="space-y-1 text-secondary">
                   <div><code># Heading 1</code></div>
                   <div><code>## Heading 2</code></div>
                   <div><code>### Heading 3</code></div>

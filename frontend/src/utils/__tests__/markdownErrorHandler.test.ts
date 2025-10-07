@@ -65,8 +65,8 @@ describe('markdownErrorHandler', () => {
       expect(result.suggestions).toEqual(['Check your markdown syntax']);
       expect(result.validationErrors).toHaveLength(1);
       expect(result.validationWarnings).toHaveLength(1);
-      expect(result.validationErrors![0].code).toBe('INVALID_SYNTAX');
-      expect(result.validationWarnings![0].code).toBe('LONG_LINE');
+      expect(result.validationErrors?.[0]?.code).toBe('INVALID_SYNTAX');
+      expect(result.validationWarnings?.[0]?.code).toBe('LONG_LINE');
     });
 
     it('should handle generic HTTP errors', () => {

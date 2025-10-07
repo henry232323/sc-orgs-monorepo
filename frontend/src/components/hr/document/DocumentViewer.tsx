@@ -132,7 +132,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   // Convert document to metadata format for export
   const getDocumentMetadata = useCallback((): DocumentMetadata => ({
     title: document.title,
-    description: document.description || undefined,
+    description: document.description || '',
     version: document.version,
     created_at: document.created_at,
     updated_at: document.updated_at,
@@ -151,7 +151,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     try {
       const metadata = getDocumentMetadata();
-      const filename = DocumentExportService.getExportFilename(document.title, format);
+      const filename = DocumentExportService.getExportFilename(document.title, format === 'markdown' ? 'md' : format);
 
       switch (format) {
         case 'html':
@@ -203,6 +203,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       window.document.addEventListener('mousedown', handleClickOutside);
       return () => window.document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [state.showExportMenu]);
 
   // Render error fallback
@@ -299,7 +300,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     return (
       <MarkdownDocumentErrorBoundary
         onError={handleRenderError}
-        fallback={renderErrorFallback()}
+        documentId={document.id}
+        organizationId={document.organization_id}
+        operation="view"
+        enableRetry={true}
       >
         <div className="prose prose-slate max-w-none dark:prose-invert print:prose-print">
           <ReactMarkdown

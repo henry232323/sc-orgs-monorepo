@@ -182,28 +182,28 @@
   - Add advanced search options for content-specific queries
   - _Requirements: 7.1, 7.2, 7.4_
 
-- [ ] 7. Frontend Export Service Implementation
+- [x] 7. Frontend Export Service Implementation
   - Create frontend service for document export functionality
   - Implement HTML export with embedded styles
   - Add PDF export using client-side libraries
   - Create markdown export with metadata preservation
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 7.1 Create DocumentExportService class
+- [x] 7.1 Create DocumentExportService class
   - Implement exportToHtml method with styling
   - Add exportToPdf method using jsPDF or similar
   - Create exportToMarkdown method with metadata
   - Add downloadFile utility for triggering downloads
   - _Requirements: 8.1, 8.3_
 
-- [ ] 7.2 Implement PDF export functionality
+- [x] 7.2 Implement PDF export functionality
   - Add client-side PDF generation using jsPDF or Puppeteer
   - Create print-friendly styling for PDF output
   - Include document metadata in PDF exports
   - Add page formatting and layout options
   - _Requirements: 8.1, 8.3_
 
-- [ ] 7.3 Add export UI components
+- [x] 7.3 Add export UI components
   - Create export dropdown menu with format options
   - Add export progress indicators
   - Implement export preview functionality

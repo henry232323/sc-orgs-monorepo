@@ -1,10 +1,26 @@
 
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { marked } from 'marked';
 
 export interface ExportOptions {
   includeMetadata?: boolean;
   includeTableOfContents?: boolean;
   customStyles?: string;
   pageFormat?: 'A4' | 'Letter';
+  orientation?: 'portrait' | 'landscape';
+  margins?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  fontSize?: number;
+  fontFamily?: string;
+  includePageNumbers?: boolean;
+  includeHeader?: boolean;
+  includeFooter?: boolean;
+  watermark?: string;
 }
 
 export interface DocumentMetadata {
@@ -260,15 +276,239 @@ export class DocumentExportService {
   }
 
   /**
-   * Export document to PDF format (using browser's print functionality)
+   * Export document to PDF format using jsPDF and html2canvas
    */
-  static async exportToPdf(content: string, metadata: DocumentMetadata, options: ExportOptions = {}): Promise<void> {
+  static async exportToPdf(content: string, metadata: DocumentMetadata, options: ExportOptions = {}): Promise<Blob> {
+    const {
+      pageFormat = 'A4',
+      orientation = 'portrait',
+      margins = { top: 20, right: 20, bottom: 20, left: 20 },
+      includeMetadata = true
+    } = options;
+
+    // Create PDF with proper configuration
+    const pdf = new jsPDF({
+      orientation,
+      unit: 'mm',
+      format: pageFormat.toLowerCase() as 'a4' | 'letter',
+    });
+
+    // Set PDF metadata
+    pdf.setProperties({
+      title: metadata.title,
+      subject: metadata.description || '',
+      author: 'HR Document System',
+      creator: 'HR Document System',
+      keywords: metadata.access_roles.join(', '),
+
+    });
+
+    // Get page dimensions
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const contentWidth = pageWidth - margins.left - margins.right;
+
+
+    let currentY = margins.top;
+
+    // Add header with title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    const titleLines = pdf.splitTextToSize(metadata.title, contentWidth);
+    pdf.text(titleLines, margins.left, currentY);
+    currentY += titleLines.length * 8 + 10;
+
+    // Add description if available
+    if (metadata.description) {
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'italic');
+      const descLines = pdf.splitTextToSize(metadata.description, contentWidth);
+      pdf.text(descLines, margins.left, currentY);
+      currentY += descLines.length * 5 + 10;
+    }
+
+    // Add metadata section if requested
+    if (includeMetadata) {
+      currentY = this.addMetadataToPdf(pdf, metadata, margins.left, currentY, contentWidth);
+    }
+
+    // Add separator line
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(margins.left, currentY, pageWidth - margins.right, currentY);
+    currentY += 10;
+
+    // Convert markdown to HTML and render to PDF
+    const htmlContent = this.renderMarkdownToHtml(content, metadata, { 
+      ...options, 
+      includeMetadata: false // We already added metadata above
+    });
+    
+    // Create a temporary container for rendering
+    const container = document.createElement('div');
+    container.innerHTML = htmlContent;
+    container.style.cssText = `
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+      width: ${contentWidth * 3.78}px; /* Convert mm to px (1mm ≈ 3.78px) */
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: white;
+      padding: 20px;
+    `;
+    
+    document.body.appendChild(container);
+
+    try {
+      // Convert HTML to canvas
+      const canvas = await html2canvas(container, {
+        scale: 2, // Higher resolution
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: container.scrollWidth,
+        height: container.scrollHeight,
+      });
+
+      // Calculate image dimensions for PDF
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Check if we need to add content to current page or new page
+      if (currentY + imgHeight > pageHeight - margins.bottom) {
+        pdf.addPage();
+        currentY = margins.top;
+      }
+
+      let heightLeft = imgHeight;
+      let position = currentY;
+      const imgData = canvas.toDataURL('image/png', 0.95); // Slightly compressed for smaller file size
+
+      // Add image to PDF (handle multiple pages if needed)
+      while (heightLeft > 0) {
+        const availableHeight = pageHeight - position - margins.bottom;
+        const imageHeight = Math.min(heightLeft, availableHeight);
+        
+        if (imageHeight > 0) {
+          pdf.addImage(
+            imgData, 
+            'PNG', 
+            margins.left, 
+            position, 
+            imgWidth, 
+            imageHeight,
+            undefined,
+            'FAST'
+          );
+        }
+
+        heightLeft -= availableHeight;
+        
+        if (heightLeft > 0) {
+          pdf.addPage();
+          position = margins.top;
+        }
+      }
+
+      // Add footer with generation info
+      this.addFooterToPdf(pdf, metadata);
+
+      return pdf.output('blob');
+    } finally {
+      // Clean up
+      document.body.removeChild(container);
+    }
+  }
+
+  /**
+   * Add metadata section to PDF
+   */
+  private static addMetadataToPdf(
+    pdf: jsPDF, 
+    metadata: DocumentMetadata, 
+    x: number, 
+    y: number, 
+    width: number
+  ): number {
+    let currentY = y;
+
+    // Metadata header
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Document Information', x, currentY);
+    currentY += 10;
+
+    // Metadata content
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+
+    const metadataItems = [
+      ['Version:', metadata.version.toString()],
+      ['Created:', new Date(metadata.created_at).toLocaleDateString()],
+      ['Updated:', new Date(metadata.updated_at).toLocaleDateString()],
+      ['Word Count:', metadata.word_count.toString()],
+      ['Reading Time:', `${metadata.estimated_reading_time} minutes`],
+      ['Folder:', metadata.folder_path],
+      ['Requires Acknowledgment:', metadata.requires_acknowledgment ? 'Yes' : 'No'],
+      ['Access Roles:', metadata.access_roles.join(', ')],
+    ];
+
+    metadataItems.forEach(([label, value]) => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label || '', x, currentY);
+      pdf.setFont('helvetica', 'normal');
+      const valueLines = pdf.splitTextToSize(value || '', width - 40);
+      pdf.text(valueLines, x + 40, currentY);
+      currentY += Math.max(4, valueLines.length * 4);
+    });
+
+    return currentY + 10;
+  }
+
+  /**
+   * Add footer to all pages of PDF
+   */
+  private static addFooterToPdf(pdf: jsPDF, metadata: DocumentMetadata): void {
+    const pageCount = pdf.getNumberOfPages();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      
+      // Footer line
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(20, pageHeight - 15, pageWidth - 20, pageHeight - 15);
+      
+      // Footer text
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(100, 100, 100);
+      
+      const footerLeft = `${metadata.title} (v${metadata.version})`;
+      const footerCenter = `Generated on ${new Date().toLocaleDateString()}`;
+      const footerRight = `Page ${i} of ${pageCount}`;
+      
+      pdf.text(footerLeft, 20, pageHeight - 8);
+      pdf.text(footerCenter, pageWidth / 2, pageHeight - 8, { align: 'center' });
+      pdf.text(footerRight, pageWidth - 20, pageHeight - 8, { align: 'right' });
+      
+      // Reset text color
+      pdf.setTextColor(0, 0, 0);
+    }
+  }
+
+  /**
+   * Export document to PDF format (fallback using browser's print functionality)
+   */
+  static async exportToPdfPrint(content: string, metadata: DocumentMetadata, options: ExportOptions = {}): Promise<void> {
     const htmlContent = this.exportToHtml(content, metadata, {
       ...options,
       customStyles: `
         ${options.customStyles || ''}
         @page {
-          size: ${options.pageFormat || 'A4'};
+          size: ${options.pageFormat || 'A4'} ${options.orientation || 'portrait'};
           margin: 2cm;
         }
         body {
@@ -349,8 +589,8 @@ export class DocumentExportService {
   /**
    * Download a file with the given content
    */
-  static downloadFile(content: string | Blob, filename: string, mimeType: string): void {
-    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+  static downloadFile(content: string | Blob, filename: string, mimeType?: string): void {
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType || 'text/plain' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement('a');
@@ -364,6 +604,38 @@ export class DocumentExportService {
     
     // Clean up the URL object
     setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  /**
+   * Export and download document in specified format
+   */
+  static async exportAndDownload(
+    content: string,
+    metadata: DocumentMetadata,
+    format: 'html' | 'pdf' | 'md',
+    options: ExportOptions = {}
+  ): Promise<void> {
+    const filename = this.getExportFilename(metadata.title, format);
+
+    switch (format) {
+      case 'html': {
+        const htmlContent = this.exportToHtml(content, metadata, options);
+        this.downloadFile(htmlContent, filename, 'text/html');
+        break;
+      }
+      case 'pdf': {
+        const pdfBlob = await this.exportToPdf(content, metadata, options);
+        this.downloadFile(pdfBlob, filename);
+        break;
+      }
+      case 'md': {
+        const markdownContent = this.exportToMarkdown(content, metadata, options);
+        this.downloadFile(markdownContent, filename, 'text/markdown');
+        break;
+      }
+      default:
+        throw new Error(`Unsupported export format: ${format}`);
+    }
   }
 
   /**
@@ -391,6 +663,78 @@ export class DocumentExportService {
   }
 
   /**
+   * Get PDF export presets for common use cases
+   */
+  static getPdfExportPresets(): Record<string, ExportOptions> {
+    return {
+      standard: {
+        pageFormat: 'A4',
+        orientation: 'portrait',
+        margins: { top: 20, right: 20, bottom: 20, left: 20 },
+        includeMetadata: true,
+        includePageNumbers: true,
+        includeHeader: true,
+        includeFooter: true,
+        fontSize: 12,
+      },
+      compact: {
+        pageFormat: 'A4',
+        orientation: 'portrait',
+        margins: { top: 15, right: 15, bottom: 15, left: 15 },
+        includeMetadata: false,
+        includePageNumbers: true,
+        includeHeader: false,
+        includeFooter: true,
+        fontSize: 10,
+      },
+      presentation: {
+        pageFormat: 'A4',
+        orientation: 'landscape',
+        margins: { top: 25, right: 25, bottom: 25, left: 25 },
+        includeMetadata: true,
+        includeTableOfContents: true,
+        includePageNumbers: true,
+        includeHeader: true,
+        includeFooter: true,
+        fontSize: 14,
+      },
+      minimal: {
+        pageFormat: 'A4',
+        orientation: 'portrait',
+        margins: { top: 10, right: 10, bottom: 10, left: 10 },
+        includeMetadata: false,
+        includePageNumbers: false,
+        includeHeader: false,
+        includeFooter: false,
+        fontSize: 11,
+      },
+    };
+  }
+
+  /**
+   * Validate PDF export options
+   */
+  static validatePdfOptions(options: ExportOptions): string[] {
+    const errors: string[] = [];
+
+    if (options.margins) {
+      const { top, right, bottom, left } = options.margins;
+      if (top < 0 || right < 0 || bottom < 0 || left < 0) {
+        errors.push('Margins must be non-negative values');
+      }
+      if (top + bottom > 200 || left + right > 200) {
+        errors.push('Margins are too large for the page format');
+      }
+    }
+
+    if (options.fontSize && (options.fontSize < 6 || options.fontSize > 72)) {
+      errors.push('Font size must be between 6 and 72 points');
+    }
+
+    return errors;
+  }
+
+  /**
    * Get appropriate filename for export
    */
   static getExportFilename(title: string, format: 'html' | 'pdf' | 'md'): string {
@@ -401,6 +745,72 @@ export class DocumentExportService {
     
     const timestamp = new Date().toISOString().split('T')[0];
     return `${sanitizedTitle}-${timestamp}.${format}`;
+  }
+
+  /**
+   * Render markdown to HTML using marked library for better formatting
+   */
+  private static renderMarkdownToHtml(content: string, metadata: DocumentMetadata, options: ExportOptions = {}): string {
+    const {
+      includeMetadata = true,
+      includeTableOfContents = false,
+    } = options;
+
+    // Configure marked for better rendering
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+    });
+
+    // Convert markdown to HTML
+    const htmlContent = marked(content);
+    
+    // Generate table of contents if requested
+    let toc = '';
+    if (includeTableOfContents) {
+      toc = this.generateTableOfContents(content);
+    }
+
+    // Generate metadata section
+    let metadataHtml = '';
+    if (includeMetadata) {
+      metadataHtml = `
+        <div class="document-metadata">
+          <h2>Document Information</h2>
+          <table>
+            <tr><td><strong>Title:</strong></td><td>${metadata.title}</td></tr>
+            ${metadata.description ? `<tr><td><strong>Description:</strong></td><td>${metadata.description}</td></tr>` : ''}
+            <tr><td><strong>Version:</strong></td><td>${metadata.version}</td></tr>
+            <tr><td><strong>Created:</strong></td><td>${new Date(metadata.created_at).toLocaleDateString()}</td></tr>
+            <tr><td><strong>Updated:</strong></td><td>${new Date(metadata.updated_at).toLocaleDateString()}</td></tr>
+            <tr><td><strong>Word Count:</strong></td><td>${metadata.word_count}</td></tr>
+            <tr><td><strong>Reading Time:</strong></td><td>${metadata.estimated_reading_time} min</td></tr>
+            <tr><td><strong>Folder:</strong></td><td>${metadata.folder_path}</td></tr>
+            <tr><td><strong>Requires Acknowledgment:</strong></td><td>${metadata.requires_acknowledgment ? 'Yes' : 'No'}</td></tr>
+            <tr><td><strong>Access Roles:</strong></td><td>${metadata.access_roles.join(', ')}</td></tr>
+          </table>
+        </div>
+      `;
+    }
+
+    return `
+      <header>
+        <h1>${metadata.title}</h1>
+        ${metadata.description ? `<p class="description">${metadata.description}</p>` : ''}
+      </header>
+      
+      ${metadataHtml}
+      ${toc}
+      
+      <main class="document-content">
+        ${htmlContent}
+      </main>
+      
+      <footer>
+        <hr>
+        <p><small>Generated on ${new Date().toLocaleDateString()} from ${metadata.title} (Version ${metadata.version})</small></p>
+      </footer>
+    `;
   }
 
   /**

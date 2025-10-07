@@ -256,7 +256,7 @@ export function isRecoverableError(error: MarkdownOperationError): boolean {
     MARKDOWN_ERROR_CODES.DOCUMENT_NOT_FOUND,
   ];
 
-  return !nonRecoverableErrors.includes(error.code as MarkdownErrorCode);
+  return !nonRecoverableErrors.includes(error.code as any);
 }
 
 /**
@@ -272,7 +272,7 @@ export function shouldAutoRetry(error: MarkdownOperationError): boolean {
     MARKDOWN_ERROR_CODES.PROCESSING_TIMEOUT,
   ];
 
-  return autoRetryErrors.includes(error.code as MarkdownErrorCode);
+  return autoRetryErrors.includes(error.code as any);
 }
 
 /**
@@ -291,11 +291,11 @@ export function getErrorSeverity(error: MarkdownOperationError): 'error' | 'warn
     MARKDOWN_ERROR_CODES.VERSION_CONFLICT,
   ];
 
-  if (warningErrors.includes(error.code as MarkdownErrorCode)) {
+  if (warningErrors.includes(error.code as any)) {
     return 'warning';
   }
 
-  if (infoErrors.includes(error.code as MarkdownErrorCode)) {
+  if (infoErrors.includes(error.code as any)) {
     return 'info';
   }
 

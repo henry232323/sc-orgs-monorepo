@@ -1,7 +1,6 @@
-import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
 import DocumentViewer from '../DocumentViewer';
 import type { Document } from '../../../../types/hr';
 
@@ -56,7 +55,6 @@ const mockFileDocument = {
 
 const mockAcknowledgmentStatus = {
   current_user_acknowledged: false,
-  current_user_acknowledged_at: undefined,
 };
 
 const mockAcknowledgedStatus = {

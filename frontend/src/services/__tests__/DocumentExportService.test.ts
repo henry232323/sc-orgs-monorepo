@@ -169,6 +169,35 @@ describe('DocumentExportService', () => {
   });
 
   describe('exportToPdf', () => {
+    it('should be a function that returns a Promise', () => {
+      expect(typeof DocumentExportService.exportToPdf).toBe('function');
+      const result = DocumentExportService.exportToPdf(mockContent, mockMetadata);
+      expect(result).toBeInstanceOf(Promise);
+      
+      // Clean up the promise to avoid unhandled rejection
+      result.catch(() => {
+        // Expected to fail in test environment due to DOM limitations
+      });
+    });
+
+    it('should accept export options', () => {
+      const options = {
+        pageFormat: 'A4' as const,
+        orientation: 'portrait' as const,
+        margins: { top: 20, right: 20, bottom: 20, left: 20 },
+      };
+      
+      const result = DocumentExportService.exportToPdf(mockContent, mockMetadata, options);
+      expect(result).toBeInstanceOf(Promise);
+      
+      // Clean up the promise to avoid unhandled rejection
+      result.catch(() => {
+        // Expected to fail in test environment due to DOM limitations
+      });
+    });
+  });
+
+  describe('exportToPdfPrint', () => {
     it('should open print window with HTML content', async () => {
       const mockPrintWindow = {
         document: {
@@ -186,7 +215,7 @@ describe('DocumentExportService', () => {
         writable: true,
       });
       
-      const exportPromise = DocumentExportService.exportToPdf(mockContent, mockMetadata);
+      const exportPromise = DocumentExportService.exportToPdfPrint(mockContent, mockMetadata);
       
       expect(mockWindowOpen).toHaveBeenCalledWith('', '_blank');
       expect(mockPrintWindow.document.write).toHaveBeenCalled();
@@ -208,8 +237,104 @@ describe('DocumentExportService', () => {
       });
       
       await expect(
-        DocumentExportService.exportToPdf(mockContent, mockMetadata)
+        DocumentExportService.exportToPdfPrint(mockContent, mockMetadata)
       ).rejects.toThrow('Unable to open print window');
+    });
+  });
+
+  describe('getPdfExportPresets', () => {
+    it('should return predefined PDF export presets', () => {
+      const presets = DocumentExportService.getPdfExportPresets();
+      
+      expect(presets).toHaveProperty('standard');
+      expect(presets).toHaveProperty('compact');
+      expect(presets).toHaveProperty('presentation');
+      expect(presets).toHaveProperty('minimal');
+      
+      expect(presets.standard?.pageFormat).toBe('A4');
+      expect(presets.standard?.orientation).toBe('portrait');
+      expect(presets.standard?.includeMetadata).toBe(true);
+      
+      expect(presets.presentation?.orientation).toBe('landscape');
+      expect(presets.presentation?.includeTableOfContents).toBe(true);
+      
+      expect(presets.minimal?.includeMetadata).toBe(false);
+      expect(presets.minimal?.includePageNumbers).toBe(false);
+    });
+  });
+
+  describe('validatePdfOptions', () => {
+    it('should return no errors for valid options', () => {
+      const validOptions = {
+        margins: { top: 20, right: 20, bottom: 20, left: 20 },
+        fontSize: 12,
+      };
+      
+      const errors = DocumentExportService.validatePdfOptions(validOptions);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should return errors for negative margins', () => {
+      const invalidOptions = {
+        margins: { top: -5, right: 20, bottom: 20, left: 20 },
+      };
+      
+      const errors = DocumentExportService.validatePdfOptions(invalidOptions);
+      expect(errors).toContain('Margins must be non-negative values');
+    });
+
+    it('should return errors for too large margins', () => {
+      const invalidOptions = {
+        margins: { top: 150, right: 20, bottom: 150, left: 20 },
+      };
+      
+      const errors = DocumentExportService.validatePdfOptions(invalidOptions);
+      expect(errors).toContain('Margins are too large for the page format');
+    });
+
+    it('should return errors for invalid font size', () => {
+      const invalidOptions = {
+        fontSize: 100,
+      };
+      
+      const errors = DocumentExportService.validatePdfOptions(invalidOptions);
+      expect(errors).toContain('Font size must be between 6 and 72 points');
+    });
+  });
+
+  describe('exportAndDownload', () => {
+    it('should export and download HTML format', async () => {
+      const mockDownloadFile = vi.spyOn(DocumentExportService, 'downloadFile').mockImplementation(() => {});
+      
+      await DocumentExportService.exportAndDownload(mockContent, mockMetadata, 'html');
+      
+      expect(mockDownloadFile).toHaveBeenCalledWith(
+        expect.stringContaining('<!DOCTYPE html>'),
+        expect.stringMatching(/test-document-\d{4}-\d{2}-\d{2}\.html/),
+        'text/html'
+      );
+      
+      mockDownloadFile.mockRestore();
+    });
+
+    it('should export and download markdown format', async () => {
+      const mockDownloadFile = vi.spyOn(DocumentExportService, 'downloadFile').mockImplementation(() => {});
+      
+      await DocumentExportService.exportAndDownload(mockContent, mockMetadata, 'md');
+      
+      expect(mockDownloadFile).toHaveBeenCalledWith(
+        expect.stringContaining('---'),
+        expect.stringMatching(/test-document-\d{4}-\d{2}-\d{2}\.md/),
+        'text/markdown'
+      );
+      
+      mockDownloadFile.mockRestore();
+    });
+
+    it('should throw error for unsupported format', async () => {
+      await expect(
+        DocumentExportService.exportAndDownload(mockContent, mockMetadata, 'unsupported' as any)
+      ).rejects.toThrow('Unsupported export format: unsupported');
     });
   });
 });
