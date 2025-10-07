@@ -322,7 +322,7 @@ export class HRSkillService {
 
       if (filters.search_term) {
         // Search skills by name or description
-        const skills = await this.skillModel.searchSkills(filters.search_term);
+        const skills = await this.skillModel.searchSkills(filters.organization_id || '', filters.search_term);
         results = skills;
       } else if (filters.organization_id) {
         // Get organization skills with filters
@@ -339,13 +339,13 @@ export class HRSkillService {
           verified: filters.verified,
           proficiency_level: filters.proficiency_level as any,
         };
-        results = await this.skillModel.getUserSkills(filters.user_id, userFilters);
+        results = await this.skillModel.getUserSkills(filters.organization_id || '', filters.user_id, userFilters);
       } else {
         // General skill search
         const skillFilters = {
           category: filters.category as any,
         };
-        const result = await this.skillModel.listSkills(skillFilters);
+        const result = await this.skillModel.listSkills(filters.organization_id || '', skillFilters);
         results = result.data;
       }
 
@@ -476,6 +476,7 @@ export class HRSkillService {
    * Validate skill assignment
    */
   async validateSkillAssignment(
+    organizationId: string,
     userId: string,
     skillId: string,
     proficiencyLevel: string
@@ -490,7 +491,7 @@ export class HRSkillService {
       }
 
       // Check if user already has this skill
-      const existingUserSkill = await this.skillModel.findUserSkillByUserAndSkill(userId, skillId);
+      const existingUserSkill = await this.skillModel.findUserSkillByUserAndSkill(organizationId, userId, skillId);
       if (existingUserSkill) {
         errors.push('User already has this skill');
       }
@@ -561,7 +562,7 @@ export class HRSkillService {
   ): Promise<Array<{ skill: HRSkill; reason: string; priority: number }>> {
     try {
       const [userSkills, skillGaps, orgSkills] = await Promise.all([
-        this.skillModel.getUserSkills(userId),
+        this.skillModel.getUserSkills(organizationId, userId),
         this.generateSkillGapAnalysis(organizationId),
         this.skillModel.getSkillAnalytics(organizationId),
       ]);
@@ -571,7 +572,7 @@ export class HRSkillService {
 
       // Recommend skills based on gaps
       for (const gap of skillGaps.slice(0, 5)) { // Top 5 gaps
-        const skill = await this.skillModel.findSkillByName(gap.skill_name);
+        const skill = await this.skillModel.findSkillByName(organizationId, gap.skill_name);
         if (skill && !userSkillIds.has(skill.id)) {
           recommendations.push({
             skill,

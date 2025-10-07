@@ -269,7 +269,7 @@ describe('HRSkillService', () => {
       mockSkillModel.findSkillById.mockResolvedValue(mockSkill as any);
       mockSkillModel.findUserSkillByUserAndSkill.mockResolvedValue(null);
 
-      const result = await service.validateSkillAssignment(testUserId, testSkillId, 'intermediate');
+      const result = await service.validateSkillAssignment(testOrgId, testUserId, testSkillId, 'intermediate');
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
@@ -279,7 +279,7 @@ describe('HRSkillService', () => {
       mockSkillModel.findSkillById.mockResolvedValue(null);
       mockSkillModel.findUserSkillByUserAndSkill.mockResolvedValue(null);
 
-      const result = await service.validateSkillAssignment(testUserId, 'invalid-skill', 'invalid-level');
+      const result = await service.validateSkillAssignment(testOrgId, testUserId, 'invalid-skill', 'invalid-level');
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Skill not found');

@@ -54,6 +54,7 @@ export interface UpdateHRPerformanceReviewData {
 
 export interface HRPerformanceGoal {
   id: string;
+  organization_id: string;
   review_id: string;
   user_id: string;
   title: string;
@@ -66,6 +67,7 @@ export interface HRPerformanceGoal {
 }
 
 export interface CreateHRPerformanceGoalData {
+  organization_id: string;
   review_id: string;
   user_id: string;
   title: string;

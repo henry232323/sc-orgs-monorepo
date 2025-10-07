@@ -11,7 +11,7 @@ import { EventSyncService } from '../services/event_sync_service';
 import { NotificationEntityType } from '../types/notification';
 import db from '../config/database';
 import { v4 as uuidv4 } from 'uuid';
-import { transformEventWithOrganization } from '../utils/response_transformers';
+// Removed response transformers - frontend handles rsi_org_id properly
 
 import { getUserFromRequest, requireUserFromRequest } from '../utils/user-casting';
 import {
@@ -348,12 +348,9 @@ export class EventController {
         ? await organizationModel.findById(rawEvent.organization_id)
         : null;
 
-      // Transform event to remove internal organization_id and add RSI org ID
-      const transformedEvent = transformEventWithOrganization(event, organization);
-      
       res.json({
         success: true,
-        data: transformedEvent,
+        data: event,
       });
     } catch (error) {
       res.status(500).json({
@@ -595,11 +592,9 @@ export class EventController {
       const organization = organizationIdForTransform
         ? await organizationModel.findById(organizationIdForTransform)
         : null;
-      const transformedEvent = transformEventWithOrganization(event, organization);
-      
       res.status(201).json({
         success: true,
-        data: transformedEvent,
+        data: event,
       });
     } catch (error) {
       res.status(500).json({

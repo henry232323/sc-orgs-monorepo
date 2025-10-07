@@ -8,7 +8,7 @@ import {
   EventReviewStats,
   ReviewEligibility,
 } from '../types/event_review';
-import { transformReviewsWithUsers } from '../utils/response_transformers';
+// Removed response transformers - frontend handles rsi_org_id properly
 
 export class EventReviewModel {
   // Create a new review
@@ -61,7 +61,7 @@ export class EventReviewModel {
       .then(result => parseInt(result?.count as string) || 0);
 
     return {
-      data: transformReviewsWithUsers(reviews),
+      data: reviews,
       total,
     };
   }
@@ -233,7 +233,7 @@ export class EventReviewModel {
       .then(result => parseInt(result?.count as string) || 0);
 
     return {
-      data: transformReviewsWithUsers(reviews),
+      data: reviews,
       total,
     };
   }

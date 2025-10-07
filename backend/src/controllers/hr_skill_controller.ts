@@ -27,7 +27,8 @@ export class HRSkillController {
       let result;
       
       if (search) {
-        const skills = await skillModel.searchSkills(search as string);
+        const organization = req.org!;
+        const skills = await skillModel.searchSkills(organization.id, search as string);
         result = { data: skills, total: skills.length };
       } else {
         const filters = {
@@ -38,7 +39,8 @@ export class HRSkillController {
           offset,
         };
 
-        result = await skillModel.listSkills(filters);
+        const organization = req.org!;
+        result = await skillModel.listSkills(organization.id, filters);
       }
 
       res.json({
@@ -87,17 +89,20 @@ export class HRSkillController {
         return;
       }
 
-      // Check if skill already exists
-      const existingSkill = await skillModel.findSkillByName(name);
+      const organization = req.org!;
+      
+      // Check if skill already exists in this organization
+      const existingSkill = await skillModel.findSkillByName(organization.id, name);
       if (existingSkill) {
         res.status(409).json({
           success: false,
-          error: 'Skill with this name already exists',
+          error: 'Skill with this name already exists in this organization',
         });
         return;
       }
 
       const skill = await skillModel.createSkill({
+        organization_id: organization.id,
         name,
         category,
         description,
@@ -213,7 +218,8 @@ export class HRSkillController {
       }
 
       // Check if user already has this skill
-      const existingUserSkill = await skillModel.findUserSkillByUserAndSkill(user.id, skill_id);
+      const organization = req.org!;
+      const existingUserSkill = await skillModel.findUserSkillByUserAndSkill(organization.id, user.id, skill_id);
       if (existingUserSkill) {
         res.status(409).json({
           success: false,
@@ -223,6 +229,7 @@ export class HRSkillController {
       }
 
       const userSkill = await skillModel.createUserSkill({
+        organization_id: organization.id,
         user_id: user.id,
         skill_id,
         proficiency_level,
@@ -283,7 +290,8 @@ export class HRSkillController {
         proficiency_level: proficiency_level as any,
       };
 
-      const skills = await skillModel.getUserSkills(targetUserId, filters);
+      const organization = req.org!;
+      const skills = await skillModel.getUserSkills(organization.id, targetUserId, filters);
 
       res.json({
         success: true,

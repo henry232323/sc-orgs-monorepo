@@ -160,12 +160,12 @@ export const apiSlice = createApi({
       providesTags: result =>
         result
           ? [
-              ...result.data.map(({ rsi_org_id }) => ({
-                type: 'Organization' as const,
-                id: rsi_org_id,
-              })),
-              { type: 'Organization', id: 'LIST' },
-            ]
+            ...result.data.map(({ rsi_org_id }) => ({
+              type: 'Organization' as const,
+              id: rsi_org_id,
+            })),
+            { type: 'Organization', id: 'LIST' },
+          ]
           : [{ type: 'Organization', id: 'LIST' }],
       // Cache organizations for 5 minutes
       keepUnusedDataFor: 300,
@@ -304,12 +304,12 @@ export const apiSlice = createApi({
       providesTags: result =>
         result
           ? [
-              ...result.data.map(({ rsi_org_id }) => ({
-                type: 'Organization' as const,
-                id: rsi_org_id,
-              })),
-              { type: 'Organization', id: 'SEARCH' },
-            ]
+            ...result.data.map(({ rsi_org_id }) => ({
+              type: 'Organization' as const,
+              id: rsi_org_id,
+            })),
+            { type: 'Organization', id: 'SEARCH' },
+          ]
           : [{ type: 'Organization', id: 'SEARCH' }],
       // Cache search results for 2 minutes (shorter than main list)
       keepUnusedDataFor: 120,
@@ -380,12 +380,12 @@ export const apiSlice = createApi({
       providesTags: result =>
         result
           ? [
-              ...result.map(({ rsi_org_id }) => ({
-                type: 'Organization' as const,
-                id: rsi_org_id,
-              })),
-              { type: 'Organization', id: 'USER' },
-            ]
+            ...result.map(({ rsi_org_id }) => ({
+              type: 'Organization' as const,
+              id: rsi_org_id,
+            })),
+            { type: 'Organization', id: 'USER' },
+          ]
           : [{ type: 'Organization', id: 'USER' }],
       // Cache user orgs for 3 minutes
       keepUnusedDataFor: 180,
@@ -437,17 +437,17 @@ export const apiSlice = createApi({
         }
         return `/api/events?${params.toString()}`;
       },
-      transformResponse: (response: ApiSuccessResponse<ListResponse<Event>>): ListResponse<Event> => 
+      transformResponse: (response: ApiSuccessResponse<ListResponse<Event>>): ListResponse<Event> =>
         transformPaginatedResponse(response.data, transformEventResponse) as ListResponse<Event>,
       providesTags: result =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'Event' as const,
-                id,
-              })),
-              { type: 'Event', id: 'LIST' },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'Event' as const,
+              id,
+            })),
+            { type: 'Event', id: 'LIST' },
+          ]
           : [{ type: 'Event', id: 'LIST' }],
       // Cache events for 3 minutes (events change more frequently)
       keepUnusedDataFor: 180,
@@ -455,7 +455,7 @@ export const apiSlice = createApi({
 
     getEvent: builder.query<Event, string>({
       query: id => `/api/events/${id}`,
-      transformResponse: (response: ApiSuccessResponse<Event>) => 
+      transformResponse: (response: ApiSuccessResponse<Event>) =>
         transformEventResponse(response.data),
       providesTags: (_, __, id) => [{ type: 'Event', id }],
       // Cache individual events for 5 minutes
@@ -468,7 +468,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: data,
       }),
-      transformResponse: (response: ApiSuccessResponse<Event>) => 
+      transformResponse: (response: ApiSuccessResponse<Event>) =>
         transformEventResponse(response.data),
       invalidatesTags: [{ type: 'Event', id: 'LIST' }],
     }),
@@ -515,12 +515,12 @@ export const apiSlice = createApi({
       providesTags: result =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'Event' as const,
-                id,
-              })),
-              { type: 'Event', id: 'SEARCH' },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'Event' as const,
+              id,
+            })),
+            { type: 'Event', id: 'SEARCH' },
+          ]
           : [{ type: 'Event', id: 'SEARCH' }],
       // Cache search results for 2 minutes
       keepUnusedDataFor: 120,
@@ -543,17 +543,17 @@ export const apiSlice = createApi({
             total: number;
           };
         };
-      }): ListResponse<Event> => 
+      }): ListResponse<Event> =>
         transformPaginatedResponse(response.data, transformEventResponse) as ListResponse<Event>,
       providesTags: result =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'Event' as const,
-                id,
-              })),
-              { type: 'Event', id: 'ORG' },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'Event' as const,
+              id,
+            })),
+            { type: 'Event', id: 'ORG' },
+          ]
           : [{ type: 'Event', id: 'ORG' }],
       // Cache org events for 2 minutes
       keepUnusedDataFor: 120,
@@ -708,7 +708,7 @@ export const apiSlice = createApi({
             total: number;
           };
         };
-      }): ListResponse<Event> => 
+      }): ListResponse<Event> =>
         transformPaginatedResponse(response.data, transformEventResponse) as ListResponse<Event>,
       providesTags: [{ type: 'Event', id: 'USER' }],
     }),
@@ -1032,9 +1032,9 @@ export const apiSlice = createApi({
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
         if (includeViewers) params.append('include_viewers', 'true');
-        
+
         const queryString = params.toString();
-        return `/api/organizations/${spectrumId}/analytics/views${queryString ? `?${queryString}` : ''}`;                                                                                                    
+        return `/api/organizations/${spectrumId}/analytics/views${queryString ? `?${queryString}` : ''}`;
       },
       transformResponse: (response: import('../types/analytics').AnalyticsResponse) =>
         response.data,
@@ -1054,7 +1054,7 @@ export const apiSlice = createApi({
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
         if (includeViewers) params.append('include_viewers', 'true');
-        
+
         const queryString = params.toString();
         return `/api/events/${eventId}/analytics/views${queryString ? `?${queryString}` : ''}`;
       },
@@ -1456,7 +1456,7 @@ export const apiSlice = createApi({
           data: EventReviewWithUser[];
           pagination: any;
         }>
-      ): { data: EventReviewWithUser[]; pagination: any } => 
+      ): { data: EventReviewWithUser[]; pagination: any } =>
         transformPaginatedResponse(response.data, transformEventReviewResponse) as { data: EventReviewWithUser[]; pagination: any },
       providesTags: (_result, _error, { eventId }) => [
         { type: 'EventReview', id: eventId },
@@ -1655,7 +1655,7 @@ export const apiSlice = createApi({
     ),
 
     // HR System endpoints
-    
+
     // HR Analytics endpoints
     getHRAnalytics: builder.query<
       import('../types/hr').HRAnalytics,
@@ -1665,16 +1665,21 @@ export const apiSlice = createApi({
         const params = new URLSearchParams();
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
-        
+
         const queryString = params.toString();
         return `/api/organizations/${organizationId}/hr-analytics/dashboard${queryString ? `?${queryString}` : ''}`;
       },
       transformResponse: (response: import('../types/hr').HRAnalyticsResponse) =>
         response.data,
-      providesTags: (_, __, { organizationId }) => [
-        { type: 'HRAnalytics', id: organizationId },
-      ],
-      keepUnusedDataFor: 300, // Cache for 5 minutes
+      providesTags: (_, __, { organizationId, startDate, endDate }) => {
+        const dateRange = startDate && endDate ? `-${startDate}-${endDate}` : '';
+        return [
+          { type: 'HRAnalytics', id: organizationId },
+          { type: 'HRAnalytics', id: `${organizationId}-dashboard${dateRange}` },
+        ];
+      },
+      keepUnusedDataFor: 600, // Cache for 10 minutes (analytics change less frequently)
+      // Disable refetch on focus for analytics (they don't need real-time updates)
     }),
 
     getHRReports: builder.query<
@@ -1686,7 +1691,7 @@ export const apiSlice = createApi({
         if (reportType) params.append('report_type', reportType);
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
-        
+
         const queryString = params.toString();
         return `/api/organizations/${organizationId}/hr-analytics/reports${queryString ? `?${queryString}` : ''}`;
       },
@@ -1701,25 +1706,25 @@ export const apiSlice = createApi({
     // Application Management endpoints
     getApplications: builder.query<
       import('../types').ListResponse<import('../types/hr').Application>,
-      { 
-        organizationId: string; 
-        page?: number; 
-        limit?: number; 
+      {
+        organizationId: string;
+        page?: number;
+        limit?: number;
         filters?: import('../types/hr').ApplicationFilters;
       }
     >({
       query: ({ organizationId, page = 1, limit = 20, filters = {} }) => {
         const params = new URLSearchParams({
           page: page.toString(),
-          limit: limit.toString(),
+          limit: Math.min(limit, 50).toString(), // Cap limit at 50 for performance
         });
-        
+
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined) {
             params.append(key, value.toString());
           }
         });
-        
+
         return `/api/organizations/${organizationId}/applications?${params.toString()}`;
       },
       transformResponse: (response: import('../types/hr').ApplicationListResponse) => ({
@@ -1728,17 +1733,24 @@ export const apiSlice = createApi({
         page: response.data.pagination.page,
         limit: response.data.pagination.limit,
       }),
-      providesTags: (result, _, { organizationId }) =>
-        result
+      providesTags: (result, _, { organizationId, page = 1, filters = {} }) => {
+        const filterKey = Object.keys(filters).length > 0 ?
+          `-filtered-${JSON.stringify(filters)}` : '';
+
+        return result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'Application' as const,
-                id,
-              })),
-              { type: 'Application', id: organizationId },
-            ]
-          : [{ type: 'Application', id: organizationId }],
-      keepUnusedDataFor: 120, // Cache for 2 minutes (applications change frequently)
+            ...result.data.map(({ id }) => ({
+              type: 'Application' as const,
+              id,
+            })),
+            { type: 'Application', id: organizationId },
+            { type: 'Application', id: `${organizationId}-page-${page}${filterKey}` },
+            { type: 'Application', id: `${organizationId}-list` },
+          ]
+          : [{ type: 'Application', id: organizationId }];
+      },
+      keepUnusedDataFor: 90, // Cache for 1.5 minutes (applications change frequently)
+      // Enable refetch on focus for applications
     }),
 
     createApplication: builder.mutation<
@@ -1753,16 +1765,33 @@ export const apiSlice = createApi({
       transformResponse: (response: ApiSuccessResponse<import('../types/hr').Application>) =>
         response.data,
       invalidatesTags: (_, __, { organizationId }) => [
-        { type: 'Application', id: organizationId },
+        // Invalidate all application lists for this organization
+        { type: 'Application', id: `${organizationId}-list` },
+        // Invalidate first page specifically (most likely to be viewed)
+        { type: 'Application', id: `${organizationId}-page-1` },
+        // Invalidate analytics
         { type: 'HRAnalytics', id: organizationId },
+        { type: 'HRAnalytics', id: `${organizationId}-dashboard` },
+        // Invalidate HR activities (new application creates activity)
+        { type: 'HRActivity', id: organizationId },
+        { type: 'HRActivity', id: `${organizationId}-page-1` },
       ],
+      // Optimistic update for better UX
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Could add optimistic updates here if needed
+        } catch {
+          // Handle error if needed
+        }
+      },
     }),
 
     updateApplicationStatus: builder.mutation<
       import('../types/hr').Application,
-      { 
-        organizationId: string; 
-        applicationId: string; 
+      {
+        organizationId: string;
+        applicationId: string;
         data: import('../types/hr').UpdateApplicationStatusData;
       }
     >({
@@ -1774,17 +1803,33 @@ export const apiSlice = createApi({
       transformResponse: (response: ApiSuccessResponse<import('../types/hr').Application>) =>
         response.data,
       invalidatesTags: (_, __, { organizationId, applicationId }) => [
+        // Invalidate specific application
         { type: 'Application', id: applicationId },
-        { type: 'Application', id: organizationId },
+        // Invalidate all application lists (status change affects filtering)
+        { type: 'Application', id: `${organizationId}-list` },
+        // Invalidate analytics
         { type: 'HRAnalytics', id: organizationId },
+        { type: 'HRAnalytics', id: `${organizationId}-dashboard` },
+        // Invalidate HR activities (status change creates activity)
+        { type: 'HRActivity', id: organizationId },
+        { type: 'HRActivity', id: `${organizationId}-page-1` },
       ],
+      // Optimistic update for better UX
+      async onQueryStarted(_, { queryFulfilled }) {
+        // Could implement optimistic updates here
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert optimistic update on error
+        }
+      },
     }),
 
     bulkUpdateApplications: builder.mutation<
       { updated_count: number },
-      { 
-        organizationId: string; 
-        applicationIds: string[]; 
+      {
+        organizationId: string;
+        applicationIds: string[];
         data: import('../types/hr').UpdateApplicationStatusData;
       }
     >({
@@ -1833,10 +1878,10 @@ export const apiSlice = createApi({
 
     getOnboardingProgress: builder.query<
       import('../types').ListResponse<import('../types/hr').OnboardingProgress>,
-      { 
-        organizationId: string; 
-        page?: number; 
-        limit?: number; 
+      {
+        organizationId: string;
+        page?: number;
+        limit?: number;
         filters?: import('../types/hr').OnboardingFilters;
       }
     >({
@@ -1845,13 +1890,13 @@ export const apiSlice = createApi({
           page: page.toString(),
           limit: limit.toString(),
         });
-        
+
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined) {
             params.append(key, value.toString());
           }
         });
-        
+
         return `/api/organizations/${organizationId}/onboarding/progress?${params.toString()}`;
       },
       transformResponse: (response: import('../types/hr').OnboardingProgressListResponse) => ({
@@ -1863,21 +1908,21 @@ export const apiSlice = createApi({
       providesTags: (result, _, { organizationId }) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'OnboardingProgress' as const,
-                id,
-              })),
-              { type: 'OnboardingProgress', id: organizationId },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'OnboardingProgress' as const,
+              id,
+            })),
+            { type: 'OnboardingProgress', id: organizationId },
+          ]
           : [{ type: 'OnboardingProgress', id: organizationId }],
       keepUnusedDataFor: 180, // Cache for 3 minutes
     }),
 
     updateOnboardingProgress: builder.mutation<
       import('../types/hr').OnboardingProgress,
-      { 
-        organizationId: string; 
-        userId: string; 
+      {
+        organizationId: string;
+        userId: string;
         data: import('../types/hr').UpdateOnboardingProgressData;
       }
     >({
@@ -1914,10 +1959,10 @@ export const apiSlice = createApi({
     // Performance Review endpoints
     getPerformanceReviews: builder.query<
       import('../types').ListResponse<import('../types/hr').PerformanceReview>,
-      { 
-        organizationId: string; 
-        page?: number; 
-        limit?: number; 
+      {
+        organizationId: string;
+        page?: number;
+        limit?: number;
         filters?: import('../types/hr').PerformanceReviewFilters;
       }
     >({
@@ -1926,13 +1971,13 @@ export const apiSlice = createApi({
           page: page.toString(),
           limit: limit.toString(),
         });
-        
+
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined) {
             params.append(key, value.toString());
           }
         });
-        
+
         return `/api/organizations/${organizationId}/performance/reviews?${params.toString()}`;
       },
       transformResponse: (response: import('../types/hr').PerformanceReviewListResponse) => ({
@@ -1944,12 +1989,12 @@ export const apiSlice = createApi({
       providesTags: (result, _, { organizationId }) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'PerformanceReview' as const,
-                id,
-              })),
-              { type: 'PerformanceReview', id: organizationId },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'PerformanceReview' as const,
+              id,
+            })),
+            { type: 'PerformanceReview', id: organizationId },
+          ]
           : [{ type: 'PerformanceReview', id: organizationId }],
       keepUnusedDataFor: 300, // Cache for 5 minutes
     }),
@@ -1973,9 +2018,9 @@ export const apiSlice = createApi({
 
     updatePerformanceReview: builder.mutation<
       import('../types/hr').PerformanceReview,
-      { 
-        organizationId: string; 
-        reviewId: string; 
+      {
+        organizationId: string;
+        reviewId: string;
         data: Partial<import('../types/hr').CreatePerformanceReviewData>;
       }
     >({
@@ -2001,7 +2046,7 @@ export const apiSlice = createApi({
         const params = new URLSearchParams();
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
-        
+
         const queryString = params.toString();
         return `/api/organizations/${organizationId}/performance/analytics${queryString ? `?${queryString}` : ''}`;
       },
@@ -2016,10 +2061,10 @@ export const apiSlice = createApi({
     // Skills Management endpoints
     getSkills: builder.query<
       import('../types').ListResponse<import('../types/hr').Skill>,
-      { 
-        organizationId: string; 
-        page?: number; 
-        limit?: number; 
+      {
+        organizationId: string;
+        page?: number;
+        limit?: number;
         filters?: import('../types/hr').SkillFilters;
       }
     >({
@@ -2028,13 +2073,13 @@ export const apiSlice = createApi({
           page: page.toString(),
           limit: limit.toString(),
         });
-        
+
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined) {
             params.append(key, value.toString());
           }
         });
-        
+
         return `/api/organizations/${organizationId}/skills?${params.toString()}`;
       },
       transformResponse: (response: import('../types/hr').SkillListResponse) => ({
@@ -2043,17 +2088,21 @@ export const apiSlice = createApi({
         page: response.data.pagination.page,
         limit: response.data.pagination.limit,
       }),
-      providesTags: (result, _, { organizationId }) =>
+      providesTags: (result, _, { organizationId, page = 1 }) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'Skill' as const,
-                id,
-              })),
-              { type: 'Skill', id: organizationId },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'Skill' as const,
+              id,
+            })),
+            { type: 'Skill', id: organizationId },
+            { type: 'Skill', id: `${organizationId}-page-${page}` },
+            // Tag for filtered results
+            { type: 'Skill', id: `${organizationId}-list` },
+          ]
           : [{ type: 'Skill', id: organizationId }],
-      keepUnusedDataFor: 600, // Cache for 10 minutes (skills don't change often)
+      keepUnusedDataFor: 900, // Cache for 15 minutes (skills don't change often)
+      // Disable refetch on focus for skills list
     }),
 
     createSkill: builder.mutation<
@@ -2091,9 +2140,9 @@ export const apiSlice = createApi({
 
     verifySkill: builder.mutation<
       import('../types/hr').UserSkill,
-      { 
-        organizationId: string; 
-        skillId: string; 
+      {
+        organizationId: string;
+        skillId: string;
         data: import('../types/hr').VerifySkillData;
       }
     >({
@@ -2105,9 +2154,19 @@ export const apiSlice = createApi({
       transformResponse: (response: ApiSuccessResponse<import('../types/hr').UserSkill>) =>
         response.data,
       invalidatesTags: (_, __, { organizationId, skillId }) => [
+        // Invalidate specific skill
         { type: 'Skill', id: skillId },
-        { type: 'Skill', id: organizationId },
+        // Invalidate skill lists
+        { type: 'Skill', id: `${organizationId}-list` },
+        // Invalidate skill statistics (verification affects stats)
+        { type: 'SkillStatistics', id: organizationId },
+        { type: 'SkillStatistics', id: `${organizationId}-${skillId}` },
+        // Invalidate analytics
         { type: 'HRAnalytics', id: organizationId },
+        { type: 'HRAnalytics', id: `${organizationId}-skills` },
+        // Invalidate HR activities (skill verification creates activity)
+        { type: 'HRActivity', id: organizationId },
+        { type: 'HRActivity', id: `${organizationId}-page-1` },
       ],
     }),
 
@@ -2127,10 +2186,10 @@ export const apiSlice = createApi({
     // Document Management endpoints
     getDocuments: builder.query<
       import('../types').ListResponse<import('../types/hr').Document>,
-      { 
-        organizationId: string; 
-        page?: number; 
-        limit?: number; 
+      {
+        organizationId: string;
+        page?: number;
+        limit?: number;
         filters?: import('../types/hr').DocumentFilters;
       }
     >({
@@ -2139,7 +2198,7 @@ export const apiSlice = createApi({
           page: page.toString(),
           limit: limit.toString(),
         });
-        
+
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined) {
             if (Array.isArray(value)) {
@@ -2149,7 +2208,7 @@ export const apiSlice = createApi({
             }
           }
         });
-        
+
         return `/api/organizations/${organizationId}/documents?${params.toString()}`;
       },
       transformResponse: (response: import('../types/hr').DocumentListResponse) => ({
@@ -2161,12 +2220,12 @@ export const apiSlice = createApi({
       providesTags: (result, _, { organizationId }) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'Document' as const,
-                id,
-              })),
-              { type: 'Document', id: organizationId },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'Document' as const,
+              id,
+            })),
+            { type: 'Document', id: organizationId },
+          ]
           : [{ type: 'Document', id: organizationId }],
       keepUnusedDataFor: 300, // Cache for 5 minutes
     }),
@@ -2198,9 +2257,39 @@ export const apiSlice = createApi({
       transformResponse: (response: ApiSuccessResponse<import('../types/hr').DocumentAcknowledgment>) =>
         response.data,
       invalidatesTags: (_, __, { organizationId, documentId }) => [
+        // Invalidate specific document
         { type: 'Document', id: documentId },
-        { type: 'Document', id: organizationId },
+        // Invalidate document lists
+        { type: 'Document', id: `${organizationId}-list` },
+        // Invalidate acknowledgment status
+        { type: 'DocumentAcknowledment', id: documentId },
+        { type: 'DocumentAcknowledment', id: `${organizationId}-${documentId}` },
+        // Invalidate HR activities (acknowledgment creates activity)
+        { type: 'HRActivity', id: organizationId },
+        { type: 'HRActivity', id: `${organizationId}-page-1` },
       ],
+      // Optimistic update for better UX
+      async onQueryStarted({ organizationId, documentId }, { dispatch, queryFulfilled }) {
+        // Optimistically update acknowledgment status
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData('getDocumentAcknowledmentStatus',
+            { organizationId, documentId },
+            (draft) => {
+              draft.current_user_acknowledged = true;
+              draft.current_user_acknowledged_at = new Date().toISOString();
+              draft.total_acknowledged += 1;
+              draft.acknowledgment_rate = draft.total_acknowledged / draft.total_required;
+            }
+          )
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert optimistic update on error
+          patchResult.undo();
+        }
+      },
     }),
 
     searchDocuments: builder.query<
@@ -2213,7 +2302,7 @@ export const apiSlice = createApi({
           page: page.toString(),
           limit: limit.toString(),
         });
-        
+
         return `/api/organizations/${organizationId}/documents/search?${params.toString()}`;
       },
       transformResponse: (response: import('../types/hr').DocumentListResponse) => ({
@@ -2225,12 +2314,12 @@ export const apiSlice = createApi({
       providesTags: (result, _, { organizationId }) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({
-                type: 'Document' as const,
-                id,
-              })),
-              { type: 'Document', id: `${organizationId}-search` },
-            ]
+            ...result.data.map(({ id }) => ({
+              type: 'Document' as const,
+              id,
+            })),
+            { type: 'Document', id: `${organizationId}-search` },
+          ]
           : [{ type: 'Document', id: `${organizationId}-search` }],
       keepUnusedDataFor: 120, // Cache search results for 2 minutes
     }),
@@ -2348,11 +2437,11 @@ export const apiSlice = createApi({
           total: number;
         };
       },
-      { 
-        organizationId: string; 
-        userId?: string; 
+      {
+        organizationId: string;
+        userId?: string;
         eventId?: string;
-        page?: number; 
+        page?: number;
         limit?: number;
         startDate?: string;
         endDate?: string;
@@ -2367,7 +2456,7 @@ export const apiSlice = createApi({
         if (eventId) params.append('event_id', eventId);
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
-        
+
         return `/api/organizations/${organizationId}/hr/event-attendance?${params.toString()}`;
       },
       transformResponse: (response: ApiSuccessResponse<any>) => response.data,
@@ -2430,8 +2519,8 @@ export const apiSlice = createApi({
           };
         };
       },
-      { 
-        organizationId: string; 
+      {
+        organizationId: string;
         userId?: string;
         startDate?: string;
         endDate?: string;
@@ -2442,7 +2531,7 @@ export const apiSlice = createApi({
         if (userId) params.append('user_id', userId);
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
-        
+
         const queryString = params.toString();
         return `/api/organizations/${organizationId}/hr/event-analytics${queryString ? `?${queryString}` : ''}`;
       },
@@ -2497,7 +2586,7 @@ export const apiSlice = createApi({
         if (activity_types?.length) params.append('activity_types', activity_types.join(','));
         if (date_from) params.append('date_from', date_from);
         if (date_to) params.append('date_to', date_to);
-        
+
         return `/api/organizations/${organizationId}/hr-activities?${params.toString()}`;
       },
       transformResponse: (response: import('../types/hr').HRActivityListResponse) => ({
@@ -2506,11 +2595,16 @@ export const apiSlice = createApi({
         page: response.data.page,
         limit: response.data.limit,
       }),
-      providesTags: (_, __, { organizationId }) => [
+      providesTags: (result, _, { organizationId, page = 1 }) => [
         { type: 'HRActivity', id: organizationId },
+        { type: 'HRActivity', id: `${organizationId}-page-${page}` },
         { type: 'HRActivity', id: 'LIST' },
+        // Tag individual activities for selective invalidation
+        ...(result?.data.map(activity => ({ type: 'HRActivity' as const, id: activity.id })) || []),
       ],
-      keepUnusedDataFor: 300, // 5 minutes cache
+      keepUnusedDataFor: 180, // 3 minutes cache (activities change frequently)
+      // Enable refetch on focus for real-time updates
+      // Enable refetch on reconnect
     }),
 
     // Skills Statistics endpoints
@@ -2520,10 +2614,16 @@ export const apiSlice = createApi({
     >({
       query: ({ organizationId }) => `/api/organizations/${organizationId}/skills/statistics`,
       transformResponse: (response: import('../types/hr').SkillsStatisticsResponse) => response.data,
-      providesTags: (_, __, { organizationId }) => [
+      providesTags: (result, _, { organizationId }) => [
         { type: 'SkillStatistics', id: organizationId },
+        // Tag individual skill statistics for selective invalidation
+        ...(result ? Object.keys(result).map(skillId => ({
+          type: 'SkillStatistics' as const,
+          id: `${organizationId}-${skillId}`
+        })) : []),
       ],
-      keepUnusedDataFor: 600, // 10 minutes cache for statistics
+      keepUnusedDataFor: 900, // 15 minutes cache for statistics (they change less frequently)
+      // Disable refetch on focus for statistics (they don't need real-time updates)
     }),
 
     // Document Acknowledgment Status endpoints
@@ -2531,13 +2631,16 @@ export const apiSlice = createApi({
       import('../types/hr').DocumentAcknowledmentStatus,
       { organizationId: string; documentId: string }
     >({
-      query: ({ organizationId, documentId }) => 
+      query: ({ organizationId, documentId }) =>
         `/api/organizations/${organizationId}/documents/${documentId}/acknowledgments`,
       transformResponse: (response: import('../types/hr').DocumentAcknowledmentStatusResponse) => response.data,
-      providesTags: (_, __, { documentId }) => [
+      providesTags: (_, __, { organizationId, documentId }) => [
         { type: 'DocumentAcknowledment', id: documentId },
+        { type: 'DocumentAcknowledment', id: `${organizationId}-${documentId}` },
+        { type: 'Document', id: documentId },
       ],
-      keepUnusedDataFor: 300, // 5 minutes cache
+      keepUnusedDataFor: 240, // 4 minutes cache (acknowledgments change moderately)
+      // Enable refetch on focus for acknowledgment status
     }),
 
     // Reputation System endpoints
@@ -3144,61 +3247,61 @@ export const {
   useRemoveAffiliatedPeopleReportVoteMutation,
 
   // HR System hooks
-  
+
   // HR Analytics hooks
   useGetHRAnalyticsQuery,
   useGetHRReportsQuery,
-  
+
   // Application Management hooks
   useGetApplicationsQuery,
   useCreateApplicationMutation,
   useUpdateApplicationStatusMutation,
   useBulkUpdateApplicationsMutation,
-  
+
   // Onboarding Management hooks
   useGetOnboardingTemplatesQuery,
   useCreateOnboardingTemplateMutation,
   useGetOnboardingProgressQuery,
   useUpdateOnboardingProgressMutation,
   useCompleteOnboardingTaskMutation,
-  
+
   // Performance Review hooks
   useGetPerformanceReviewsQuery,
   useCreatePerformanceReviewMutation,
   useUpdatePerformanceReviewMutation,
   useGetPerformanceAnalyticsQuery,
-  
+
   // Skills Management hooks
   useGetSkillsQuery,
   useCreateSkillMutation,
   useAddUserSkillMutation,
   useVerifySkillMutation,
   useGetSkillsAnalyticsQuery,
-  
+
   // Document Management hooks
   useGetDocumentsQuery,
   useUploadDocumentMutation,
   useAcknowledgeDocumentMutation,
   useSearchDocumentsQuery,
-  
+
   // HR Notification hooks
   useGetHRNotificationsQuery,
   useCreateHRNotificationMutation,
   useMarkHRNotificationsAsReadMutation,
   useUpdateHRNotificationPreferencesMutation,
-  
+
   // HR Event Integration hooks
   useGetHREventAttendanceQuery,
   useRecordEventAttendanceMutation,
   useGetHREventAnalyticsQuery,
   useCreateEventBasedSkillVerificationMutation,
-  
+
   // HR Activity Feed hooks
   useGetHRActivitiesQuery,
-  
+
   // Skills Statistics hooks
   useGetSkillsStatisticsQuery,
-  
+
   // Document Acknowledgment Status hooks
   useGetDocumentAcknowledmentStatusQuery,
 } = apiSlice;

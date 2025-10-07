@@ -138,6 +138,7 @@ export interface CreatePerformanceReviewData {
 // Skills Management Types
 export interface Skill {
   id: string;
+  organization_id: string;
   name: string;
   category: 'pilot' | 'engineer' | 'medic' | 'security' | 'logistics' | 'leadership';
   description: string;
@@ -148,6 +149,7 @@ export interface Skill {
 
 export interface UserSkill {
   id: string;
+  organization_id: string;
   user_id: string;
   skill_id: string;
   proficiency_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';

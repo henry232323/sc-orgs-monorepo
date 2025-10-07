@@ -2,6 +2,7 @@ import db from '../config/database';
 
 export interface HRSkill {
   id: string;
+  organization_id: string;
   name: string;
   category: 'pilot' | 'engineer' | 'medic' | 'security' | 'logistics' | 'leadership';
   description?: string;
@@ -11,6 +12,7 @@ export interface HRSkill {
 }
 
 export interface CreateHRSkillData {
+  organization_id: string;
   name: string;
   category: HRSkill['category'];
   description?: string;
@@ -26,6 +28,7 @@ export interface UpdateHRSkillData {
 
 export interface HRUserSkill {
   id: string;
+  organization_id: string;
   user_id: string;
   skill_id: string;
   proficiency_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -38,6 +41,7 @@ export interface HRUserSkill {
 }
 
 export interface CreateHRUserSkillData {
+  organization_id: string;
   user_id: string;
   skill_id: string;
   proficiency_level: HRUserSkill['proficiency_level'];
@@ -107,8 +111,8 @@ export class HRSkillModel {
     return skill || null;
   }
 
-  async findSkillByName(name: string): Promise<HRSkill | null> {
-    const skill = await db('hr_skills').where({ name }).first();
+  async findSkillByName(organizationId: string, name: string): Promise<HRSkill | null> {
+    const skill = await db('hr_skills').where({ organization_id: organizationId, name }).first();
     return skill || null;
   }
 
@@ -130,6 +134,7 @@ export class HRSkillModel {
   }
 
   async listSkills(
+    organizationId: string,
     filters: {
       category?: HRSkill['category'];
       verification_required?: boolean;
@@ -137,7 +142,7 @@ export class HRSkillModel {
       offset?: number;
     } = {}
   ): Promise<{ data: HRSkill[]; total: number }> {
-    let query = db('hr_skills');
+    let query = db('hr_skills').where({ organization_id: organizationId });
 
     if (filters.category) {
       query = query.where({ category: filters.category });
@@ -166,10 +171,13 @@ export class HRSkillModel {
     return { data: skills, total };
   }
 
-  async searchSkills(searchTerm: string): Promise<HRSkill[]> {
+  async searchSkills(organizationId: string, searchTerm: string): Promise<HRSkill[]> {
     return db('hr_skills')
-      .where('name', 'ilike', `%${searchTerm}%`)
-      .orWhere('description', 'ilike', `%${searchTerm}%`)
+      .where({ organization_id: organizationId })
+      .where(function() {
+        this.where('name', 'ilike', `%${searchTerm}%`)
+          .orWhere('description', 'ilike', `%${searchTerm}%`);
+      })
       .orderBy('name', 'asc')
       .limit(20);
   }
@@ -195,9 +203,9 @@ export class HRSkillModel {
     return userSkill || null;
   }
 
-  async findUserSkillByUserAndSkill(userId: string, skillId: string): Promise<HRUserSkill | null> {
+  async findUserSkillByUserAndSkill(organizationId: string, userId: string, skillId: string): Promise<HRUserSkill | null> {
     const userSkill = await db('hr_user_skills')
-      .where({ user_id: userId, skill_id: skillId })
+      .where({ organization_id: organizationId, user_id: userId, skill_id: skillId })
       .first();
     return userSkill || null;
   }
@@ -220,6 +228,7 @@ export class HRSkillModel {
   }
 
   async getUserSkills(
+    organizationId: string,
     userId: string,
     filters: {
       category?: HRSkill['category'];
@@ -230,7 +239,7 @@ export class HRSkillModel {
     let query = db('hr_user_skills')
       .join('hr_skills', 'hr_user_skills.skill_id', 'hr_skills.id')
       .leftJoin('users as verifiers', 'hr_user_skills.verified_by', 'verifiers.id')
-      .where({ 'hr_user_skills.user_id': userId })
+      .where({ 'hr_user_skills.organization_id': organizationId, 'hr_user_skills.user_id': userId })
       .select(
         'hr_user_skills.*',
         'hr_skills.name as skill_name',

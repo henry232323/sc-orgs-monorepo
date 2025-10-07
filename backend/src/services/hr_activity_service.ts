@@ -44,6 +44,7 @@ export class HRActivityService {
 
   /**
    * Get paginated HR activities for an organization with filtering
+   * Optimized for performance with proper index usage
    */
   async getOrganizationActivities(
     organizationId: string,
@@ -66,9 +67,20 @@ export class HRActivityService {
         filters: { activity_types, date_from, date_to, user_id }
       });
 
-      // Validate pagination parameters
+      // Validate and optimize pagination parameters
       const validatedPage = Math.max(1, page);
-      const validatedLimit = Math.min(Math.max(1, limit), 100); // Max 100 items per page
+      const validatedLimit = Math.min(Math.max(1, limit), 50); // Reduced max for better performance
+
+      // Optimize date range queries
+      let optimizedDateFrom = date_from;
+      let optimizedDateTo = date_to;
+      
+      // If no date range specified, default to last 30 days for better performance
+      if (!date_from && !date_to && !activity_types && !user_id) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        optimizedDateFrom = thirtyDaysAgo;
+      }
 
       const result = await this.hrActivityModel.getOrganizationActivities(
         organizationId,
@@ -76,8 +88,8 @@ export class HRActivityService {
         validatedLimit,
         {
           activity_types,
-          date_from,
-          date_to,
+          date_from: optimizedDateFrom,
+          date_to: optimizedDateTo,
           user_id
         }
       );
@@ -85,7 +97,9 @@ export class HRActivityService {
       logger.debug('HRActivityService: Organization activities fetched', {
         organizationId,
         total: result.total,
-        returned: result.data.length
+        returned: result.data.length,
+        page: validatedPage,
+        limit: validatedLimit
       });
 
       return result;

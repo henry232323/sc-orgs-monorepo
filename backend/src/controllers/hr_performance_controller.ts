@@ -559,6 +559,7 @@ export class HRPerformanceController {
       }
 
       const goal = await performanceModel.createGoal({
+        organization_id: organization.id,
         review_id,
         user_id,
         title,
