@@ -5673,7 +5673,7 @@ router.post('/:rsi_org_id/documents',
   requireLogin as any,
   resolveOrganization,
   requireResolvedOrganizationPermission('MANAGE_MEMBERS'),
-  hrDocumentController.uploadDocument.bind(hrDocumentController)
+  hrDocumentController.createDocument.bind(hrDocumentController)
 );
 
 // List documents

@@ -84,50 +84,13 @@ export class HRDocumentService {
         errors.push('Document description cannot exceed 1000 characters');
       }
 
-      // Validate document type - must have either file data or content
-      const hasFileData = documentData.file_path && documentData.file_type && documentData.file_size;
-      const hasContentData = documentData.content;
-
-      if (!hasFileData && !hasContentData) {
-        errors.push('Document must have either file data or content');
+      // Validate content (markdown documents only)
+      if (!documentData.content || documentData.content.trim().length === 0) {
+        errors.push('Content cannot be empty for markdown documents');
       }
 
-      if (hasFileData && hasContentData) {
-        errors.push('Document cannot have both file data and content');
-      }
-
-      // Validate file type if this is a file document
-      if (hasFileData) {
-        const allowedTypes = [
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'text/plain',
-          'text/markdown',
-          'image/jpeg',
-          'image/png',
-          'image/gif',
-        ];
-
-        if (!allowedTypes.includes(documentData.file_type!)) {
-          errors.push(`File type ${documentData.file_type} is not supported`);
-        }
-
-        // Validate file size (max 50MB)
-        if (documentData.file_size! > 50 * 1024 * 1024) {
-          errors.push('File size cannot exceed 50MB');
-        }
-      }
-
-      // Validate content if this is a markdown document
-      if (hasContentData) {
-        if (!documentData.content || documentData.content.trim().length === 0) {
-          errors.push('Content cannot be empty for markdown documents');
-        }
-
-        if (documentData.content && documentData.content.length > 1000000) { // 1MB limit for content
-          errors.push('Content cannot exceed 1MB');
-        }
+      if (documentData.content && documentData.content.length > 1000000) { // 1MB limit for content
+        errors.push('Content cannot exceed 1MB');
       }
 
       // Validate folder path
@@ -157,21 +120,7 @@ export class HRDocumentService {
         warnings.push('A document with this title already exists in the same folder');
       }
 
-      // Validate file buffer if provided (only for file documents)
-      if (fileBuffer && hasFileData) {
-        // Check if file buffer matches declared file size
-        if (fileBuffer.length !== documentData.file_size!) {
-          errors.push('File size mismatch between declared size and actual file');
-        }
-
-        // Basic file type validation based on magic numbers
-        const fileSignature = fileBuffer.slice(0, 8).toString('hex');
-        const isValidFileType = this.validateFileSignature(fileSignature, documentData.file_type!);
-        
-        if (!isValidFileType) {
-          errors.push('File content does not match declared file type');
-        }
-      }
+      // File buffer validation is not needed for markdown documents
 
       return {
         isValid: errors.length === 0,
@@ -213,35 +162,10 @@ export class HRDocumentService {
         };
       }
 
-      // This method should only be called for file documents
-      if (!documentData.file_type) {
-        return {
-          success: false,
-          error: 'File type is required for file uploads',
-        };
-      }
-
-      // Generate secure file path
-      const fileExtension = this.getFileExtension(documentData.file_type);
-      const fileName = this.generateSecureFileName(documentData.title, fileExtension);
-      const folderPath = documentData.folder_path || '/';
-      const fullPath = path.join('documents', organizationId, folderPath, fileName);
-
-      // Ensure directory exists
-      const dirPath = path.dirname(fullPath);
-      await this.ensureDirectoryExists(dirPath);
-
-      // Write file to disk (in production, this would be to cloud storage)
-      await fs.promises.writeFile(fullPath, fileBuffer);
-
-      // Calculate file hash for integrity checking
-      const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-
-      // Create document record
+      // Create markdown document record
       const document = await this.documentModel.createDocument({
         ...documentData,
-        file_path: fullPath,
-        uploaded_by: uploadedBy,
+        created_by: uploadedBy,
       });
 
       // Send notifications if document requires acknowledgment
@@ -250,13 +174,12 @@ export class HRDocumentService {
       }
 
       // Log successful upload
-      logger.info('Document uploaded successfully', {
+      logger.info('Markdown document created successfully', {
         documentId: document.id,
         organizationId,
-        uploadedBy,
-        fileName,
-        fileSize: documentData.file_size,
-        fileHash,
+        createdBy: uploadedBy,
+        wordCount: documentData.word_count,
+        estimatedReadingTime: documentData.estimated_reading_time,
       });
 
       return {
@@ -301,11 +224,7 @@ export class HRDocumentService {
       // Apply additional filters if provided
       let filteredData = result.data;
 
-      if (options.fileTypes && options.fileTypes.length > 0) {
-        filteredData = filteredData.filter(doc => 
-          doc.file_type && options.fileTypes!.includes(doc.file_type)
-        );
-      }
+      // File type filtering is not applicable for markdown-only documents
 
       if (options.folderPaths && options.folderPaths.length > 0) {
         filteredData = filteredData.filter(doc => 
@@ -608,7 +527,7 @@ export class HRDocumentService {
         entity_id: document.id,
         title: 'Document Requires Acknowledgment',
         message: `Please review and acknowledge "${document.title}"`,
-        actor_id: document.uploaded_by,
+        actor_id: document.created_by,
         custom_data: {
           document_id: document.id,
           document_title: document.title,
@@ -643,10 +562,10 @@ export class HRDocumentService {
 
       const user = await userModel.findById(userId);
       
-      // Notify the document uploader about the acknowledgment
-      if (document.uploaded_by && document.uploaded_by !== userId) {
+      // Notify the document creator about the acknowledgment
+      if (document.created_by && document.created_by !== userId) {
         await this.notificationService.createNotification({
-          user_id: document.uploaded_by,
+          user_id: document.created_by,
           entity_type: NotificationEntityType.HR_DOCUMENT_REQUIRES_ACKNOWLEDGMENT,
           entity_id: document.id,
           title: 'Document Acknowledged',
@@ -665,7 +584,7 @@ export class HRDocumentService {
         documentId: document.id,
         userId,
         documentTitle: document.title,
-        uploadedBy: document.uploaded_by,
+        createdBy: document.created_by,
       });
     } catch (error) {
       logger.error('Failed to send acknowledgment completed notification', {

@@ -49,28 +49,28 @@
   - Create validation rules for markdown syntax
   - _Requirements: 4.3, 2.6_
 
-- [ ] 3. Backend API Enhancement
+- [x] 3. Backend API Enhancement
   - Extend document controller with markdown-specific endpoints
   - Update existing endpoints to support both file and markdown documents
   - Implement content search functionality with full-text indexing
   - Add validation and error handling for markdown operations
   - _Requirements: 2.1, 3.4, 5.1, 7.1, 7.4_
 
-- [ ] 3.1 Update document endpoints for markdown-only
+- [x] 3.1 Update document endpoints for markdown-only
   - Update POST /documents for creating markdown documents
   - Modify PUT /documents/:id for updating markdown content
   - Ensure GET /documents/:id returns markdown content
   - Remove file upload endpoints and logic
   - _Requirements: 2.1_
 
-- [ ] 3.2 Enhance document endpoints for content search
+- [x] 3.2 Enhance document endpoints for content search
   - Update GET /documents to return markdown documents with content
   - Modify document search to include full-text search on content
   - Add word count and reading time to document responses
   - Update acknowledgment endpoints to work with markdown documents
   - _Requirements: 3.4, 7.1_
 
-- [ ] 3.3 Implement enhanced search functionality
+- [x] 3.3 Implement enhanced search functionality
   - Add full-text search capability for markdown content
   - Create search result highlighting for matched content
   - Implement relevance ranking for search results

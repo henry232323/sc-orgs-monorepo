@@ -299,7 +299,7 @@ export class HRDocumentAcknowledmentService {
       
       // Send status change notification
       await this.notificationService.createNotification({
-        user_id: document.uploaded_by,
+        user_id: document.created_by,
         entity_type: NotificationEntityType.HR_DOCUMENT_REQUIRES_ACKNOWLEDGMENT,
         entity_id: documentId,
         title: 'Document Acknowledgment Status Changed',
@@ -371,7 +371,7 @@ export class HRDocumentAcknowledmentService {
               entity_id: document.id,
               title: 'Document Acknowledgment Reminder',
               message: `Please review and acknowledge "${document.title}"`,
-              actor_id: document.uploaded_by,
+              actor_id: document.created_by,
               custom_data: {
                 document_id: document.id,
                 document_title: document.title,
@@ -425,9 +425,9 @@ export class HRDocumentAcknowledmentService {
       const user = await userModel.findById(userId);
       
       // Notify the document uploader about the acknowledgment
-      if (document.uploaded_by && document.uploaded_by !== userId) {
+      if (document.created_by && document.created_by !== userId) {
         await this.notificationService.createNotification({
-          user_id: document.uploaded_by,
+          user_id: document.created_by,
           entity_type: NotificationEntityType.HR_DOCUMENT_REQUIRES_ACKNOWLEDGMENT,
           entity_id: document.id,
           title: 'Document Acknowledged',
@@ -446,7 +446,7 @@ export class HRDocumentAcknowledmentService {
         documentId: document.id,
         userId,
         documentTitle: document.title,
-        uploadedBy: document.uploaded_by,
+        uploadedBy: document.created_by,
       });
     } catch (error) {
       logger.error('Failed to send acknowledgment notifications', {
@@ -463,9 +463,9 @@ export class HRDocumentAcknowledmentService {
   ): Promise<void> {
     try {
       // Notify document uploader that all acknowledgments are complete
-      if (document.uploaded_by) {
+      if (document.created_by) {
         await this.notificationService.createNotification({
-          user_id: document.uploaded_by,
+          user_id: document.created_by,
           entity_type: NotificationEntityType.HR_DOCUMENT_REQUIRES_ACKNOWLEDGMENT,
           entity_id: document.id,
           title: 'Document Fully Acknowledged',

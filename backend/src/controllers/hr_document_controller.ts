@@ -1,16 +1,18 @@
 import { Request, Response } from 'express';
 import { HRDocumentModel } from '../models/hr_document_model';
+import { MarkdownProcessingService } from '../services/markdown_processing_service';
 import { getUserFromRequest } from '../utils/user-casting';
 import logger from '../config/logger';
 
 const documentModel = new HRDocumentModel();
+const markdownService = new MarkdownProcessingService();
 
 export class HRDocumentController {
   /**
    * POST /api/organizations/:rsi_org_id/documents
-   * Upload a new document to an organization
+   * Create a new markdown document
    */
-  async uploadDocument(req: Request, res: Response): Promise<void> {
+  async createDocument(req: Request, res: Response): Promise<void> {
     try {
       const organization = req.org!; // Resolved by middleware
       const user = getUserFromRequest(req);
@@ -23,12 +25,12 @@ export class HRDocumentController {
         return;
       }
 
-      // Check if user has permission to upload documents
+      // Check if user has permission to create documents
       const hasAccess = await this.hasDocumentUploadAccess(organization.id, user.id);
       if (!hasAccess) {
         res.status(403).json({
           success: false,
-          error: 'Insufficient permissions to upload documents',
+          error: 'Insufficient permissions to create documents',
         });
         return;
       }
@@ -36,82 +38,71 @@ export class HRDocumentController {
       const {
         title,
         description,
-        file_path,
-        file_type,
-        file_size,
+        content,
         folder_path,
         requires_acknowledgment,
         access_roles,
       } = req.body;
 
-      if (!title || !file_path || !file_type || !file_size) {
+      if (!title || !content) {
         res.status(400).json({
           success: false,
-          error: 'Title, file_path, file_type, and file_size are required',
+          error: 'Title and content are required',
         });
         return;
       }
 
-      // Validate file size (max 50MB)
-      if (file_size > 50 * 1024 * 1024) {
+      // Validate and process markdown content
+      const validation = await markdownService.validateContent(content);
+      if (!validation.isValid) {
         res.status(400).json({
           success: false,
-          error: 'File size cannot exceed 50MB',
+          error: 'Invalid markdown content',
+          details: {
+            errors: validation.errors,
+            warnings: validation.warnings,
+          },
         });
         return;
       }
 
-      // Validate file type
-      const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'text/markdown',
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-      ];
-
-      if (!allowedTypes.includes(file_type)) {
-        res.status(400).json({
-          success: false,
-          error: 'File type not supported',
-        });
-        return;
-      }
+      // Sanitize content for safe storage
+      const sanitizedContent = markdownService.sanitizeContent(content);
 
       // Create document
       const document = await documentModel.createDocument({
         organization_id: organization.id,
         title,
         description,
-        file_path,
-        file_type,
-        file_size,
+        content: sanitizedContent,
+        word_count: validation.wordCount,
+        estimated_reading_time: validation.estimatedReadingTime,
         folder_path,
         requires_acknowledgment,
         access_roles,
-        uploaded_by: user.id,
+        created_by: user.id,
       });
 
-      logger.info('Document uploaded successfully', {
+      logger.info('Markdown document created successfully', {
         documentId: document.id,
         organizationId: organization.id,
         userId: user.id,
         title,
-        fileType: file_type,
-        fileSize: file_size,
+        wordCount: validation.wordCount,
+        estimatedReadingTime: validation.estimatedReadingTime,
       });
 
       res.status(201).json({
         success: true,
         data: document,
+        validation: {
+          warnings: validation.warnings,
+        },
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      logger.error('Failed to upload document', {
+      logger.error('Failed to create document', {
         error: errorMessage,
         organizationId: req.org?.id,
         userId: getUserFromRequest(req)?.id,
@@ -119,7 +110,7 @@ export class HRDocumentController {
 
       res.status(500).json({
         success: false,
-        error: 'Failed to upload document',
+        error: 'Failed to create document',
       });
     }
   }
@@ -174,9 +165,16 @@ export class HRDocumentController {
         result = await documentModel.listDocuments(organization.id, filters);
       }
 
+      // Ensure word count and reading time are included in response
+      const enhancedData = result.data.map(doc => ({
+        ...doc,
+        word_count: doc.word_count || 0,
+        estimated_reading_time: doc.estimated_reading_time || 1,
+      }));
+
       res.json({
         success: true,
-        data: result.data,
+        data: enhancedData,
         total: result.total,
         page: parsedPage,
         limit: parsedLimit,
@@ -273,7 +271,7 @@ export class HRDocumentController {
 
   /**
    * PUT /api/organizations/:rsi_org_id/documents/:documentId
-   * Update document metadata
+   * Update document metadata and content
    */
   async updateDocument(req: Request, res: Response): Promise<void> {
     try {
@@ -321,12 +319,13 @@ export class HRDocumentController {
       const {
         title,
         description,
+        content,
         folder_path,
         requires_acknowledgment,
         access_roles,
       } = req.body;
 
-      const updateData = {
+      let updateData: any = {
         title,
         description,
         folder_path,
@@ -334,10 +333,37 @@ export class HRDocumentController {
         access_roles,
       };
 
+      let validationWarnings: string[] = [];
+
+      // If content is being updated, validate and process it
+      if (content !== undefined) {
+        const validation = await markdownService.validateContent(content);
+        if (!validation.isValid) {
+          res.status(400).json({
+            success: false,
+            error: 'Invalid markdown content',
+            details: {
+              errors: validation.errors,
+              warnings: validation.warnings,
+            },
+          });
+          return;
+        }
+
+        // Sanitize content for safe storage
+        const sanitizedContent = markdownService.sanitizeContent(content);
+
+        updateData.content = sanitizedContent;
+        updateData.word_count = validation.wordCount;
+        updateData.estimated_reading_time = validation.estimatedReadingTime;
+        updateData.version = document.version + 1; // Increment version for content changes
+        validationWarnings = validation.warnings;
+      }
+
       // Remove undefined values
       Object.keys(updateData).forEach(key => {
-        if (updateData[key as keyof typeof updateData] === undefined) {
-          delete updateData[key as keyof typeof updateData];
+        if (updateData[key] === undefined) {
+          delete updateData[key];
         }
       });
 
@@ -355,12 +381,17 @@ export class HRDocumentController {
         documentId,
         organizationId: organization.id,
         userId: user.id,
-        changes: updateData,
+        changes: Object.keys(updateData),
+        contentUpdated: content !== undefined,
+        newVersion: updatedDocument.version,
       });
 
       res.json({
         success: true,
         data: updatedDocument,
+        validation: {
+          warnings: validationWarnings,
+        },
       });
     } catch (error) {
       logger.error('Failed to update document', {
@@ -564,7 +595,7 @@ export class HRDocumentController {
 
   /**
    * GET /api/organizations/:rsi_org_id/documents/search
-   * Search documents by title and description
+   * Enhanced search documents with full-text search and highlighting
    */
   async searchDocuments(req: Request, res: Response): Promise<void> {
     try {
@@ -579,7 +610,14 @@ export class HRDocumentController {
         return;
       }
 
-      const { q: searchTerm, page = 1, limit = 20 } = req.query;
+      const { 
+        q: searchTerm, 
+        page = 1, 
+        limit = 20,
+        highlight = 'true',
+        include_content = 'false',
+        sort_by = 'relevance'
+      } = req.query;
 
       if (!searchTerm || typeof searchTerm !== 'string') {
         res.status(400).json({
@@ -603,17 +641,51 @@ export class HRDocumentController {
           user_roles: userRoles,
           limit: parsedLimit,
           offset,
+          include_content: include_content === 'true',
+          sort_by: sort_by as string,
         }
       );
 
+      // Enhance search results with highlighting and snippets
+      const enhancedData = await Promise.all(result.data.map(async (doc) => {
+        const enhancedDoc: any = {
+          ...doc,
+          word_count: doc.word_count || 0,
+          estimated_reading_time: doc.estimated_reading_time || 1,
+        };
+
+        // Add content highlighting and snippets if requested
+        if (highlight === 'true' && doc.content) {
+          const highlightResult = this.highlightSearchTerms(doc.content, searchTerm);
+          enhancedDoc.content_snippet = highlightResult.snippet;
+          enhancedDoc.highlighted_content = highlightResult.highlighted;
+          enhancedDoc.match_count = highlightResult.matchCount;
+        }
+
+        // Calculate relevance score
+        enhancedDoc.relevance_score = this.calculateRelevanceScore(doc, searchTerm);
+
+        return enhancedDoc;
+      }));
+
+      // Sort by relevance if requested
+      if (sort_by === 'relevance') {
+        enhancedData.sort((a, b) => b.relevance_score - a.relevance_score);
+      }
+
       res.json({
         success: true,
-        data: result.data,
+        data: enhancedData,
         total: result.total,
         page: parsedPage,
         limit: parsedLimit,
         total_pages: Math.ceil(result.total / parsedLimit),
         search_term: searchTerm,
+        search_options: {
+          highlight: highlight === 'true',
+          include_content: include_content === 'true',
+          sort_by,
+        },
       });
     } catch (error) {
       logger.error('Failed to search documents', {
@@ -1039,9 +1111,16 @@ export class HRDocumentController {
         filters
       );
 
+      // Ensure word count and reading time are included in response
+      const enhancedData = result.data.map(doc => ({
+        ...doc,
+        word_count: doc.word_count || 0,
+        estimated_reading_time: doc.estimated_reading_time || 1,
+      }));
+
       res.json({
         success: true,
-        data: result.data,
+        data: enhancedData,
         total: result.total,
         page: parsedPage,
         limit: parsedLimit,
@@ -1297,5 +1376,125 @@ export class HRDocumentController {
       });
       return [];
     }
+  }
+
+  /**
+   * Highlights search terms in content and creates snippets
+   */
+  private highlightSearchTerms(content: string, searchTerm: string): {
+    snippet: string;
+    highlighted: string;
+    matchCount: number;
+  } {
+    if (!content || !searchTerm) {
+      return {
+        snippet: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+        highlighted: content,
+        matchCount: 0,
+      };
+    }
+
+    const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+    let matchCount = 0;
+    let highlighted = content;
+    
+    // Create regex for each search word
+    const regexes = searchWords.map(word => ({
+      word,
+      regex: new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
+    }));
+
+    // Highlight matches
+    for (const { regex } of regexes) {
+      const matches = highlighted.match(regex);
+      if (matches) {
+        matchCount += matches.length;
+        highlighted = highlighted.replace(regex, '<mark>$&</mark>');
+      }
+    }
+
+    // Create snippet around first match
+    let snippet = '';
+    const firstMatch = regexes.find(({ regex }) => regex.test(content));
+    if (firstMatch) {
+      const match = content.match(firstMatch.regex);
+      if (match && match.index !== undefined) {
+        const start = Math.max(0, match.index - 100);
+        const end = Math.min(content.length, match.index + match[0].length + 100);
+        snippet = (start > 0 ? '...' : '') + 
+                 content.substring(start, end) + 
+                 (end < content.length ? '...' : '');
+        
+        // Highlight in snippet
+        for (const { regex } of regexes) {
+          snippet = snippet.replace(regex, '<mark>$&</mark>');
+        }
+      }
+    } else {
+      // No matches, return beginning of content
+      snippet = content.substring(0, 200) + (content.length > 200 ? '...' : '');
+    }
+
+    return {
+      snippet,
+      highlighted,
+      matchCount,
+    };
+  }
+
+  /**
+   * Calculates relevance score for search results
+   */
+  private calculateRelevanceScore(document: any, searchTerm: string): number {
+    if (!searchTerm) return 0;
+
+    const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+    let score = 0;
+
+    // Title matches (highest weight)
+    if (document.title) {
+      const titleLower = document.title.toLowerCase();
+      for (const word of searchWords) {
+        if (titleLower.includes(word)) {
+          score += titleLower === word ? 100 : 50; // Exact match vs partial
+        }
+      }
+    }
+
+    // Description matches (medium weight)
+    if (document.description) {
+      const descLower = document.description.toLowerCase();
+      for (const word of searchWords) {
+        if (descLower.includes(word)) {
+          score += 20;
+        }
+      }
+    }
+
+    // Content matches (lower weight but can accumulate)
+    if (document.content) {
+      const contentLower = document.content.toLowerCase();
+      for (const word of searchWords) {
+        const matches = contentLower.match(new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'));
+        if (matches) {
+          score += matches.length * 5; // 5 points per content match
+        }
+      }
+    }
+
+    // Boost score for documents that require acknowledgment (might be more important)
+    if (document.requires_acknowledgment) {
+      score *= 1.1;
+    }
+
+    // Boost score for newer documents
+    if (document.updated_at) {
+      const daysSinceUpdate = (Date.now() - new Date(document.updated_at).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceUpdate < 30) {
+        score *= 1.2; // Boost recent documents
+      }
+    }
+
+    return Math.round(score * 100) / 100; // Round to 2 decimal places
   }
 }

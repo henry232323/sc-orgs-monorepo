@@ -274,6 +274,8 @@ export class HRDocumentModel {
       user_roles?: string[];
       limit?: number;
       offset?: number;
+      include_content?: boolean;
+      sort_by?: string;
     } = {}
   ): Promise<{ data: HRDocument[]; total: number }> {
     let query = db('hr_documents')
@@ -284,6 +286,17 @@ export class HRDocumentModel {
           // Add content search for markdown documents
           .orWhere('content', 'ilike', `%${searchTerm}%`);
       });
+
+    // Select appropriate columns based on include_content option
+    if (filters.include_content) {
+      query = query.select('*');
+    } else {
+      query = query.select([
+        'id', 'organization_id', 'title', 'description', 'folder_path',
+        'version', 'requires_acknowledgment', 'access_roles', 'created_by',
+        'created_at', 'updated_at', 'word_count', 'estimated_reading_time'
+      ]);
+    }
 
     // Filter by user roles if provided
     if (filters.user_roles && filters.user_roles.length > 0) {
@@ -312,7 +325,17 @@ export class HRDocumentModel {
       query = query.offset(filters.offset);
     }
 
-    const documents = await query.orderBy('title', 'asc');
+    // Apply sorting
+    if (filters.sort_by === 'date') {
+      query = query.orderBy('updated_at', 'desc');
+    } else if (filters.sort_by === 'title') {
+      query = query.orderBy('title', 'asc');
+    } else {
+      // Default to title sorting (relevance sorting is done in controller)
+      query = query.orderBy('title', 'asc');
+    }
+
+    const documents = await query;
 
     return { 
       data: documents, 
