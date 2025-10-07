@@ -5,14 +5,14 @@ export interface HRDocument {
   organization_id: string;
   title: string;
   description?: string;
-  file_path: string;
-  file_type: string;
-  file_size: number;
+  content: string;
+  word_count: number;
+  estimated_reading_time: number;
   folder_path: string;
   version: number;
   requires_acknowledgment: boolean;
   access_roles: string[];
-  uploaded_by: string;
+  created_by: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -21,23 +21,32 @@ export interface CreateHRDocumentData {
   organization_id: string;
   title: string;
   description?: string;
-  file_path: string;
-  file_type: string;
-  file_size: number;
+  content: string;
+  word_count?: number;
+  estimated_reading_time?: number;
   folder_path?: string;
   requires_acknowledgment?: boolean;
   access_roles?: string[];
-  uploaded_by: string;
+  created_by: string;
 }
+
+// Alias for backward compatibility
+export interface CreateMarkdownDocumentData extends CreateHRDocumentData {}
 
 export interface UpdateHRDocumentData {
   title?: string;
   description?: string;
+  content?: string;
+  word_count?: number;
+  estimated_reading_time?: number;
   folder_path?: string;
   requires_acknowledgment?: boolean;
   access_roles?: string[];
   version?: number;
 }
+
+// Alias for backward compatibility
+export interface UpdateMarkdownDocumentData extends UpdateHRDocumentData {}
 
 export interface HRDocumentAcknowledgment {
   id: string;
@@ -54,8 +63,21 @@ export interface CreateHRDocumentAcknowledgmentData {
 }
 
 export class HRDocumentModel {
+  // Validation methods
+  private validateDocumentData(documentData: CreateHRDocumentData): void {
+    if (!documentData.content || documentData.content.trim().length === 0) {
+      throw new Error('Content cannot be empty for markdown documents');
+    }
+
+    if (documentData.content.length > 1000000) { // 1MB limit for content
+      throw new Error('Content exceeds maximum allowed size of 1MB');
+    }
+  }
+
   // Document methods
   async createDocument(documentData: CreateHRDocumentData): Promise<HRDocument> {
+    this.validateDocumentData(documentData);
+
     const insertData = {
       ...documentData,
       folder_path: documentData.folder_path || '/',
@@ -73,12 +95,27 @@ export class HRDocumentModel {
     return document;
   }
 
+  // Alias method for backward compatibility
+  async createMarkdownDocument(documentData: CreateMarkdownDocumentData): Promise<HRDocument> {
+    return this.createDocument(documentData);
+  }
+
   async findDocumentById(id: string): Promise<HRDocument | null> {
     const document = await db('hr_documents').where({ id }).first();
     return document || null;
   }
 
   async updateDocument(id: string, updateData: UpdateHRDocumentData): Promise<HRDocument | null> {
+    // Validate content if it's being updated
+    if (updateData.content !== undefined) {
+      if (!updateData.content || updateData.content.trim().length === 0) {
+        throw new Error('Content cannot be empty for markdown documents');
+      }
+      if (updateData.content.length > 1000000) { // 1MB limit for content
+        throw new Error('Content exceeds maximum allowed size of 1MB');
+      }
+    }
+
     const [document] = await db('hr_documents')
       .where({ id })
       .update({
@@ -90,6 +127,22 @@ export class HRDocumentModel {
     return document || null;
   }
 
+  // Alias method for backward compatibility
+  async updateMarkdownDocument(id: string, updateData: UpdateMarkdownDocumentData): Promise<HRDocument | null> {
+    return this.updateDocument(id, updateData);
+  }
+
+  async getDocumentContent(id: string): Promise<{ content: string } | null> {
+    const document = await this.findDocumentById(id);
+    if (!document) {
+      return null;
+    }
+
+    return {
+      content: document.content
+    };
+  }
+
   async deleteDocument(id: string): Promise<boolean> {
     const deleted = await db('hr_documents').where({ id }).del();
     return deleted > 0;
@@ -99,7 +152,6 @@ export class HRDocumentModel {
     organizationId: string,
     filters: {
       folder_path?: string;
-      file_type?: string;
       requires_acknowledgment?: boolean;
       user_roles?: string[];
       limit?: number;
@@ -110,10 +162,6 @@ export class HRDocumentModel {
 
     if (filters.folder_path) {
       query = query.where({ folder_path: filters.folder_path });
-    }
-
-    if (filters.file_type) {
-      query = query.where({ file_type: filters.file_type });
     }
 
     if (filters.requires_acknowledgment !== undefined) {
@@ -149,14 +197,16 @@ export class HRDocumentModel {
 
     const documents = await query.orderBy('folder_path', 'asc').orderBy('title', 'asc');
 
-    return { data: documents, total };
+    return { 
+      data: documents, 
+      total 
+    };
   }
 
   async getDocumentsWithUploaderInfo(
     organizationId: string,
     filters: {
       folder_path?: string;
-      file_type?: string;
       requires_acknowledgment?: boolean;
       user_roles?: string[];
       limit?: number;
@@ -164,20 +214,16 @@ export class HRDocumentModel {
     } = {}
   ): Promise<{ data: any[]; total: number }> {
     let query = db('hr_documents')
-      .join('users', 'hr_documents.uploaded_by', 'users.id')
+      .join('users', 'hr_documents.created_by', 'users.id')
       .where({ 'hr_documents.organization_id': organizationId })
       .select(
         'hr_documents.*',
-        'users.rsi_handle as uploaded_by_rsi_handle',
-        'users.discord_username as uploaded_by_discord_username'
+        'users.rsi_handle as created_by_rsi_handle',
+        'users.discord_username as created_by_discord_username'
       );
 
     if (filters.folder_path) {
       query = query.where({ 'hr_documents.folder_path': filters.folder_path });
-    }
-
-    if (filters.file_type) {
-      query = query.where({ 'hr_documents.file_type': filters.file_type });
     }
 
     if (filters.requires_acknowledgment !== undefined) {
@@ -215,7 +261,10 @@ export class HRDocumentModel {
       .orderBy('hr_documents.folder_path', 'asc')
       .orderBy('hr_documents.title', 'asc');
 
-    return { data: documents, total };
+    return { 
+      data: documents, 
+      total 
+    };
   }
 
   async searchDocuments(
@@ -231,7 +280,9 @@ export class HRDocumentModel {
       .where({ organization_id: organizationId })
       .where(function() {
         this.where('title', 'ilike', `%${searchTerm}%`)
-          .orWhere('description', 'ilike', `%${searchTerm}%`);
+          .orWhere('description', 'ilike', `%${searchTerm}%`)
+          // Add content search for markdown documents
+          .orWhere('content', 'ilike', `%${searchTerm}%`);
       });
 
     // Filter by user roles if provided
@@ -263,7 +314,10 @@ export class HRDocumentModel {
 
     const documents = await query.orderBy('title', 'asc');
 
-    return { data: documents, total };
+    return { 
+      data: documents, 
+      total 
+    };
   }
 
   async getFolderStructure(organizationId: string, userRoles?: string[]): Promise<string[]> {
@@ -423,7 +477,6 @@ export class HRDocumentModel {
     userId: string,
     filters: {
       folder_path?: string;
-      file_type?: string;
       requires_acknowledgment?: boolean;
       user_roles?: string[];
       acknowledgment_status?: 'acknowledged' | 'pending' | 'all';
@@ -448,9 +501,7 @@ export class HRDocumentModel {
       query = query.where({ 'hr_documents.folder_path': filters.folder_path });
     }
 
-    if (filters.file_type) {
-      query = query.where({ 'hr_documents.file_type': filters.file_type });
-    }
+
 
     if (filters.requires_acknowledgment !== undefined) {
       query = query.where({ 'hr_documents.requires_acknowledgment': filters.requires_acknowledgment });
@@ -495,7 +546,10 @@ export class HRDocumentModel {
       .orderBy('hr_documents.folder_path', 'asc')
       .orderBy('hr_documents.title', 'asc');
 
-    return { data: documents, total };
+    return { 
+      data: documents, 
+      total 
+    };
   }
 
   async bulkAcknowledgeDocuments(
@@ -617,9 +671,9 @@ export class HRDocumentModel {
         .first(),
     ]);
 
-    const totalDocuments = parseInt(docStats?.total_documents as string) || 0;
-    const documentsRequiringAcknowledgment = parseInt(docStats?.documents_requiring_acknowledgment as string) || 0;
-    const totalAcknowledgments = parseInt(ackStats?.total_acknowledgments as string) || 0;
+    const totalDocuments = parseInt((docStats as any)?.total_documents as string) || 0;
+    const documentsRequiringAcknowledgment = parseInt((docStats as any)?.documents_requiring_acknowledgment as string) || 0;
+    const totalAcknowledgments = parseInt((ackStats as any)?.total_acknowledgments as string) || 0;
 
     // Get organization member count for compliance calculation
     const memberCount = await db('organization_members')
@@ -651,9 +705,9 @@ export class HRDocumentModel {
       {
         version: document.version,
         created_at: document.updated_at,
-        uploaded_by: document.uploaded_by,
-        file_size: document.file_size,
-        file_path: document.file_path,
+        created_by: document.created_by,
+        word_count: document.word_count,
+        estimated_reading_time: document.estimated_reading_time,
       },
     ];
   }

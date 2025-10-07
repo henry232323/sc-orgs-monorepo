@@ -84,25 +84,50 @@ export class HRDocumentService {
         errors.push('Document description cannot exceed 1000 characters');
       }
 
-      // Validate file type
-      const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'text/markdown',
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-      ];
+      // Validate document type - must have either file data or content
+      const hasFileData = documentData.file_path && documentData.file_type && documentData.file_size;
+      const hasContentData = documentData.content;
 
-      if (!allowedTypes.includes(documentData.file_type)) {
-        errors.push(`File type ${documentData.file_type} is not supported`);
+      if (!hasFileData && !hasContentData) {
+        errors.push('Document must have either file data or content');
       }
 
-      // Validate file size (max 50MB)
-      if (documentData.file_size > 50 * 1024 * 1024) {
-        errors.push('File size cannot exceed 50MB');
+      if (hasFileData && hasContentData) {
+        errors.push('Document cannot have both file data and content');
+      }
+
+      // Validate file type if this is a file document
+      if (hasFileData) {
+        const allowedTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/plain',
+          'text/markdown',
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+        ];
+
+        if (!allowedTypes.includes(documentData.file_type!)) {
+          errors.push(`File type ${documentData.file_type} is not supported`);
+        }
+
+        // Validate file size (max 50MB)
+        if (documentData.file_size! > 50 * 1024 * 1024) {
+          errors.push('File size cannot exceed 50MB');
+        }
+      }
+
+      // Validate content if this is a markdown document
+      if (hasContentData) {
+        if (!documentData.content || documentData.content.trim().length === 0) {
+          errors.push('Content cannot be empty for markdown documents');
+        }
+
+        if (documentData.content && documentData.content.length > 1000000) { // 1MB limit for content
+          errors.push('Content cannot exceed 1MB');
+        }
       }
 
       // Validate folder path
@@ -132,16 +157,16 @@ export class HRDocumentService {
         warnings.push('A document with this title already exists in the same folder');
       }
 
-      // Validate file buffer if provided
-      if (fileBuffer) {
+      // Validate file buffer if provided (only for file documents)
+      if (fileBuffer && hasFileData) {
         // Check if file buffer matches declared file size
-        if (fileBuffer.length !== documentData.file_size) {
+        if (fileBuffer.length !== documentData.file_size!) {
           errors.push('File size mismatch between declared size and actual file');
         }
 
         // Basic file type validation based on magic numbers
         const fileSignature = fileBuffer.slice(0, 8).toString('hex');
-        const isValidFileType = this.validateFileSignature(fileSignature, documentData.file_type);
+        const isValidFileType = this.validateFileSignature(fileSignature, documentData.file_type!);
         
         if (!isValidFileType) {
           errors.push('File content does not match declared file type');
@@ -185,6 +210,14 @@ export class HRDocumentService {
         return {
           success: false,
           error: validation.errors.join(', '),
+        };
+      }
+
+      // This method should only be called for file documents
+      if (!documentData.file_type) {
+        return {
+          success: false,
+          error: 'File type is required for file uploads',
         };
       }
 
@@ -270,7 +303,7 @@ export class HRDocumentService {
 
       if (options.fileTypes && options.fileTypes.length > 0) {
         filteredData = filteredData.filter(doc => 
-          options.fileTypes!.includes(doc.file_type)
+          doc.file_type && options.fileTypes!.includes(doc.file_type)
         );
       }
 

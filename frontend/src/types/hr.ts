@@ -199,14 +199,14 @@ export interface Document {
   organization_id: string;
   title: string;
   description?: string;
-  file_path: string;
-  file_type: string;
-  file_size: number;
+  content: string;
+  word_count: number;
+  estimated_reading_time: number;
   folder_path: string;
   version: number;
   requires_acknowledgment: boolean;
   access_roles: string[];
-  uploaded_by: string;
+  created_by: string;
   created_at: string;
   updated_at: string;
 }
@@ -222,10 +222,12 @@ export interface DocumentAcknowledgment {
 export interface CreateDocumentData {
   title: string;
   description?: string;
+  content: string;
+  word_count?: number;
+  estimated_reading_time?: number;
   folder_path: string;
   requires_acknowledgment: boolean;
   access_roles: string[];
-  file: File;
 }
 
 export interface AcknowledgeDocumentData {
@@ -379,7 +381,6 @@ export interface DocumentFilters {
   folder_path?: string;
   requires_acknowledgment?: boolean;
   access_roles?: string[];
-  file_type?: string;
 }
 
 // HR Event Integration Types

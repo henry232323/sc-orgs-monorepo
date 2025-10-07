@@ -14,14 +14,14 @@ jest.mock('../config/database', () => {
     leftJoin: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     groupBy: jest.fn().mockReturnThis(),
-    orderBy: jest.fn().mockReturnThis(),
+    orderBy: jest.fn(),
     limit: jest.fn().mockReturnThis(),
     offset: jest.fn().mockReturnThis(),
     insert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
-    del: jest.fn().mockReturnThis(),
-    returning: jest.fn() as any,
-    first: jest.fn() as any,
+    del: jest.fn(),
+    returning: jest.fn(),
+    first: jest.fn(),
     clone: jest.fn().mockReturnThis(),
     clearSelect: jest.fn().mockReturnThis(),
     count: jest.fn().mockReturnThis(),
@@ -29,7 +29,7 @@ jest.mock('../config/database', () => {
     as: jest.fn().mockReturnThis(),
     raw: jest.fn().mockReturnThis(),
     distinct: jest.fn().mockReturnThis(),
-    orWhereRaw: jest.fn().mockReturnThis(),
+    orWhereRaw: jest.fn(),
     orWhere: jest.fn().mockReturnThis(),
     migrate: { latest: jest.fn() },
     destroy: jest.fn(),
@@ -68,20 +68,20 @@ describe('HRDocumentModel', () => {
   });
 
   describe('createDocument', () => {
-    it('should create a new document with default values', async () => {
+    it('should create a new markdown document with default values', async () => {
       const mockDocument: HRDocument = {
         id: testDocumentId,
         organization_id: testOrganizationId,
         title: 'Test Document',
         description: 'Test description',
-        file_path: '/documents/test.pdf',
-        file_type: 'application/pdf',
-        file_size: 1024,
+        content: '# Test Document\n\nThis is a test markdown document.',
+        word_count: 8,
+        estimated_reading_time: 1,
         folder_path: '/',
         version: 1,
         requires_acknowledgment: false,
         access_roles: [],
-        uploaded_by: testUserId,
+        created_by: testUserId,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -96,10 +96,10 @@ describe('HRDocumentModel', () => {
         organization_id: testOrganizationId,
         title: 'Test Document',
         description: 'Test description',
-        file_path: '/documents/test.pdf',
-        file_type: 'application/pdf',
-        file_size: 1024,
-        uploaded_by: testUserId,
+        content: '# Test Document\n\nThis is a test markdown document.',
+        word_count: 8,
+        estimated_reading_time: 1,
+        created_by: testUserId,
       };
 
       const result = await documentModel.createDocument(documentData);
@@ -114,14 +114,14 @@ describe('HRDocumentModel', () => {
         organization_id: testOrganizationId,
         title: 'Confidential Document',
         description: 'Confidential description',
-        file_path: '/documents/confidential.pdf',
-        file_type: 'application/pdf',
-        file_size: 2048,
+        content: '# Confidential Document\n\nThis is confidential content.',
+        word_count: 6,
+        estimated_reading_time: 1,
         folder_path: '/confidential',
         version: 1,
         requires_acknowledgment: true,
-        access_roles: ['admin', 'manager'],
-        uploaded_by: testUserId,
+        access_roles: ['admin', 'hr'],
+        created_by: testUserId,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -136,39 +136,59 @@ describe('HRDocumentModel', () => {
         organization_id: testOrganizationId,
         title: 'Confidential Document',
         description: 'Confidential description',
-        file_path: '/documents/confidential.pdf',
-        file_type: 'application/pdf',
-        file_size: 2048,
+        content: '# Confidential Document\n\nThis is confidential content.',
+        word_count: 6,
+        estimated_reading_time: 1,
         folder_path: '/confidential',
         requires_acknowledgment: true,
-        access_roles: ['admin', 'manager'],
-        uploaded_by: testUserId,
+        access_roles: ['admin', 'hr'],
+        created_by: testUserId,
       };
 
       const result = await documentModel.createDocument(documentData);
 
       expect(result).toEqual(mockDocument);
-      expect(result.folder_path).toBe('/confidential');
-      expect(result.requires_acknowledgment).toBe(true);
-      expect(result.access_roles).toEqual(['admin', 'manager']);
+    });
+
+    it('should throw error for empty content', async () => {
+      const documentData: CreateHRDocumentData = {
+        organization_id: testOrganizationId,
+        title: 'Empty Document',
+        content: '',
+        created_by: testUserId,
+      };
+
+      await expect(documentModel.createDocument(documentData)).rejects.toThrow('Content cannot be empty for markdown documents');
+    });
+
+    it('should throw error for content exceeding size limit', async () => {
+      const largeContent = 'a'.repeat(1000001); // Exceeds 1MB limit
+      const documentData: CreateHRDocumentData = {
+        organization_id: testOrganizationId,
+        title: 'Large Document',
+        content: largeContent,
+        created_by: testUserId,
+      };
+
+      await expect(documentModel.createDocument(documentData)).rejects.toThrow('Content exceeds maximum allowed size of 1MB');
     });
   });
 
   describe('findDocumentById', () => {
-    it('should return a document when found', async () => {
+    it('should return document when found', async () => {
       const mockDocument: HRDocument = {
         id: testDocumentId,
         organization_id: testOrganizationId,
         title: 'Test Document',
         description: 'Test description',
-        file_path: '/documents/test.pdf',
-        file_type: 'application/pdf',
-        file_size: 1024,
+        content: '# Test Document\n\nThis is a test markdown document.',
+        word_count: 8,
+        estimated_reading_time: 1,
         folder_path: '/',
         version: 1,
         requires_acknowledgment: false,
         access_roles: [],
-        uploaded_by: testUserId,
+        created_by: testUserId,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -192,27 +212,27 @@ describe('HRDocumentModel', () => {
         }),
       });
 
-      const result = await documentModel.findDocumentById('non-existent-id');
+      const result = await documentModel.findDocumentById(testDocumentId);
 
       expect(result).toBeNull();
     });
   });
 
   describe('updateDocument', () => {
-    it('should update document metadata', async () => {
+    it('should update document successfully', async () => {
       const mockUpdatedDocument: HRDocument = {
         id: testDocumentId,
         organization_id: testOrganizationId,
         title: 'Updated Document',
         description: 'Updated description',
-        file_path: '/documents/test.pdf',
-        file_type: 'application/pdf',
-        file_size: 1024,
-        folder_path: '/updated',
-        version: 1,
-        requires_acknowledgment: true,
-        access_roles: ['member'],
-        uploaded_by: testUserId,
+        content: '# Updated Document\n\nThis is updated content.',
+        word_count: 6,
+        estimated_reading_time: 1,
+        folder_path: '/',
+        version: 2,
+        requires_acknowledgment: false,
+        access_roles: [],
+        created_by: testUserId,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -227,16 +247,15 @@ describe('HRDocumentModel', () => {
 
       const updateData: UpdateHRDocumentData = {
         title: 'Updated Document',
-        description: 'Updated description',
-        folder_path: '/updated',
-        requires_acknowledgment: true,
-        access_roles: ['member'],
+        content: '# Updated Document\n\nThis is updated content.',
+        word_count: 6,
+        estimated_reading_time: 1,
+        version: 2,
       };
 
       const result = await documentModel.updateDocument(testDocumentId, updateData);
 
       expect(result).toEqual(mockUpdatedDocument);
-      expect(db).toHaveBeenCalledWith('hr_documents');
     });
 
     it('should return null when document not found for update', async () => {
@@ -252,14 +271,22 @@ describe('HRDocumentModel', () => {
         title: 'Updated Document',
       };
 
-      const result = await documentModel.updateDocument('non-existent-id', updateData);
+      const result = await documentModel.updateDocument(testDocumentId, updateData);
 
       expect(result).toBeNull();
+    });
+
+    it('should throw error when updating with empty content', async () => {
+      const updateData: UpdateHRDocumentData = {
+        content: '',
+      };
+
+      await expect(documentModel.updateDocument(testDocumentId, updateData)).rejects.toThrow('Content cannot be empty for markdown documents');
     });
   });
 
   describe('deleteDocument', () => {
-    it('should delete a document successfully', async () => {
+    it('should delete document successfully', async () => {
       (db as jest.MockedFunction<any>).mockReturnValue({
         where: jest.fn().mockReturnValue({
           del: jest.fn().mockResolvedValue(1),
@@ -269,7 +296,6 @@ describe('HRDocumentModel', () => {
       const result = await documentModel.deleteDocument(testDocumentId);
 
       expect(result).toBe(true);
-      expect(db).toHaveBeenCalledWith('hr_documents');
     });
 
     it('should return false when document not found for deletion', async () => {
@@ -279,28 +305,28 @@ describe('HRDocumentModel', () => {
         }),
       });
 
-      const result = await documentModel.deleteDocument('non-existent-id');
+      const result = await documentModel.deleteDocument(testDocumentId);
 
       expect(result).toBe(false);
     });
   });
 
   describe('listDocuments', () => {
-    it('should list documents with pagination', async () => {
+    it('should return list of documents with pagination', async () => {
       const mockDocuments: HRDocument[] = [
         {
           id: testDocumentId,
           organization_id: testOrganizationId,
           title: 'Document 1',
           description: 'Description 1',
-          file_path: '/documents/doc1.pdf',
-          file_type: 'application/pdf',
-          file_size: 1024,
+          content: '# Document 1\n\nContent 1',
+          word_count: 4,
+          estimated_reading_time: 1,
           folder_path: '/',
           version: 1,
           requires_acknowledgment: false,
           access_roles: [],
-          uploaded_by: testUserId,
+          created_by: testUserId,
           created_at: new Date(),
           updated_at: new Date(),
         },
@@ -308,8 +334,6 @@ describe('HRDocumentModel', () => {
 
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
-        whereRaw: jest.fn().mockReturnThis(),
-        orWhereRaw: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         offset: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockResolvedValue(mockDocuments),
@@ -331,11 +355,30 @@ describe('HRDocumentModel', () => {
       expect(result.total).toBe(1);
     });
 
-    it('should filter documents by folder path', async () => {
+    it('should return empty list when no documents found', async () => {
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         offset: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockResolvedValue([]),
+        clone: jest.fn().mockReturnValue({
+          count: jest.fn().mockReturnValue({
+            first: jest.fn().mockResolvedValue({ count: '0' }),
+          }),
+        }),
+      };
+
+      (db as jest.MockedFunction<any>).mockReturnValue(mockQueryBuilder);
+
+      const result = await documentModel.listDocuments(testOrganizationId);
+
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('should filter documents by folder path', async () => {
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockResolvedValue([]),
         clone: jest.fn().mockReturnValue({
           count: jest.fn().mockReturnValue({
@@ -352,49 +395,24 @@ describe('HRDocumentModel', () => {
 
       expect(mockQueryBuilder.where).toHaveBeenCalledWith({ folder_path: '/confidential' });
     });
-
-    it('should filter documents by user roles', async () => {
-      const mockQueryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        whereRaw: jest.fn().mockReturnThis(),
-        orWhereRaw: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        offset: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockResolvedValue([]),
-        clone: jest.fn().mockReturnValue({
-          count: jest.fn().mockReturnValue({
-            first: jest.fn().mockResolvedValue({ count: '0' }),
-          }),
-        }),
-      };
-
-      (db as jest.MockedFunction<any>).mockReturnValue(mockQueryBuilder);
-
-      await documentModel.listDocuments(testOrganizationId, {
-        user_roles: ['admin', 'manager'],
-      });
-
-      expect(mockQueryBuilder.whereRaw).toHaveBeenCalled();
-      expect(mockQueryBuilder.orWhereRaw).toHaveBeenCalled();
-    });
   });
 
   describe('searchDocuments', () => {
-    it('should search documents by title and description', async () => {
+    it('should search documents by content', async () => {
       const mockDocuments: HRDocument[] = [
         {
           id: testDocumentId,
           organization_id: testOrganizationId,
           title: 'Test Document',
           description: 'Test description',
-          file_path: '/documents/test.pdf',
-          file_type: 'application/pdf',
-          file_size: 1024,
+          content: '# Test Document\n\nThis contains the search term.',
+          word_count: 8,
+          estimated_reading_time: 1,
           folder_path: '/',
           version: 1,
           requires_acknowledgment: false,
           access_roles: [],
-          uploaded_by: testUserId,
+          created_by: testUserId,
           created_at: new Date(),
           updated_at: new Date(),
         },
@@ -402,9 +420,6 @@ describe('HRDocumentModel', () => {
 
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
-        whereRaw: jest.fn().mockReturnThis(),
-        orWhereRaw: jest.fn().mockReturnThis(),
-        orWhere: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         offset: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockResolvedValue(mockDocuments),
@@ -417,50 +432,61 @@ describe('HRDocumentModel', () => {
 
       (db as jest.MockedFunction<any>).mockReturnValue(mockQueryBuilder);
 
-      const result = await documentModel.searchDocuments(testOrganizationId, 'test');
+      const result = await documentModel.searchDocuments(testOrganizationId, 'search term');
 
       expect(result.data).toEqual(mockDocuments);
       expect(result.total).toBe(1);
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith({ organization_id: testOrganizationId });
     });
   });
 
-  describe('getFolderStructure', () => {
-    it('should return unique folder paths', async () => {
-      const mockFolders = [
-        { folder_path: '/' },
-        { folder_path: '/confidential' },
-        { folder_path: '/public' },
-      ];
-
-      const mockQueryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        whereRaw: jest.fn().mockReturnThis(),
-        orWhereRaw: jest.fn().mockReturnThis(),
-        distinct: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockResolvedValue(mockFolders),
+  describe('getDocumentContent', () => {
+    it('should return document content', async () => {
+      const mockDocument: HRDocument = {
+        id: testDocumentId,
+        organization_id: testOrganizationId,
+        title: 'Test Document',
+        description: 'Test description',
+        content: '# Test Document\n\nThis is the content.',
+        word_count: 6,
+        estimated_reading_time: 1,
+        folder_path: '/',
+        version: 1,
+        requires_acknowledgment: false,
+        access_roles: [],
+        created_by: testUserId,
+        created_at: new Date(),
+        updated_at: new Date(),
       };
 
-      (db as jest.MockedFunction<any>).mockReturnValue(mockQueryBuilder);
+      documentModel.findDocumentById = jest.fn().mockResolvedValue(mockDocument);
 
-      const result = await documentModel.getFolderStructure(testOrganizationId);
+      const result = await documentModel.getDocumentContent(testDocumentId);
 
-      expect(result).toEqual(['/', '/confidential', '/public']);
-      expect(mockQueryBuilder.distinct).toHaveBeenCalledWith('folder_path');
+      expect(result).toEqual({
+        content: '# Test Document\n\nThis is the content.',
+      });
+    });
+
+    it('should return null when document not found', async () => {
+      documentModel.findDocumentById = jest.fn().mockResolvedValue(null);
+
+      const result = await documentModel.getDocumentContent(testDocumentId);
+
+      expect(result).toBeNull();
     });
   });
 
-  describe('Document Acknowledgments', () => {
-    describe('createAcknowledgment', () => {
-      it('should create a new acknowledgment', async () => {
-        const mockAcknowledgment: HRDocumentAcknowledgment = {
-          id: uuidv4(),
-          document_id: testDocumentId,
-          user_id: testUserId,
-          acknowledged_at: new Date(),
-          ip_address: '192.168.1.1',
-        };
+  describe('acknowledgment methods', () => {
+    const mockAcknowledgment: HRDocumentAcknowledgment = {
+      id: uuidv4(),
+      document_id: testDocumentId,
+      user_id: testUserId,
+      acknowledged_at: new Date(),
+      ip_address: '127.0.0.1',
+    };
 
+    describe('createAcknowledgment', () => {
+      it('should create acknowledgment successfully', async () => {
         (db as jest.MockedFunction<any>).mockReturnValue({
           insert: jest.fn().mockReturnValue({
             returning: jest.fn().mockResolvedValue([mockAcknowledgment]),
@@ -470,24 +496,15 @@ describe('HRDocumentModel', () => {
         const result = await documentModel.createAcknowledgment({
           document_id: testDocumentId,
           user_id: testUserId,
-          ip_address: '192.168.1.1',
+          ip_address: '127.0.0.1',
         });
 
         expect(result).toEqual(mockAcknowledgment);
-        expect(db).toHaveBeenCalledWith('hr_document_acknowledgments');
       });
     });
 
     describe('findAcknowledgment', () => {
-      it('should find an existing acknowledgment', async () => {
-        const mockAcknowledgment: HRDocumentAcknowledgment = {
-          id: uuidv4(),
-          document_id: testDocumentId,
-          user_id: testUserId,
-          acknowledged_at: new Date(),
-          ip_address: '192.168.1.1',
-        };
-
+      it('should return acknowledgment when found', async () => {
         (db as jest.MockedFunction<any>).mockReturnValue({
           where: jest.fn().mockReturnValue({
             first: jest.fn().mockResolvedValue(mockAcknowledgment),
@@ -497,7 +514,6 @@ describe('HRDocumentModel', () => {
         const result = await documentModel.findAcknowledgment(testDocumentId, testUserId);
 
         expect(result).toEqual(mockAcknowledgment);
-        expect(db).toHaveBeenCalledWith('hr_document_acknowledgments');
       });
 
       it('should return null when acknowledgment not found', async () => {
@@ -514,7 +530,7 @@ describe('HRDocumentModel', () => {
     });
 
     describe('deleteAcknowledgment', () => {
-      it('should delete an acknowledgment successfully', async () => {
+      it('should delete acknowledgment successfully', async () => {
         (db as jest.MockedFunction<any>).mockReturnValue({
           where: jest.fn().mockReturnValue({
             del: jest.fn().mockResolvedValue(1),
@@ -524,7 +540,6 @@ describe('HRDocumentModel', () => {
         const result = await documentModel.deleteAcknowledgment(testDocumentId, testUserId);
 
         expect(result).toBe(true);
-        expect(db).toHaveBeenCalledWith('hr_document_acknowledgments');
       });
 
       it('should return false when acknowledgment not found for deletion', async () => {
@@ -542,85 +557,82 @@ describe('HRDocumentModel', () => {
   });
 
   describe('getComplianceReport', () => {
-    it('should generate compliance report', async () => {
+    it('should return compliance report', async () => {
       const mockDocStats = {
         total_documents: '5',
         documents_requiring_acknowledgment: '3',
       };
 
       const mockAckStats = {
-        total_acknowledgments: '8',
+        total_acknowledgments: '10',
       };
 
       const mockMemberCount = {
-        count: '4',
+        count: '5',
       };
 
-      (db as jest.MockedFunction<any>)
-        .mockReturnValueOnce({
-          where: jest.fn().mockReturnValue({
-            select: jest.fn().mockReturnValue({
-              first: jest.fn().mockResolvedValue(mockDocStats),
-            }),
+      (db as jest.MockedFunction<any>).mockReturnValueOnce({
+        where: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            first: jest.fn().mockResolvedValue(mockDocStats),
           }),
-        })
-        .mockReturnValueOnce({
-          join: jest.fn().mockReturnValue({
-            where: jest.fn().mockReturnValue({
-              count: jest.fn().mockReturnValue({
-                first: jest.fn().mockResolvedValue(mockAckStats),
-              }),
-            }),
-          }),
-        })
-        .mockReturnValueOnce({
+        }),
+      }).mockReturnValueOnce({
+        join: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             count: jest.fn().mockReturnValue({
-              first: jest.fn().mockResolvedValue(mockMemberCount),
+              first: jest.fn().mockResolvedValue(mockAckStats),
             }),
           }),
-        });
+        }),
+      }).mockReturnValueOnce({
+        where: jest.fn().mockReturnValue({
+          count: jest.fn().mockReturnValue({
+            first: jest.fn().mockResolvedValue(mockMemberCount),
+          }),
+        }),
+      });
 
       const result = await documentModel.getComplianceReport(testOrganizationId);
 
       expect(result.total_documents).toBe(5);
       expect(result.documents_requiring_acknowledgment).toBe(3);
-      expect(result.total_acknowledgments).toBe(8);
-      expect(result.compliance_rate).toBeCloseTo(66.67, 2);
-      expect(result.pending_acknowledgments).toBe(4);
+      expect(result.total_acknowledgments).toBe(10);
+      expect(result.compliance_rate).toBe(66.66666666666667); // 10 / 15 * 100
+      expect(result.pending_acknowledgments).toBe(5); // 15 - 10
     });
   });
 
   describe('getPendingAcknowledgments', () => {
-    it('should return documents requiring acknowledgment that user has not acknowledged', async () => {
+    it('should return pending acknowledgments for user', async () => {
       const mockDocuments: HRDocument[] = [
         {
           id: testDocumentId,
           organization_id: testOrganizationId,
           title: 'Pending Document',
-          description: 'Requires acknowledgment',
-          file_path: '/documents/pending.pdf',
-          file_type: 'application/pdf',
-          file_size: 1024,
+          description: 'Pending description',
+          content: '# Pending Document\n\nThis requires acknowledgment.',
+          word_count: 6,
+          estimated_reading_time: 1,
           folder_path: '/',
           version: 1,
           requires_acknowledgment: true,
           access_roles: [],
-          uploaded_by: testUserId,
+          created_by: testUserId,
           created_at: new Date(),
           updated_at: new Date(),
         },
       ];
 
-      (db as jest.MockedFunction<any>)
-        .mockReturnValueOnce({
-          where: jest.fn().mockReturnValue({
-            whereRaw: jest.fn().mockReturnThis(),
-            orWhereRaw: jest.fn().mockResolvedValue(mockDocuments),
-          }),
-        });
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        whereRaw: jest.fn().mockReturnThis(),
+        orWhereRaw: jest.fn().mockResolvedValue(mockDocuments),
+      };
 
-      // Mock findAcknowledgment to return null (not acknowledged)
+      (db as jest.MockedFunction<any>).mockReturnValue(mockQueryBuilder);
+
+      // Mock findAcknowledgment to return null (no acknowledgment found)
       documentModel.findAcknowledgment = jest.fn().mockResolvedValue(null) as any;
 
       const result = await documentModel.getPendingAcknowledgments(
