@@ -2350,23 +2350,72 @@ export const apiSlice = createApi({
     }),
 
     searchDocuments: builder.query<
-      import('../types').ListResponse<import('../types/hr').Document>,
-      { organizationId: string; query: string; page?: number; limit?: number }
+      {
+        data: Array<import('../types/hr').Document & {
+          relevance_score?: number;
+          content_snippet?: string;
+          highlighted_snippet?: string;
+          match_positions?: Array<{
+            start: number;
+            end: number;
+            field: 'title' | 'description' | 'content';
+          }>;
+        }>;
+        total: number;
+        page: number;
+        limit: number;
+        execution_time_ms?: number;
+        suggestions?: string[];
+      },
+      { 
+        organizationId: string; 
+        query: string; 
+        page?: number; 
+        limit?: number;
+        highlight?: string;
+        include_content?: string;
+        sort_by?: string;
+        folder_paths?: string;
+        requires_acknowledgment?: string;
+      }
     >({
-      query: ({ organizationId, query, page = 1, limit = 20 }) => {
+      query: ({ 
+        organizationId, 
+        query, 
+        page = 1, 
+        limit = 20,
+        highlight = 'true',
+        include_content = 'false',
+        sort_by = 'relevance',
+        folder_paths,
+        requires_acknowledgment,
+      }) => {
         const params = new URLSearchParams({
           q: query,
           page: page.toString(),
           limit: limit.toString(),
+          highlight,
+          include_content,
+          sort_by,
         });
+
+        if (folder_paths) {
+          params.set('folder_paths', folder_paths);
+        }
+
+        if (requires_acknowledgment) {
+          params.set('requires_acknowledgment', requires_acknowledgment);
+        }
 
         return `/api/organizations/${organizationId}/documents/search?${params.toString()}`;
       },
-      transformResponse: (response: import('../types/hr').DocumentListResponse) => ({
-        data: response.data.data,
-        total: response.data.total,
-        page: response.data.pagination.page,
-        limit: response.data.pagination.limit,
+      transformResponse: (response: any) => ({
+        data: response.data || [],
+        total: response.total || 0,
+        page: response.page || 1,
+        limit: response.limit || 20,
+        execution_time_ms: response.execution_time_ms,
+        suggestions: response.suggestions || [],
       }),
       providesTags: (result, _, { organizationId }) =>
         result
@@ -2379,6 +2428,18 @@ export const apiSlice = createApi({
           ]
           : [{ type: 'Document', id: `${organizationId}-search` }],
       keepUnusedDataFor: 120, // Cache search results for 2 minutes
+    }),
+
+    getFolderStructure: builder.query<
+      { data: string[] },
+      { organizationId: string }
+    >({
+      query: ({ organizationId }) => `/api/organizations/${organizationId}/documents/folders`,
+      transformResponse: (response: { data: string[] }) => response,
+      providesTags: (_, __, { organizationId }) => [
+        { type: 'Document', id: `${organizationId}-folders` },
+      ],
+      keepUnusedDataFor: 300, // Cache folder structure for 5 minutes
     }),
 
     // HR Notification endpoints
@@ -3344,6 +3405,7 @@ export const {
   useUpdateDocumentMutation,
   useAcknowledgeDocumentMutation,
   useSearchDocumentsQuery,
+  useGetFolderStructureQuery,
 
   // HR Notification hooks
   useGetHRNotificationsQuery,

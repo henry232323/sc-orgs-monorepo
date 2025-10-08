@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
 import { HRDocumentModel } from '../models/hr_document_model';
 import { MarkdownProcessingService } from '../services/markdown_processing_service';
+import { HRDocumentService } from '../services/hr_document_service';
 import { getUserFromRequest } from '../utils/user-casting';
 import logger from '../config/logger';
 
 const documentModel = new HRDocumentModel();
 const markdownService = new MarkdownProcessingService();
+const documentService = new HRDocumentService();
 
 export class HRDocumentController {
   /**
@@ -616,7 +618,9 @@ export class HRDocumentController {
         limit = 20,
         highlight = 'true',
         include_content = 'false',
-        sort_by = 'relevance'
+        sort_by = 'relevance',
+        folder_paths,
+        requires_acknowledgment
       } = req.query;
 
       if (!searchTerm || typeof searchTerm !== 'string') {
@@ -634,57 +638,61 @@ export class HRDocumentController {
       // Get user roles for access control
       const userRoles = await this.getUserRoles(organization.id, user.id);
 
-      const result = await documentModel.searchDocuments(
+      // Parse folder paths if provided
+      let folderPathsArray: string[] | undefined;
+      if (folder_paths && typeof folder_paths === 'string') {
+        folderPathsArray = folder_paths.split(',').map(path => path.trim());
+      }
+
+      // Parse requires_acknowledgment if provided
+      let requiresAck: boolean | undefined;
+      if (requires_acknowledgment === 'true') {
+        requiresAck = true;
+      } else if (requires_acknowledgment === 'false') {
+        requiresAck = false;
+      }
+
+      // Use the enhanced search service
+      const searchResponse = await documentService.searchDocumentsWithSnippets(
         organization.id,
-        searchTerm,
         {
-          user_roles: userRoles,
+          searchTerm,
+          userRoles,
+          folderPaths: folderPathsArray,
+          requiresAcknowledgment: requiresAck,
           limit: parsedLimit,
           offset,
+          sort_by: sort_by as 'relevance' | 'date' | 'title',
           include_content: include_content === 'true',
-          sort_by: sort_by as string,
+          snippet_length: 200,
         }
       );
 
-      // Enhance search results with highlighting and snippets
-      const enhancedData = await Promise.all(result.data.map(async (doc) => {
-        const enhancedDoc: any = {
-          ...doc,
-          word_count: doc.word_count || 0,
-          estimated_reading_time: doc.estimated_reading_time || 1,
-        };
-
-        // Add content highlighting and snippets if requested
-        if (highlight === 'true' && doc.content) {
-          const highlightResult = this.highlightSearchTerms(doc.content, searchTerm);
-          enhancedDoc.content_snippet = highlightResult.snippet;
-          enhancedDoc.highlighted_content = highlightResult.highlighted;
-          enhancedDoc.match_count = highlightResult.matchCount;
-        }
-
-        // Calculate relevance score
-        enhancedDoc.relevance_score = this.calculateRelevanceScore(doc, searchTerm);
-
-        return enhancedDoc;
+      // Format response for API
+      const responseData = searchResponse.results.map(result => ({
+        ...result.document,
+        relevance_score: result.relevance_score,
+        content_snippet: highlight === 'true' ? result.content_snippet : undefined,
+        highlighted_snippet: highlight === 'true' ? result.highlighted_snippet : undefined,
+        match_positions: highlight === 'true' ? result.match_positions : undefined,
       }));
-
-      // Sort by relevance if requested
-      if (sort_by === 'relevance') {
-        enhancedData.sort((a, b) => b.relevance_score - a.relevance_score);
-      }
 
       res.json({
         success: true,
-        data: enhancedData,
-        total: result.total,
+        data: responseData,
+        total: searchResponse.total,
         page: parsedPage,
         limit: parsedLimit,
-        total_pages: Math.ceil(result.total / parsedLimit),
-        search_term: searchTerm,
+        total_pages: Math.ceil(searchResponse.total / parsedLimit),
+        search_term: searchResponse.query,
+        execution_time_ms: searchResponse.execution_time_ms,
+        suggestions: searchResponse.suggestions,
         search_options: {
           highlight: highlight === 'true',
           include_content: include_content === 'true',
           sort_by,
+          folder_paths: folderPathsArray,
+          requires_acknowledgment: requiresAck,
         },
       });
     } catch (error) {

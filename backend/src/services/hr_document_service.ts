@@ -1,6 +1,7 @@
 import { HRDocumentModel, HRDocument, CreateHRDocumentData } from '../models/hr_document_model';
 import { HRDocumentAcknowledmentService } from './hr_document_acknowledgment_service';
 import { NotificationService } from './notification_service';
+import { HRDocumentSearchService, SearchOptions, SearchResponse } from './hr_document_search_service';
 import { NotificationEntityType } from '../types/notification';
 import logger from '../config/logger';
 import * as fs from 'fs';
@@ -52,11 +53,13 @@ export class HRDocumentService {
   private documentModel: HRDocumentModel;
   private acknowledgmentService: HRDocumentAcknowledmentService;
   private notificationService: NotificationService;
+  private searchService: HRDocumentSearchService;
 
   constructor() {
     this.documentModel = new HRDocumentModel();
     this.acknowledgmentService = new HRDocumentAcknowledmentService();
     this.notificationService = new NotificationService();
+    this.searchService = new HRDocumentSearchService();
   }
 
   /**
@@ -209,38 +212,25 @@ export class HRDocumentService {
     options: DocumentSearchOptions
   ): Promise<{ data: HRDocument[]; total: number }> {
     try {
-      // For now, use the basic search from the model
-      // In production, this would integrate with Elasticsearch or similar
-      const result = await this.documentModel.searchDocuments(
-        organizationId,
-        options.searchTerm,
-        {
-          user_roles: options.userRoles,
-          limit: options.limit,
-          offset: options.offset,
-        }
-      );
+      // Use the enhanced search service for full-text search
+      const searchOptions: SearchOptions = {
+        query: options.searchTerm,
+        organization_id: organizationId,
+        user_roles: options.userRoles,
+        folder_paths: options.folderPaths,
+        requires_acknowledgment: options.requiresAcknowledgment,
+        limit: options.limit,
+        offset: options.offset,
+        sort_by: 'relevance',
+        include_content: false, // Don't include full content in list results
+        snippet_length: 200,
+      };
 
-      // Apply additional filters if provided
-      let filteredData = result.data;
-
-      // File type filtering is not applicable for markdown-only documents
-
-      if (options.folderPaths && options.folderPaths.length > 0) {
-        filteredData = filteredData.filter(doc => 
-          options.folderPaths!.includes(doc.folder_path)
-        );
-      }
-
-      if (options.requiresAcknowledgment !== undefined) {
-        filteredData = filteredData.filter(doc => 
-          doc.requires_acknowledgment === options.requiresAcknowledgment
-        );
-      }
+      const searchResponse = await this.searchService.searchDocuments(searchOptions);
 
       return {
-        data: filteredData,
-        total: filteredData.length,
+        data: searchResponse.results.map(result => result.document),
+        total: searchResponse.total,
       };
     } catch (error) {
       logger.error('Failed to search documents', {
@@ -250,6 +240,49 @@ export class HRDocumentService {
       });
 
       return { data: [], total: 0 };
+    }
+  }
+
+  /**
+   * Performs enhanced search with snippets and highlighting
+   */
+  async searchDocumentsWithSnippets(
+    organizationId: string,
+    options: DocumentSearchOptions & {
+      sort_by?: 'relevance' | 'date' | 'title';
+      include_content?: boolean;
+      snippet_length?: number;
+    }
+  ): Promise<SearchResponse> {
+    try {
+      const searchOptions: SearchOptions = {
+        query: options.searchTerm,
+        organization_id: organizationId,
+        user_roles: options.userRoles,
+        folder_paths: options.folderPaths,
+        requires_acknowledgment: options.requiresAcknowledgment,
+        limit: options.limit,
+        offset: options.offset,
+        sort_by: options.sort_by || 'relevance',
+        include_content: options.include_content || false,
+        snippet_length: options.snippet_length || 200,
+      };
+
+      return await this.searchService.searchDocuments(searchOptions);
+    } catch (error) {
+      logger.error('Failed to search documents with snippets', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+        searchTerm: options.searchTerm,
+      });
+
+      return {
+        results: [],
+        total: 0,
+        query: options.searchTerm,
+        execution_time_ms: 0,
+        suggestions: [],
+      };
     }
   }
 

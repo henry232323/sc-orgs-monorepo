@@ -210,28 +210,28 @@
   - Add export settings and customization options
   - _Requirements: 8.1, 9.1_
 
-- [-] 8. Search Enhancement and Content Indexing
+- [x] 8. Search Enhancement and Content Indexing
   - Implement full-text search for markdown content
   - Add search result highlighting and context snippets
   - Create content indexing for improved search performance
   - Update search UI to handle enhanced search capabilities
   - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-- [ ] 8.1 Implement backend content search
+- [x] 8.1 Implement backend content search
   - Add database full-text search using PostgreSQL's text search features
   - Create search indexing for markdown content
   - Implement search ranking and relevance scoring
   - Add search result pagination and filtering
   - _Requirements: 7.1, 7.3_
 
-- [ ] 8.2 Add search result highlighting
+- [x] 8.2 Add search result highlighting
   - Implement content snippet extraction around matched terms
   - Add highlighting for search terms in results
   - Create context-aware result summaries
   - Add search term highlighting in document viewer
   - _Requirements: 7.2, 7.4_
 
-- [ ] 8.3 Update frontend search interface
+- [x] 8.3 Update frontend search interface
   - Enhance search input with advanced options
   - Add document type filters to search results
   - Implement search suggestions and autocomplete

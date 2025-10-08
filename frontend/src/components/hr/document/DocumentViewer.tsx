@@ -15,6 +15,7 @@ import Button from '../../ui/Button';
 import Chip from '../../ui/Chip';
 import { ComponentTitle, ComponentSubtitle, Caption } from '../../ui/Typography';
 import MarkdownDocumentErrorBoundary from './MarkdownDocumentErrorBoundary';
+import SearchHighlighter from './SearchHighlighter';
 import { DocumentExportService, type DocumentMetadata } from '../../../services/DocumentExportService';
 import type { Document } from '../../../types/hr';
 import './DocumentViewer.css';
@@ -29,6 +30,8 @@ interface DocumentViewerProps {
     current_user_acknowledged: boolean;
     current_user_acknowledged_at?: string;
   };
+  searchTerms?: string[];
+  highlightSearchTerms?: boolean;
 }
 
 interface DocumentViewerState {
@@ -45,6 +48,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   showAcknowledgmentStatus = true,
   isAcknowledging = false,
   acknowledgmentStatus,
+  searchTerms = [],
+  highlightSearchTerms = false,
 }) => {
   const [state, setState] = useState<DocumentViewerState>({
     renderError: null,
@@ -306,9 +311,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         enableRetry={true}
       >
         <div className="prose prose-slate max-w-none dark:prose-invert print:prose-print">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
+          {highlightSearchTerms && searchTerms.length > 0 ? (
+            <SearchHighlighter
+              text={document.content}
+              searchTerms={searchTerms}
+              isMarkdown={true}
+              className="search-highlighted-document"
+            />
+          ) : (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
               // Enhanced heading components with better styling
               h1: ({ children }) => (
                 <h1 className="text-3xl font-bold text-primary mb-6 pb-3 border-b-2 border-glass-border">
@@ -507,6 +520,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           >
             {document.content}
           </ReactMarkdown>
+          )}
         </div>
       </MarkdownDocumentErrorBoundary>
     );
