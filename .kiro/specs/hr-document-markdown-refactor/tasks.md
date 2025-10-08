@@ -210,7 +210,7 @@
   - Add export settings and customization options
   - _Requirements: 8.1, 9.1_
 
-- [ ] 8. Search Enhancement and Content Indexing
+- [-] 8. Search Enhancement and Content Indexing
   - Implement full-text search for markdown content
   - Add search result highlighting and context snippets
   - Create content indexing for improved search performance

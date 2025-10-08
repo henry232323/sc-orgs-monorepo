@@ -419,9 +419,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   ];
 
   return (
-    <div className={`markdown-editor h-full flex flex-col ${className}`}>
+    <div className={`markdown-editor flex flex-col ${className}`}>
       {/* Header with metadata form */}
-      <div className="bg-glass-elevated border-b border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)] flex-shrink-0">
+      <div className="border-b border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)]">
         <div className="responsive-grid-1-2 gap-4 lg:gap-[var(--spacing-element)]">
           {/* Title */}
           <Input
@@ -510,7 +510,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       </div>
 
       {/* Custom Toolbar */}
-      <div className="bg-glass border-b border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card)] backdrop-blur-[var(--blur-glass-strong)] flex-shrink-0">
+      <div className="border-b border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card)]">
         <div className="flex flex-wrap items-center gap-[var(--spacing-tight)]">
           {/* Formatting buttons */}
           <button
@@ -718,7 +718,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       {/* Editor */}
       <div 
-        className="flex-1 min-h-0 overflow-hidden"
+        className="min-h-[500px]"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
@@ -728,9 +728,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           preview="live"
           hideToolbar={false}
           visibleDragbar={false}
-          height="100%"
+          height={500}
           data-color-mode="dark"
-          className="w-full h-full markdown-editor-themed"
+          className="w-full markdown-editor-themed"
           textareaProps={{
             placeholder: 'Write your markdown content here...\n\n# Example Heading\n\nYou can use **bold**, *italic*, and `code` formatting.\n\n- Create lists\n- Add links: [Example](https://example.com)\n- Insert code blocks:\n\n```javascript\nconsole.log("Hello, world!");\n```\n\nDrag and drop images or links here!',
             style: {
@@ -747,7 +747,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       </div>
 
       {/* Footer with actions and status */}
-      <div className="bg-glass-elevated border-t border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)] flex-shrink-0">
+      <div className="border-t border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)]">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[var(--spacing-element)]">
           {/* Document stats */}
           <div className="flex items-center gap-[var(--spacing-element)] text-sm text-tertiary">

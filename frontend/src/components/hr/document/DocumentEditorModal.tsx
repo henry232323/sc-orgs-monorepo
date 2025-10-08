@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Paper from '../../ui/Paper';
 import Button from '../../ui/Button';
 import { ComponentTitle } from '../../ui/Typography';
@@ -26,43 +26,55 @@ const DocumentEditorModal: React.FC<DocumentEditorModalProps> = ({
   onSave,
   isLoading,
 }) => {
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+      return () => {
+        document.body.classList.remove('modal-open');
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-      <Paper 
-        variant="glass-elevated" 
-        className="w-full max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col shadow-[var(--shadow-glass-xl)] border-glass-border glass-mobile-reduced"
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between responsive-padding-x responsive-padding-y border-b border-glass-border">
-          <ComponentTitle className="responsive-text-lg text-primary">
-            {editingDocument ? 'Edit Document' : 'Create New Document'}
-          </ComponentTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="touch-friendly text-primary hover:text-secondary hover:bg-glass-hover"
-            disabled={isLoading}
-            title="Close editor"
-          >
-            ✕
-          </Button>
-        </div>
-        
-        {/* Modal Content */}
-        <div className="flex-1 min-h-0 overflow-hidden bg-glass rounded-b-[var(--radius-paper)]">
-          <MarkdownEditor
-            initialContent={editingDocument?.content || ''}
-            {...(editingDocument && { document: editingDocument })}
-            onSave={onSave}
-            onCancel={onClose}
-            isLoading={isLoading}
-            className="h-full"
-          />
-        </div>
-      </Paper>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-2 sm:p-4 modal-backdrop-scrollable">
+      <div className="w-full max-w-6xl modal-min-height my-4 modal-content-scrollable">
+        <Paper 
+          variant="glass-elevated" 
+          className="w-full flex flex-col shadow-[var(--shadow-glass-xl)] border-glass-border glass-mobile-reduced"
+        >
+          {/* Modal Header */}
+          <div className="flex items-center justify-between responsive-padding-x responsive-padding-y border-b border-glass-border flex-shrink-0">
+            <ComponentTitle className="responsive-text-lg text-primary">
+              {editingDocument ? 'Edit Document' : 'Create New Document'}
+            </ComponentTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="touch-friendly text-primary hover:text-secondary hover:bg-glass-hover"
+              disabled={isLoading}
+              title="Close editor"
+            >
+              ✕
+            </Button>
+          </div>
+          
+          {/* Modal Content */}
+          <div className="flex-1 bg-glass rounded-b-[var(--radius-paper)]">
+            <MarkdownEditor
+              initialContent={editingDocument?.content || ''}
+              {...(editingDocument && { document: editingDocument })}
+              onSave={onSave}
+              onCancel={onClose}
+              isLoading={isLoading}
+              className="min-h-[600px]"
+            />
+          </div>
+        </Paper>
+      </div>
     </div>
   );
 };
