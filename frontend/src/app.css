@@ -905,3 +905,196 @@
     }
   }
 }
+
+/* ========================================
+   MARKDOWN EDITOR THEMING
+======================================== */
+
+@layer components {
+  /* Theme the MDEditor component */
+  .markdown-editor-themed {
+    --md-editor-bg: var(--color-glass-bg) !important;
+    --md-editor-border: var(--color-glass-border) !important;
+    --md-editor-text: var(--color-text-primary) !important;
+    --md-editor-text-secondary: var(--color-text-secondary) !important;
+    --md-editor-text-muted: var(--color-text-muted) !important;
+  }
+
+  .markdown-editor-themed .w-md-editor {
+    background: var(--color-glass-bg) !important;
+    border: 1px solid var(--color-glass-border) !important;
+    border-radius: var(--radius-paper) !important;
+    backdrop-filter: blur(var(--blur-glass-medium)) !important;
+    box-shadow: var(--shadow-glass-md) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-text-container,
+  .markdown-editor-themed .w-md-editor-text,
+  .markdown-editor-themed .w-md-editor-text-input,
+  .markdown-editor-themed .w-md-editor-text-textarea {
+    background: transparent !important;
+    color: var(--color-text-primary) !important;
+    border: none !important;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-preview {
+    background: var(--color-glass-bg-hover) !important;
+    color: var(--color-text-primary) !important;
+    border-left: 1px solid var(--color-glass-border) !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-toolbar {
+    background: var(--color-glass-bg-elevated) !important;
+    border-bottom: 1px solid var(--color-glass-border) !important;
+    backdrop-filter: blur(var(--blur-glass-strong)) !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-toolbar-item button {
+    background: transparent !important;
+    color: var(--color-text-tertiary) !important;
+    border: none !important;
+    border-radius: var(--radius-button) !important;
+    transition: all var(--duration-normal) var(--ease-glass) !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-toolbar-item button:hover {
+    background: var(--color-glass-bg-hover) !important;
+    color: var(--color-text-primary) !important;
+    transform: scale(var(--scale-button-hover)) !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-toolbar-item button:active {
+    transform: scale(var(--scale-button-active)) !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-toolbar-divider {
+    background: var(--color-glass-border) !important;
+  }
+
+  /* Preview content styling */
+  .markdown-editor-themed .wmde-markdown {
+    background: transparent !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown h1,
+  .markdown-editor-themed .wmde-markdown h2,
+  .markdown-editor-themed .wmde-markdown h3,
+  .markdown-editor-themed .wmde-markdown h4,
+  .markdown-editor-themed .wmde-markdown h5,
+  .markdown-editor-themed .wmde-markdown h6 {
+    color: var(--color-text-primary) !important;
+    border-bottom-color: var(--color-glass-border) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown p,
+  .markdown-editor-themed .wmde-markdown li {
+    color: var(--color-text-secondary) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown code {
+    background: var(--color-glass-bg-elevated) !important;
+    color: var(--color-text-primary) !important;
+    border: 1px solid var(--color-glass-border) !important;
+    border-radius: var(--radius-code) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown pre {
+    background: var(--color-glass-bg-elevated) !important;
+    border: 1px solid var(--color-glass-border) !important;
+    border-radius: var(--radius-code) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown pre code {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown blockquote {
+    background: var(--color-glass-bg-hover) !important;
+    border-left: 4px solid var(--color-brand-primary) !important;
+    color: var(--color-text-secondary) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown table {
+    border-collapse: collapse !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown table th,
+  .markdown-editor-themed .wmde-markdown table td {
+    border: 1px solid var(--color-glass-border) !important;
+    background: var(--color-glass-bg-hover) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown table th {
+    background: var(--color-glass-bg-elevated) !important;
+    font-weight: 600 !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown a {
+    color: var(--color-brand-primary) !important;
+  }
+
+  .markdown-editor-themed .wmde-markdown a:hover {
+    color: var(--color-brand-secondary) !important;
+  }
+
+  /* Scrollbar styling for the editor */
+  .markdown-editor-themed .w-md-editor-text-container,
+  .markdown-editor-themed .w-md-editor-preview {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--color-glass-border) transparent !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-text-container::-webkit-scrollbar,
+  .markdown-editor-themed .w-md-editor-preview::-webkit-scrollbar {
+    width: 8px !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-text-container::-webkit-scrollbar-track,
+  .markdown-editor-themed .w-md-editor-preview::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-text-container::-webkit-scrollbar-thumb,
+  .markdown-editor-themed .w-md-editor-preview::-webkit-scrollbar-thumb {
+    background: var(--color-glass-border) !important;
+    border-radius: 4px !important;
+  }
+
+  .markdown-editor-themed .w-md-editor-text-container::-webkit-scrollbar-thumb:hover,
+  .markdown-editor-themed .w-md-editor-preview::-webkit-scrollbar-thumb:hover {
+    background: var(--color-glass-border-hover) !important;
+  }
+
+  /* Mobile optimizations for markdown editor */
+  @media (max-width: 768px) {
+    .markdown-editor-themed .w-md-editor {
+      backdrop-filter: blur(var(--blur-glass-subtle)) !important;
+      box-shadow: var(--shadow-glass-sm) !important;
+    }
+
+    .markdown-editor-themed .w-md-editor-toolbar {
+      backdrop-filter: blur(var(--blur-glass-subtle)) !important;
+    }
+
+    .markdown-editor-themed .w-md-editor-toolbar-item button:hover {
+      transform: none !important;
+    }
+  }
+
+  /* Focus states */
+  .markdown-editor-themed .w-md-editor-text-textarea:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px var(--color-brand-primary-border) !important;
+  }
+
+  /* Placeholder styling */
+  .markdown-editor-themed .w-md-editor-text-textarea::placeholder {
+    color: var(--color-text-muted) !important;
+    opacity: 0.7 !important;
+  }
+}

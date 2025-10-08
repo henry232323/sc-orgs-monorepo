@@ -15,6 +15,7 @@ interface ButtonProps {
   onClick?: (e?: React.MouseEvent) => void;
   type?: 'button' | 'submit' | 'reset';
   className?: string;
+  title?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -25,6 +26,7 @@ const Button: React.FC<ButtonProps> = ({
   onClick,
   type = 'button',
   className = '',
+  title,
 }) => {
   const baseClasses =
     'inline-flex items-center gap-2 rounded-[var(--radius-button)] font-semibold text-primary transition-all duration-[var(--duration-normal)] ease-[var(--ease-glass)] focus:not-data-focus:outline-none data-focus:outline data-focus:outline-[var(--color-glass-border-focus)] cursor-pointer';
@@ -69,6 +71,7 @@ const Button: React.FC<ButtonProps> = ({
       className={classes}
       onClick={(e) => onClick?.(e)}
       disabled={disabled}
+      title={title}
     >
       {children}
     </button>

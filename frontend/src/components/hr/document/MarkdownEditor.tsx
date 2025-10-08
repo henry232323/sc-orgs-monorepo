@@ -419,10 +419,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   ];
 
   return (
-    <div className={`markdown-editor ${className}`}>
+    <div className={`markdown-editor h-full flex flex-col ${className}`}>
       {/* Header with metadata form */}
-      <div className="bg-glass-elevated border-b border-glass-border p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--spacing-element)]">
+      <div className="bg-glass-elevated border-b border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)] flex-shrink-0">
+        <div className="responsive-grid-1-2 gap-4 lg:gap-[var(--spacing-element)]">
           {/* Title */}
           <Input
             label="Title"
@@ -510,7 +510,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       </div>
 
       {/* Custom Toolbar */}
-      <div className="bg-glass border-b border-glass-border p-[var(--spacing-card)] backdrop-blur-[var(--blur-glass-strong)]">
+      <div className="bg-glass border-b border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card)] backdrop-blur-[var(--blur-glass-strong)] flex-shrink-0">
         <div className="flex flex-wrap items-center gap-[var(--spacing-tight)]">
           {/* Formatting buttons */}
           <button
@@ -718,7 +718,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       {/* Editor */}
       <div 
-        className="flex-1 min-h-0"
+        className="flex-1 min-h-0 overflow-hidden"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
@@ -728,22 +728,26 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           preview="live"
           hideToolbar={false}
           visibleDragbar={false}
-          height={600}
-          data-color-mode="light"
-          className="w-full"
+          height="100%"
+          data-color-mode="dark"
+          className="w-full h-full markdown-editor-themed"
           textareaProps={{
             placeholder: 'Write your markdown content here...\n\n# Example Heading\n\nYou can use **bold**, *italic*, and `code` formatting.\n\n- Create lists\n- Add links: [Example](https://example.com)\n- Insert code blocks:\n\n```javascript\nconsole.log("Hello, world!");\n```\n\nDrag and drop images or links here!',
             style: {
               fontSize: '14px',
               lineHeight: '1.6',
-              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
+              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+              backgroundColor: 'transparent',
+              color: 'var(--color-text-primary)',
+              border: 'none',
+              resize: 'none'
             }
           }}
         />
       </div>
 
       {/* Footer with actions and status */}
-      <div className="bg-glass-elevated border-t border-glass-border p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)]">
+      <div className="bg-glass-elevated border-t border-glass-border responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)] flex-shrink-0">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[var(--spacing-element)]">
           {/* Document stats */}
           <div className="flex items-center gap-[var(--spacing-element)] text-sm text-tertiary">

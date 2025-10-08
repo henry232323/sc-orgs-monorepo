@@ -18,7 +18,7 @@ import Chip from '../ui/Chip';
 
 import SidebarItem from '../ui/SidebarItem';
 import { ComponentTitle, ComponentSubtitle, Caption } from '../ui/Typography';
-import MarkdownEditor from './document/MarkdownEditor';
+import DocumentEditorModal from './document/DocumentEditorModal';
 import { DocumentExportService } from '../../services/DocumentExportService';
 import {
   useGetDocumentsQuery,
@@ -449,36 +449,14 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
             </div>
           </Paper>
 
-          {/* Markdown Editor Modal */}
-          {(isCreatingDocument || editingDocument) && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between responsive-padding-x responsive-padding-y border-b">
-                  <ComponentTitle className="responsive-text-lg">
-                    {editingDocument ? 'Edit Document' : 'Create New Document'}
-                  </ComponentTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelEdit}
-                    className="touch-friendly"
-                  >
-                    ✕
-                  </Button>
-                </div>
-
-                <div className="flex-1 overflow-hidden">
-                  <MarkdownEditor
-                    initialContent={editingDocument?.content || ''}
-                    {...(editingDocument && { document: editingDocument })}
-                    onSave={handleSaveDocument}
-                    onCancel={handleCancelEdit}
-                    isLoading={isCreating || isUpdating}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Document Editor Modal */}
+          <DocumentEditorModal
+            isOpen={isCreatingDocument || !!editingDocument}
+            editingDocument={editingDocument}
+            onClose={handleCancelEdit}
+            onSave={handleSaveDocument}
+            isLoading={isCreating || isUpdating}
+          />
 
           {/* Document List */}
           <Paper variant="glass-subtle" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)]">
