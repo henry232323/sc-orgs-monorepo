@@ -225,7 +225,7 @@ export class HRDocumentSearchService {
   ): {
     text: string;
     highlighted: string;
-    positions: Array<{ start: number; end: number; field: 'content' }>;
+    positions: Array<{ start: number; end: number; field: 'title' | 'description' | 'content' }>;
   } | null {
     if (!content || !searchQuery) return null;
 

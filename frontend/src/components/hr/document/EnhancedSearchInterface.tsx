@@ -41,7 +41,7 @@ interface EnhancedSearchInterfaceProps {
 interface SearchHistoryItem {
   query: string;
   timestamp: Date;
-  resultCount?: number;
+  resultCount?: number | undefined;
 }
 
 const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
@@ -95,7 +95,7 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
     const newItem: SearchHistoryItem = {
       query: searchQuery,
       timestamp: new Date(),
-      resultCount,
+      resultCount: resultCount ?? undefined,
     };
 
     const updatedHistory = [
@@ -145,10 +145,10 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
   }, [handleSearch, onSuggestionClick]);
 
   // Handle history item click
-  const handleHistoryClick = useCallback((historyItem: SearchHistoryItem) => {
-    setQuery(historyItem.query);
-    handleSearch(historyItem.query);
-  }, [handleSearch]);
+  // const handleHistoryClick = useCallback((historyItem: SearchHistoryItem) => {
+  //   setQuery(historyItem.query);
+  //   handleSearch(historyItem.query);
+  // }, [handleSearch]);
 
   // Handle filter changes
   const handleFilterChange = useCallback((key: keyof SearchFilters, value: any) => {
@@ -201,8 +201,8 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
             type="text"
             placeholder="Search documents..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            onChange={(value) => setQuery(value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             className="pl-10 pr-20"
             disabled={isLoading}
           />
@@ -312,7 +312,7 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
                   <Chip
                     key={folder}
                     variant={
-                      filters.folderPaths?.includes(folder) ? 'primary' : 'secondary'
+                      filters.folderPaths?.includes(folder) ? 'selected' : 'default'
                     }
                     size="sm"
                     onClick={() => handleFolderToggle(folder)}
@@ -351,7 +351,7 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
             {suggestions.map((suggestion, index) => (
               <Chip
                 key={index}
-                variant="secondary"
+                variant="default"
                 size="sm"
                 onClick={() => handleSuggestionClick(suggestion)}
                 className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900"
@@ -387,7 +387,7 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
               return (
                 <Chip
                   key={index}
-                  variant="secondary"
+                  variant="default"
                   size="sm"
                   onClick={() => handleSuggestionClick(search)}
                   className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-1"
@@ -416,7 +416,7 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
             {filters.folderPaths?.map((folder) => (
               <Chip
                 key={folder}
-                variant="primary"
+                variant="selected"
                 size="sm"
                 className="flex items-center space-x-1"
               >
@@ -432,7 +432,7 @@ const EnhancedSearchInterface: React.FC<EnhancedSearchInterfaceProps> = ({
             ))}
             {filters.requiresAcknowledgment !== undefined && (
               <Chip
-                variant="primary"
+                variant="selected"
                 size="sm"
                 className="flex items-center space-x-1"
               >

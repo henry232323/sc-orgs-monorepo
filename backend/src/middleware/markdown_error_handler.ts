@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { getUserFromRequest } from '../utils/user-casting';
 import { 
   MarkdownError,
   MarkdownValidationError,
@@ -35,7 +36,7 @@ export function markdownErrorHandler(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): any {
   // Generate request ID for tracking
   const requestId = req.headers['x-request-id'] as string || 
                    `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -46,7 +47,7 @@ export function markdownErrorHandler(
     stack: error.stack,
     code: error.code || 'UNKNOWN_ERROR',
     requestId,
-    userId: req.user?.id,
+    userId: getUserFromRequest(req)?.id,
     organizationId: req.org?.id,
     method: req.method,
     path: req.path,
@@ -210,7 +211,7 @@ export function markdownErrorHandler(
     error: 'An unexpected error occurred. Please try again.',
     code: 'INTERNAL_SERVER_ERROR',
     details: {
-      technical_message: import.meta.env.PROD ? 'Internal server error' : error.message,
+      technical_message: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message,
       request_id: requestId,
     },
     suggestions: [

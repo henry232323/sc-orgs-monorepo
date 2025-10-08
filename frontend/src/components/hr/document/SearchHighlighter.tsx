@@ -153,7 +153,7 @@ const SearchHighlighter: React.FC<SearchHighlighterProps> = ({
   text,
   searchTerms = [],
   highlightedText,
-  matchPositions,
+  // matchPositions,
   isMarkdown = false,
   maxLength,
   className = '',

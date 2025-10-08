@@ -1505,8 +1505,7 @@ export class HRDocumentController {
 
     return Math.round(score * 100) / 100; // Round to 2 decimal places
   }
-}  /
-**
+  /**
    * GET /api/organizations/:rsi_org_id/documents/:documentId/versions
    * Get version history for a document
    */
@@ -2156,4 +2155,4 @@ export class HRDocumentController {
         error: 'Failed to update document',
       });
     }
-  }
+  }}

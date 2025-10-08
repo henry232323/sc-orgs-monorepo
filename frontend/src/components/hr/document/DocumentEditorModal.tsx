@@ -34,6 +34,7 @@ const DocumentEditorModal: React.FC<DocumentEditorModalProps> = ({
         document.body.classList.remove('modal-open');
       };
     }
+    return undefined;
   }, [isOpen]);
 
   if (!isOpen) return null;

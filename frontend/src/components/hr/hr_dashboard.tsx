@@ -245,7 +245,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
                   </PaperSubtitle>
                   {action.count !== undefined && (
                     <div className='mb-[var(--spacing-element)]'>
-                      <StatMedium className="responsive-text-lg" style={{ color: 'var(--color-accent-blue)' }}>
+                      <StatMedium className="responsive-text-lg text-accent-blue">
                         {action.count}
                       </StatMedium>
                     </div>
@@ -358,7 +358,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
                   <ComponentSubtitle className='text-sm mb-1'>
                     {hrAnalytics?.metrics.onboarding.overdue_count || 0} members have overdue onboarding tasks
                   </ComponentSubtitle>
-                  <StatSmall style={{ color: 'var(--color-warning)' }}>
+                  <StatSmall className="text-warning">
                     Action Required
                   </StatSmall>
                 </div>
@@ -376,7 +376,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
                   <ComponentSubtitle className='text-sm mb-1'>
                     {hrAnalytics?.metrics.applications.total_received || 0} applications awaiting review
                   </ComponentSubtitle>
-                  <StatSmall style={{ color: 'var(--color-info)' }}>
+                  <StatSmall className="text-info">
                     Review Needed
                   </StatSmall>
                 </div>
@@ -394,7 +394,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
                   <ComponentSubtitle className='text-sm mb-1'>
                     {((hrAnalytics?.metrics.performance.goals_completion_rate || 0) * 100).toFixed(0)}% of performance goals completed this quarter
                   </ComponentSubtitle>
-                  <StatSmall style={{ color: 'var(--color-success)' }}>
+                  <StatSmall className="text-success">
                     Great Progress!
                   </StatSmall>
                 </div>
@@ -418,7 +418,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
                     {gap.skill_name}
                   </ComponentTitle>
                   <div className='mb-[var(--spacing-tight)]'>
-                    <StatMedium style={{ color: 'var(--color-warning)' }}>
+                    <StatMedium className="text-warning">
                       {gap.current_count}/{gap.required_count}
                     </StatMedium>
                   </div>

@@ -335,7 +335,7 @@ describe('Responsive Design Tests', () => {
         <OnboardingChecklist userId="user1" />,
       ];
 
-      components.forEach((component, index) => {
+      components.forEach((component) => {
         const { unmount } = renderWithProviders(component);
         
         const responsiveTextElements = document.querySelectorAll('[class*="responsive-text"]');
@@ -355,7 +355,7 @@ describe('Responsive Design Tests', () => {
         <OnboardingChecklist userId="user1" />,
       ];
 
-      components.forEach((component, index) => {
+      components.forEach((component) => {
         const { unmount } = renderWithProviders(component);
         
         const mobileGlassElements = document.querySelectorAll('[class*="glass-mobile-reduced"]');
@@ -374,7 +374,7 @@ describe('Responsive Design Tests', () => {
         <ApplicationForm />,
       ];
 
-      components.forEach((component, index) => {
+      components.forEach((component) => {
         const { unmount } = renderWithProviders(component);
         
         const touchFriendlyElements = document.querySelectorAll('[class*="touch-friendly"]');
@@ -438,7 +438,7 @@ describe('Responsive Design Tests', () => {
       buttons.forEach(button => {
         if (button.classList.contains('touch-friendly')) {
           // Touch targets should be at least 44px (as defined in CSS)
-          const styles = window.getComputedStyle(button);
+          window.getComputedStyle(button);
           expect(button).toHaveClass('touch-friendly');
         }
       });
