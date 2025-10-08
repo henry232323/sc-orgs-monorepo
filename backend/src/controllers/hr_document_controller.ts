@@ -1505,4 +1505,655 @@ export class HRDocumentController {
 
     return Math.round(score * 100) / 100; // Round to 2 decimal places
   }
-}
+}  /
+**
+   * GET /api/organizations/:rsi_org_id/documents/:documentId/versions
+   * Get version history for a document
+   */
+  async getDocumentVersionHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { documentId } = req.params;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      const document = await documentModel.findDocumentById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Verify document belongs to this organization
+      if (document.organization_id !== organization.id) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if user has access to this document
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+      const hasAccess = await this.hasDocumentAccess(document, userRoles);
+
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to access this document',
+        });
+        return;
+      }
+
+      const versionHistory = await documentService.getDocumentVersionHistory(documentId);
+      const versionStatistics = await documentService.getDocumentVersionStatistics(documentId);
+
+      res.json({
+        success: true,
+        data: {
+          versions: versionHistory,
+          statistics: versionStatistics,
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to get document version history', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId: req.params.documentId,
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get document version history',
+      });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/documents/:documentId/versions/:versionNumber
+   * Get a specific version of a document
+   */
+  async getDocumentVersion(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { documentId, versionNumber } = req.params;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      const document = await documentModel.findDocumentById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Verify document belongs to this organization
+      if (document.organization_id !== organization.id) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if user has access to this document
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+      const hasAccess = await this.hasDocumentAccess(document, userRoles);
+
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to access this document',
+        });
+        return;
+      }
+
+      const version = await documentService.getDocumentVersion(documentId, parseInt(versionNumber));
+
+      if (!version) {
+        res.status(404).json({
+          success: false,
+          error: 'Document version not found',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: version,
+      });
+    } catch (error) {
+      logger.error('Failed to get document version', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId: req.params.documentId,
+        versionNumber: req.params.versionNumber,
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get document version',
+      });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/documents/:documentId/versions/compare
+   * Compare two versions of a document
+   */
+  async compareDocumentVersions(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { documentId } = req.params;
+      const { from_version, to_version } = req.query;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      if (!from_version || !to_version) {
+        res.status(400).json({
+          success: false,
+          error: 'from_version and to_version query parameters are required',
+        });
+        return;
+      }
+
+      const document = await documentModel.findDocumentById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Verify document belongs to this organization
+      if (document.organization_id !== organization.id) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if user has access to this document
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+      const hasAccess = await this.hasDocumentAccess(document, userRoles);
+
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to access this document',
+        });
+        return;
+      }
+
+      const comparison = await documentService.compareDocumentVersions(
+        documentId,
+        parseInt(from_version as string),
+        parseInt(to_version as string)
+      );
+
+      res.json({
+        success: true,
+        data: comparison,
+      });
+    } catch (error) {
+      logger.error('Failed to compare document versions', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId: req.params.documentId,
+        fromVersion: req.query.from_version,
+        toVersion: req.query.to_version,
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to compare document versions',
+      });
+    }
+  }
+
+  /**
+   * PUT /api/organizations/:rsi_org_id/documents/:documentId/acknowledge-version
+   * Acknowledge a document with version tracking
+   */
+  async acknowledgeDocumentWithVersion(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { documentId } = req.params;
+      const { notes } = req.body;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      const document = await documentModel.findDocumentById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Verify document belongs to this organization
+      if (document.organization_id !== organization.id) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if user has access to this document
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+      const hasAccess = await this.hasDocumentAccess(document, userRoles);
+
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to access this document',
+        });
+        return;
+      }
+
+      // Check if document requires acknowledgment
+      if (!document.requires_acknowledgment) {
+        res.status(400).json({
+          success: false,
+          error: 'This document does not require acknowledgment',
+        });
+        return;
+      }
+
+      await documentService.acknowledgeDocumentWithVersion(
+        organization.id,
+        documentId,
+        user.id,
+        req.ip,
+        notes
+      );
+
+      // Get updated acknowledgment status
+      const acknowledgmentStatus = await documentService.getAcknowledmentVersionStatus(
+        documentId,
+        user.id
+      );
+
+      logger.info('Document acknowledged with version tracking', {
+        documentId,
+        organizationId: organization.id,
+        userId: user.id,
+        documentTitle: document.title,
+        documentVersion: document.version,
+        ipAddress: req.ip,
+      });
+
+      res.json({
+        success: true,
+        data: acknowledgmentStatus,
+        message: 'Document acknowledged successfully',
+      });
+    } catch (error) {
+      logger.error('Failed to acknowledge document with version tracking', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId: req.params.documentId,
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to acknowledge document',
+      });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/documents/:documentId/acknowledgment-version-status
+   * Get acknowledgment status with version information
+   */
+  async getAcknowledmentVersionStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { documentId } = req.params;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      const document = await documentModel.findDocumentById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Verify document belongs to this organization
+      if (document.organization_id !== organization.id) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if user has access to this document
+      const userRoles = await this.getUserRoles(organization.id, user.id);
+      const hasAccess = await this.hasDocumentAccess(document, userRoles);
+
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to access this document',
+        });
+        return;
+      }
+
+      const acknowledgmentStatus = await documentService.getAcknowledmentVersionStatus(
+        documentId,
+        user.id
+      );
+
+      res.json({
+        success: true,
+        data: acknowledgmentStatus,
+      });
+    } catch (error) {
+      logger.error('Failed to get acknowledgment version status', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId: req.params.documentId,
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get acknowledgment version status',
+      });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/documents/reacknowledgment-required
+   * Get users who need to re-acknowledge documents
+   */
+  async getUsersRequiringReacknowledgment(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { document_id } = req.query;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      // Check if user has permission to view acknowledgment analytics
+      const hasAccess = await this.hasDocumentManagementAccess(organization.id, user.id);
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to view acknowledgment analytics',
+        });
+        return;
+      }
+
+      const usersRequiringReacknowledgment = await documentService.getUsersRequiringReacknowledgment(
+        organization.id,
+        document_id as string
+      );
+
+      res.json({
+        success: true,
+        data: usersRequiringReacknowledgment,
+      });
+    } catch (error) {
+      logger.error('Failed to get users requiring re-acknowledgment', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+        documentId: req.query.document_id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get users requiring re-acknowledgment',
+      });
+    }
+  }
+
+  /**
+   * GET /api/organizations/:rsi_org_id/documents/acknowledgment-version-analytics
+   * Get acknowledgment analytics with version information
+   */
+  async getAcknowledmentVersionAnalytics(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      // Check if user has permission to view acknowledgment analytics
+      const hasAccess = await this.hasDocumentManagementAccess(organization.id, user.id);
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to view acknowledgment analytics',
+        });
+        return;
+      }
+
+      const analytics = await documentService.getAcknowledmentVersionAnalytics(organization.id);
+
+      res.json({
+        success: true,
+        data: analytics,
+      });
+    } catch (error) {
+      logger.error('Failed to get acknowledgment version analytics', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get acknowledgment version analytics',
+      });
+    }
+  }
+
+  /**
+   * PUT /api/organizations/:rsi_org_id/documents/:documentId/update-with-version-control
+   * Update document with comprehensive version control
+   */
+  async updateDocumentWithVersionControl(req: Request, res: Response): Promise<void> {
+    try {
+      const organization = req.org!;
+      const { documentId } = req.params;
+      const user = getUserFromRequest(req);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+        return;
+      }
+
+      const document = await documentModel.findDocumentById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Verify document belongs to this organization
+      if (document.organization_id !== organization.id) {
+        res.status(404).json({
+          success: false,
+          error: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if user has permission to update documents
+      const hasAccess = await this.hasDocumentUpdateAccess(organization.id, user.id, document);
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions to update this document',
+        });
+        return;
+      }
+
+      const {
+        title,
+        description,
+        content,
+        folder_path,
+        requires_acknowledgment,
+        access_roles,
+      } = req.body;
+
+      let updateData: any = {
+        title,
+        description,
+        folder_path,
+        requires_acknowledgment,
+        access_roles,
+      };
+
+      let validationWarnings: string[] = [];
+
+      // If content is being updated, validate and process it
+      if (content !== undefined) {
+        const validation = await markdownService.validateContent(content);
+        if (!validation.isValid) {
+          res.status(400).json({
+            success: false,
+            error: 'Invalid markdown content',
+            details: {
+              errors: validation.errors,
+              warnings: validation.warnings,
+            },
+          });
+          return;
+        }
+
+        // Sanitize content for safe storage
+        const sanitizedContent = markdownService.sanitizeContent(content);
+
+        updateData.content = sanitizedContent;
+        updateData.word_count = validation.wordCount;
+        updateData.estimated_reading_time = validation.estimatedReadingTime;
+        validationWarnings = validation.warnings;
+      }
+
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+
+      const result = await documentService.updateDocumentWithVersionControl(
+        documentId,
+        organization.id,
+        updateData,
+        user.id
+      );
+
+      logger.info('Document updated with comprehensive version control', {
+        documentId,
+        organizationId: organization.id,
+        userId: user.id,
+        changes: Object.keys(updateData),
+        versionCreated: result.version_created,
+        requiresReacknowledgment: result.requires_reacknowledgment,
+        newVersion: result.document.version,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          document: result.document,
+          version_created: result.version_created,
+          requires_reacknowledgment: result.requires_reacknowledgment,
+        },
+        validation: {
+          warnings: validationWarnings,
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to update document with version control', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId: req.params.documentId,
+        organizationId: req.org?.id,
+        userId: getUserFromRequest(req)?.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update document',
+      });
+    }
+  }

@@ -238,21 +238,21 @@
   - Create search history and saved searches
   - _Requirements: 7.4_
 
-- [ ] 9. Version Control and History
+- [x] 9. Version Control and History
   - Implement version tracking for markdown document changes
   - Update version control to handle content changes vs file changes
   - Add change tracking and diff visualization for future enhancement
   - Maintain acknowledgment validity across document versions
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 9.1 Implement version control for markdown documents
+- [x] 9.1 Implement version control for markdown documents
   - Update version increment logic for content changes
   - Add change detection for markdown content
   - Implement version history storage and retrieval
   - Create version comparison functionality
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 9.2 Handle acknowledgments across versions
+- [x] 9.2 Handle acknowledgments across versions
   - Determine when acknowledgments should remain valid
   - Implement logic for requiring re-acknowledgment on significant changes
   - Add acknowledgment history tracking

@@ -719,19 +719,104 @@ export class HRDocumentModel {
   }
 
   async getVersionHistory(documentId: string): Promise<any[]> {
-    // This would require a separate document_versions table for full version history
-    // For now, return the current document as the only version
-    const document = await this.findDocumentById(documentId);
-    if (!document) return [];
+    try {
+      const versions = await db('hr_document_versions')
+        .leftJoin('users', 'hr_document_versions.created_by', 'users.id')
+        .where({ 'hr_document_versions.document_id': documentId })
+        .select(
+          'hr_document_versions.*',
+          'users.rsi_handle as created_by_handle'
+        )
+        .orderBy('hr_document_versions.version_number', 'desc');
 
-    return [
-      {
-        version: document.version,
-        created_at: document.updated_at,
-        created_by: document.created_by,
-        word_count: document.word_count,
-        estimated_reading_time: document.estimated_reading_time,
-      },
-    ];
+      return versions.map(version => ({
+        id: version.id,
+        version: version.version_number,
+        title: version.title,
+        description: version.description,
+        word_count: version.word_count,
+        estimated_reading_time: version.estimated_reading_time,
+        folder_path: version.folder_path,
+        requires_acknowledgment: version.requires_acknowledgment,
+        access_roles: version.access_roles,
+        change_summary: version.change_summary,
+        change_metadata: version.change_metadata,
+        created_at: version.created_at,
+        created_by: version.created_by,
+        created_by_handle: version.created_by_handle,
+      }));
+    } catch (error) {
+      // Fallback to current document if version history is not available
+      const document = await this.findDocumentById(documentId);
+      if (!document) return [];
+
+      return [
+        {
+          version: document.version,
+          title: document.title,
+          description: document.description,
+          word_count: document.word_count,
+          estimated_reading_time: document.estimated_reading_time,
+          folder_path: document.folder_path,
+          requires_acknowledgment: document.requires_acknowledgment,
+          access_roles: document.access_roles,
+          change_summary: 'Current version',
+          change_metadata: {},
+          created_at: document.updated_at,
+          created_by: document.created_by,
+          created_by_handle: null,
+        },
+      ];
+    }
+  }
+
+  async getDocumentVersion(documentId: string, versionNumber: number): Promise<any | null> {
+    try {
+      const version = await db('hr_document_versions')
+        .leftJoin('users', 'hr_document_versions.created_by', 'users.id')
+        .where({ 
+          'hr_document_versions.document_id': documentId,
+          'hr_document_versions.version_number': versionNumber
+        })
+        .select(
+          'hr_document_versions.*',
+          'users.rsi_handle as created_by_handle'
+        )
+        .first();
+
+      if (!version) {
+        return null;
+      }
+
+      return {
+        id: version.id,
+        document_id: version.document_id,
+        version: version.version_number,
+        content: version.content,
+        title: version.title,
+        description: version.description,
+        word_count: version.word_count,
+        estimated_reading_time: version.estimated_reading_time,
+        folder_path: version.folder_path,
+        requires_acknowledgment: version.requires_acknowledgment,
+        access_roles: version.access_roles,
+        change_summary: version.change_summary,
+        change_metadata: version.change_metadata,
+        created_at: version.created_at,
+        created_by: version.created_by,
+        created_by_handle: version.created_by_handle,
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async incrementDocumentVersion(documentId: string): Promise<number> {
+    const [document] = await db('hr_documents')
+      .where({ id: documentId })
+      .increment('version', 1)
+      .returning('version');
+
+    return document?.version || 1;
   }
 }

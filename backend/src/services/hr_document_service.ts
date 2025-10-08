@@ -1,5 +1,7 @@
 import { HRDocumentModel, HRDocument, CreateHRDocumentData } from '../models/hr_document_model';
 import { HRDocumentAcknowledmentService } from './hr_document_acknowledgment_service';
+import { HRDocumentVersionService, ChangeDetectionResult } from './hr_document_version_service';
+import { HRDocumentAcknowledmentVersionService } from './hr_document_acknowledgment_version_service';
 import { NotificationService } from './notification_service';
 import { HRDocumentSearchService, SearchOptions, SearchResponse } from './hr_document_search_service';
 import { NotificationEntityType } from '../types/notification';
@@ -52,12 +54,16 @@ export interface DocumentSearchOptions {
 export class HRDocumentService {
   private documentModel: HRDocumentModel;
   private acknowledgmentService: HRDocumentAcknowledmentService;
+  private versionService: HRDocumentVersionService;
+  private acknowledgmentVersionService: HRDocumentAcknowledmentVersionService;
   private notificationService: NotificationService;
   private searchService: HRDocumentSearchService;
 
   constructor() {
     this.documentModel = new HRDocumentModel();
     this.acknowledgmentService = new HRDocumentAcknowledmentService();
+    this.versionService = new HRDocumentVersionService();
+    this.acknowledgmentVersionService = new HRDocumentAcknowledmentVersionService();
     this.notificationService = new NotificationService();
     this.searchService = new HRDocumentSearchService();
   }
@@ -467,6 +473,304 @@ export class HRDocumentService {
         organizationId,
       });
 
+      throw error;
+    }
+  }
+
+  /**
+   * Updates a document with version control and acknowledgment handling
+   */
+  async updateDocumentWithVersionControl(
+    documentId: string,
+    organizationId: string,
+    updateData: {
+      title?: string;
+      description?: string;
+      content?: string;
+      folder_path?: string;
+      requires_acknowledgment?: boolean;
+      access_roles?: string[];
+      word_count?: number;
+      estimated_reading_time?: number;
+    },
+    updatedBy: string
+  ): Promise<{ document: HRDocument; version_created: boolean; requires_reacknowledgment: boolean }> {
+    try {
+      // Get current document
+      const currentDocument = await this.documentModel.findDocumentById(documentId);
+      if (!currentDocument || currentDocument.organization_id !== organizationId) {
+        throw new Error('Document not found');
+      }
+
+      // Detect changes before updating
+      const changeDetection = await this.versionService.detectChanges(documentId, {
+        title: updateData.title || currentDocument.title,
+        description: updateData.description || currentDocument.description,
+        content: updateData.content || currentDocument.content,
+        folder_path: updateData.folder_path || currentDocument.folder_path,
+        requires_acknowledgment: updateData.requires_acknowledgment !== undefined 
+          ? updateData.requires_acknowledgment 
+          : currentDocument.requires_acknowledgment,
+        access_roles: updateData.access_roles || currentDocument.access_roles,
+        word_count: updateData.word_count || currentDocument.word_count,
+        estimated_reading_time: updateData.estimated_reading_time || currentDocument.estimated_reading_time,
+      });
+
+      let versionCreated = false;
+      let newVersion = currentDocument.version;
+
+      // Create version and increment document version if there are significant changes
+      if (changeDetection.has_significant_changes) {
+        // Create version record for the current state before updating
+        await this.versionService.createVersion({
+          document_id: documentId,
+          version_number: currentDocument.version,
+          content: currentDocument.content,
+          title: currentDocument.title,
+          description: currentDocument.description,
+          word_count: currentDocument.word_count,
+          estimated_reading_time: currentDocument.estimated_reading_time,
+          folder_path: currentDocument.folder_path,
+          requires_acknowledgment: currentDocument.requires_acknowledgment,
+          access_roles: currentDocument.access_roles,
+          change_summary: 'Previous version before update',
+          change_metadata: { is_pre_update_snapshot: true },
+          created_by: currentDocument.created_by,
+        });
+
+        // Increment version number
+        newVersion = await this.documentModel.incrementDocumentVersion(documentId);
+        versionCreated = true;
+      }
+
+      // Update the document
+      const updatedDocument = await this.documentModel.updateDocument(documentId, {
+        ...updateData,
+        version: newVersion,
+      });
+
+      if (!updatedDocument) {
+        throw new Error('Failed to update document');
+      }
+
+      // Create version record for the new state if there were significant changes
+      if (changeDetection.has_significant_changes) {
+        await this.versionService.createVersion({
+          document_id: documentId,
+          version_number: newVersion,
+          content: updatedDocument.content,
+          title: updatedDocument.title,
+          description: updatedDocument.description,
+          word_count: updatedDocument.word_count,
+          estimated_reading_time: updatedDocument.estimated_reading_time,
+          folder_path: updatedDocument.folder_path,
+          requires_acknowledgment: updatedDocument.requires_acknowledgment,
+          access_roles: updatedDocument.access_roles,
+          change_summary: changeDetection.change_summary,
+          change_metadata: changeDetection.change_metadata,
+          created_by: updatedBy,
+        });
+      }
+
+      // Handle acknowledgment validity
+      if (changeDetection.requires_reacknowledgment) {
+        await this.acknowledgmentVersionService.handleDocumentUpdate(
+          documentId,
+          organizationId,
+          newVersion,
+          changeDetection,
+          updatedBy
+        );
+      }
+
+      logger.info('Document updated with version control', {
+        documentId,
+        organizationId,
+        updatedBy,
+        versionCreated,
+        newVersion,
+        requiresReacknowledgment: changeDetection.requires_reacknowledgment,
+        changeSummary: changeDetection.change_summary,
+      });
+
+      return {
+        document: updatedDocument,
+        version_created: versionCreated,
+        requires_reacknowledgment: changeDetection.requires_reacknowledgment,
+      };
+    } catch (error) {
+      logger.error('Failed to update document with version control', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId,
+        organizationId,
+        updatedBy,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets version history for a document
+   */
+  async getDocumentVersionHistory(documentId: string): Promise<any[]> {
+    try {
+      return await this.documentModel.getVersionHistory(documentId);
+    } catch (error) {
+      logger.error('Failed to get document version history', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets a specific version of a document
+   */
+  async getDocumentVersion(documentId: string, versionNumber: number): Promise<any | null> {
+    try {
+      return await this.documentModel.getDocumentVersion(documentId, versionNumber);
+    } catch (error) {
+      logger.error('Failed to get document version', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId,
+        versionNumber,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Compares two versions of a document
+   */
+  async compareDocumentVersions(
+    documentId: string,
+    fromVersion: number,
+    toVersion: number
+  ): Promise<any> {
+    try {
+      return await this.versionService.compareVersions(documentId, fromVersion, toVersion);
+    } catch (error) {
+      logger.error('Failed to compare document versions', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId,
+        fromVersion,
+        toVersion,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Acknowledges a document with version tracking
+   */
+  async acknowledgeDocumentWithVersion(
+    organizationId: string,
+    documentId: string,
+    userId: string,
+    ipAddress?: string,
+    notes?: string
+  ): Promise<void> {
+    try {
+      // Get current document version
+      const document = await this.documentModel.findDocumentById(documentId);
+      if (!document || document.organization_id !== organizationId) {
+        throw new Error('Document not found');
+      }
+
+      await this.acknowledgmentVersionService.acknowledgeDocumentVersion(
+        organizationId,
+        documentId,
+        userId,
+        document.version,
+        ipAddress,
+        notes
+      );
+
+      logger.info('Document acknowledged with version tracking', {
+        documentId,
+        organizationId,
+        userId,
+        documentVersion: document.version,
+      });
+    } catch (error) {
+      logger.error('Failed to acknowledge document with version tracking', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId,
+        organizationId,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets acknowledgment status with version information
+   */
+  async getAcknowledmentVersionStatus(
+    documentId: string,
+    userId: string
+  ): Promise<any> {
+    try {
+      return await this.acknowledgmentVersionService.getAcknowledmentVersionStatus(documentId, userId);
+    } catch (error) {
+      logger.error('Failed to get acknowledgment version status', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets users requiring re-acknowledgment
+   */
+  async getUsersRequiringReacknowledgment(
+    organizationId: string,
+    documentId?: string
+  ): Promise<any[]> {
+    try {
+      return await this.acknowledgmentVersionService.getUsersRequiringReacknowledgment(
+        organizationId,
+        documentId
+      );
+    } catch (error) {
+      logger.error('Failed to get users requiring re-acknowledgment', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+        documentId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets acknowledgment analytics with version information
+   */
+  async getAcknowledmentVersionAnalytics(organizationId: string): Promise<any> {
+    try {
+      return await this.acknowledgmentVersionService.getAcknowledmentVersionAnalytics(organizationId);
+    } catch (error) {
+      logger.error('Failed to get acknowledgment version analytics', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Gets version statistics for a document
+   */
+  async getDocumentVersionStatistics(documentId: string): Promise<any> {
+    try {
+      return await this.versionService.getVersionStatistics(documentId);
+    } catch (error) {
+      logger.error('Failed to get document version statistics', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        documentId,
+      });
       throw error;
     }
   }
