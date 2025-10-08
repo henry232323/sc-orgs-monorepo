@@ -58,15 +58,15 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
     endDate: new Date().toISOString(),
   });
 
-  // Get status color for reviews
+  // Get status color for reviews using design system colors
   const getStatusColor = (status: PerformanceReview['status']) => {
     switch (status) {
       case 'submitted':
-        return 'text-success';
+        return 'text-[var(--color-success)]';
       case 'acknowledged':
-        return 'text-info';
+        return 'text-[var(--color-info)]';
       default:
-        return 'text-warning';
+        return 'text-[var(--color-warning)]';
     }
   };
 
@@ -84,12 +84,12 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
       {/* Header */}
       <div className='flex items-center justify-between'>
         <SectionTitle>Performance Center</SectionTitle>
-        <div className='flex items-center gap-[var(--gap-button)]'>
+        <div className='flex items-center gap-[var(--spacing-tight)]'>
           <Button
             variant='secondary'
             size='sm'
           >
-            <ChartBarIcon className='w-4 h-4 mr-2' />
+            <ChartBarIcon className='w-4 h-4' />
             Analytics
           </Button>
           <Button
@@ -97,7 +97,7 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
             size='sm'
             onClick={() => setShowCreateModal(true)}
           >
-            <PlusIcon className='w-4 h-4 mr-2' />
+            <PlusIcon className='w-4 h-4' />
             New Review
           </Button>
         </div>
@@ -107,41 +107,41 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
       {analyticsData && (
         <div className='grid grid-cols-1 md:grid-cols-4 gap-[var(--gap-grid-md)]'>
           <Paper variant='glass' size='md' className='text-center'>
-            <TrophyIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-            <StatMedium className='mb-1'>
+            <TrophyIcon className='w-8 h-8 text-[var(--color-accent-cyan)] mx-auto mb-[var(--spacing-tight)]' />
+            <StatMedium className='mb-[var(--spacing-tight)] text-[var(--color-text-primary)]'>
               {analyticsData.reviews_completed}
             </StatMedium>
-            <ComponentSubtitle className='text-tertiary'>
+            <ComponentSubtitle className='text-[var(--color-text-tertiary)]'>
               Reviews Completed
             </ComponentSubtitle>
           </Paper>
 
           <Paper variant='glass' size='md' className='text-center'>
-            <StarIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-            <StatMedium className='mb-1'>
+            <StarIcon className='w-8 h-8 text-[var(--color-accent-blue)] mx-auto mb-[var(--spacing-tight)]' />
+            <StatMedium className='mb-[var(--spacing-tight)] text-[var(--color-text-primary)]'>
               {analyticsData.average_rating.toFixed(1)}
             </StatMedium>
-            <ComponentSubtitle className='text-tertiary'>
+            <ComponentSubtitle className='text-[var(--color-text-tertiary)]'>
               Average Rating
             </ComponentSubtitle>
           </Paper>
 
           <Paper variant='glass' size='md' className='text-center'>
-            <ClockIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-            <StatMedium className='mb-1'>
+            <ClockIcon className='w-8 h-8 text-[var(--color-accent-purple)] mx-auto mb-[var(--spacing-tight)]' />
+            <StatMedium className='mb-[var(--spacing-tight)] text-[var(--color-text-primary)]'>
               {analyticsData.improvement_plans_active}
             </StatMedium>
-            <ComponentSubtitle className='text-tertiary'>
+            <ComponentSubtitle className='text-[var(--color-text-tertiary)]'>
               Active Plans
             </ComponentSubtitle>
           </Paper>
 
           <Paper variant='glass' size='md' className='text-center'>
-            <CheckCircleIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-            <StatMedium className='mb-1'>
+            <CheckCircleIcon className='w-8 h-8 text-[var(--color-success)] mx-auto mb-[var(--spacing-tight)]' />
+            <StatMedium className='mb-[var(--spacing-tight)] text-[var(--color-text-primary)]'>
               {(analyticsData.goals_completion_rate * 100).toFixed(0)}%
             </StatMedium>
-            <ComponentSubtitle className='text-tertiary'>
+            <ComponentSubtitle className='text-[var(--color-text-tertiary)]'>
               Goals Completed
             </ComponentSubtitle>
           </Paper>
@@ -151,37 +151,37 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
       {/* Event Participation Analytics */}
       {eventAnalytics && (
         <Paper variant='glass' size='lg'>
-          <ComponentTitle className='mb-[var(--spacing-card-lg)]'>
+          <ComponentTitle className='mb-[var(--spacing-card-lg)] text-[var(--color-text-primary)]'>
             Event Participation & Performance Correlation
           </ComponentTitle>
           
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-[var(--gap-grid-md)] mb-6'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-[var(--gap-grid-md)] mb-[var(--spacing-component)]'>
             <Paper variant='glass-subtle' size='md' className='text-center'>
-              <CalendarIcon className='w-8 h-8 text-blue-400 mx-auto mb-3' />
-              <StatMedium className='mb-1 text-blue-300'>
+              <CalendarIcon className='w-8 h-8 text-[var(--color-accent-blue)] mx-auto mb-[var(--spacing-tight)]' />
+              <StatMedium className='mb-[var(--spacing-tight)] text-[var(--color-accent-blue)]'>
                 {eventAnalytics.event_participation.attendance_rate.toFixed(0)}%
               </StatMedium>
-              <ComponentSubtitle className='text-tertiary'>
+              <ComponentSubtitle className='text-[var(--color-text-tertiary)]'>
                 Event Attendance Rate
               </ComponentSubtitle>
             </Paper>
             
             <Paper variant='glass-subtle' size='md' className='text-center'>
-              <TrophyIcon className='w-8 h-8 text-green-400 mx-auto mb-3' />
-              <StatMedium className='mb-1 text-green-300'>
+              <TrophyIcon className='w-8 h-8 text-[var(--color-success)] mx-auto mb-[var(--spacing-tight)]' />
+              <StatMedium className='mb-[var(--spacing-tight)] text-[var(--color-success)]'>
                 {eventAnalytics.skill_development.skill_verifications_earned}
               </StatMedium>
-              <ComponentSubtitle className='text-tertiary'>
+              <ComponentSubtitle className='text-[var(--color-text-tertiary)]'>
                 Skills Verified via Events
               </ComponentSubtitle>
             </Paper>
             
             <Paper variant='glass-subtle' size='md' className='text-center'>
-              <UserIcon className='w-8 h-8 text-purple-400 mx-auto mb-3' />
-              <StatMedium className='mb-1 text-purple-300'>
+              <UserIcon className='w-8 h-8 text-[var(--color-accent-purple)] mx-auto mb-[var(--spacing-tight)]' />
+              <StatMedium className='mb-[var(--spacing-tight)] text-[var(--color-accent-purple)]'>
                 {eventAnalytics.performance_correlation.attendance_vs_performance.high_attendance_high_performance}
               </StatMedium>
-              <ComponentSubtitle className='text-tertiary'>
+              <ComponentSubtitle className='text-[var(--color-text-tertiary)]'>
                 High Attendance + Performance
               </ComponentSubtitle>
             </Paper>
@@ -190,33 +190,39 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
           {/* Recent Event Participation */}
           {eventAnalytics.event_participation.recent_events.length > 0 && (
             <div>
-              <ComponentSubtitle className='mb-4'>Recent Event Participation</ComponentSubtitle>
-              <div className='space-y-3'>
+              <ComponentSubtitle className='mb-[var(--spacing-element)] text-[var(--color-text-secondary)]'>
+                Recent Event Participation
+              </ComponentSubtitle>
+              <div className='space-y-[var(--spacing-tight)]'>
                 {eventAnalytics.event_participation.recent_events.slice(0, 5).map((event, index) => (
-                  <div key={index} className='flex items-center justify-between p-3 bg-white/5 rounded-lg'>
-                    <div className='flex items-center space-x-3'>
-                      <div className={`w-3 h-3 rounded-full ${event.attended ? 'bg-green-400' : 'bg-red-400'}`} />
+                  <Paper key={index} variant='glass-subtle' size='sm' className='flex items-center justify-between'>
+                    <div className='flex items-center space-x-[var(--spacing-tight)]'>
+                      <div className={`w-3 h-3 rounded-full ${
+                        event.attended ? 'bg-[var(--color-success)]' : 'bg-[var(--color-error)]'
+                      }`} />
                       <div>
-                        <div className='text-white font-medium'>{event.event_title}</div>
-                        <div className='text-white/60 text-sm'>
+                        <div className='text-[var(--color-text-primary)] font-medium'>{event.event_title}</div>
+                        <div className='text-[var(--color-text-tertiary)] text-sm'>
                           {new Date(event.event_date).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
-                    <div className='flex items-center space-x-2'>
+                    <div className='flex items-center space-x-[var(--spacing-tight)]'>
                       {event.performance_rating && (
                         <div className='flex items-center space-x-1'>
-                          <StarIcon className='w-4 h-4 text-yellow-400' />
-                          <span className='text-yellow-300 text-sm'>{event.performance_rating}/5</span>
+                          <StarIcon className='w-4 h-4 text-[var(--color-accent-cyan)]' />
+                          <span className='text-[var(--color-accent-cyan)] text-sm'>{event.performance_rating}/5</span>
                         </div>
                       )}
-                      <span className={`text-sm px-2 py-1 rounded ${
-                        event.attended ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                      <span className={`text-sm px-2 py-1 rounded-[var(--radius-chip)] ${
+                        event.attended 
+                          ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]' 
+                          : 'bg-[var(--color-error-bg)] text-[var(--color-error)]'
                       }`}>
                         {event.attended ? 'Attended' : 'Missed'}
                       </span>
                     </div>
-                  </div>
+                  </Paper>
                 ))}
               </div>
             </div>
@@ -226,13 +232,13 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
 
       {/* Reviews List */}
       <Paper variant='glass' size='lg'>
-        <ComponentTitle className='mb-[var(--spacing-card-lg)]'>
+        <ComponentTitle className='mb-[var(--spacing-card-lg)] text-[var(--color-text-primary)]'>
           Performance Reviews
         </ComponentTitle>
 
         {isLoading ? (
-          <div className='flex items-center justify-center py-12'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary'></div>
+          <div className='flex items-center justify-center py-[var(--spacing-loose)]'>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-brand-primary)]'></div>
           </div>
         ) : reviewsData?.data && reviewsData.data.length > 0 ? (
           <div className='space-y-[var(--gap-grid-md)]'>
@@ -246,8 +252,8 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
               >
                 <div className='flex items-center justify-between'>
                   <div className='flex-1'>
-                    <div className='flex items-center gap-3 mb-2'>
-                      <ComponentTitle className='text-primary'>
+                    <div className='flex items-center gap-[var(--spacing-tight)] mb-[var(--spacing-tight)]'>
+                      <ComponentTitle className='text-[var(--color-text-primary)]'>
                         Review #{review.id.slice(-8)}
                       </ComponentTitle>
                       <span className={`text-sm font-medium ${getStatusColor(review.status)}`}>
@@ -255,40 +261,40 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
                       </span>
                     </div>
                     
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-[var(--spacing-element)] text-sm'>
                       <div>
-                        <ComponentSubtitle className='text-tertiary mb-1'>
+                        <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-[var(--spacing-tight)]'>
                           Review Period
                         </ComponentSubtitle>
-                        <div className='flex items-center text-secondary'>
+                        <div className='flex items-center text-[var(--color-text-secondary)]'>
                           <CalendarIcon className='w-4 h-4 mr-1' />
                           {formatDate(review.review_period_start)} - {formatDate(review.review_period_end)}
                         </div>
                       </div>
                       
                       <div>
-                        <ComponentSubtitle className='text-tertiary mb-1'>
+                        <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-[var(--spacing-tight)]'>
                           Reviewee
                         </ComponentSubtitle>
-                        <div className='flex items-center text-secondary'>
+                        <div className='flex items-center text-[var(--color-text-secondary)]'>
                           <UserIcon className='w-4 h-4 mr-1' />
                           {review.reviewee_id}
                         </div>
                       </div>
                       
                       <div>
-                        <ComponentSubtitle className='text-tertiary mb-1'>
+                        <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-[var(--spacing-tight)]'>
                           Overall Rating
                         </ComponentSubtitle>
-                        <div className='flex items-center text-secondary'>
-                          <StarIcon className='w-4 h-4 mr-1' />
+                        <div className='flex items-center text-[var(--color-text-secondary)]'>
+                          <StarIcon className='w-4 h-4 mr-1 text-[var(--color-accent-cyan)]' />
                           {review.overall_rating}/5
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className='flex items-center gap-2'>
+                  <div className='flex items-center gap-[var(--spacing-tight)]'>
                     <Button
                       variant='ghost'
                       size='sm'
@@ -297,7 +303,7 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
                         setShowViewModal(true);
                       }}
                     >
-                      <EyeIcon className='w-4 h-4 mr-1' />
+                      <EyeIcon className='w-4 h-4' />
                       View
                     </Button>
                     
@@ -310,7 +316,7 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
                           setShowCreateModal(true);
                         }}
                       >
-                        <PencilIcon className='w-4 h-4 mr-1' />
+                        <PencilIcon className='w-4 h-4' />
                         Edit
                       </Button>
                     )}
@@ -320,12 +326,12 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
             ))}
           </div>
         ) : (
-          <div className='text-center py-12'>
-            <TrophyIcon className='w-16 h-16 text-tertiary mx-auto mb-4' />
-            <ComponentTitle className='text-primary mb-2'>
+          <div className='text-center py-[var(--spacing-loose)]'>
+            <TrophyIcon className='w-16 h-16 text-[var(--color-text-tertiary)] mx-auto mb-[var(--spacing-element)]' />
+            <ComponentTitle className='text-[var(--color-text-primary)] mb-[var(--spacing-tight)]'>
               No Performance Reviews
             </ComponentTitle>
-            <ComponentSubtitle className='text-secondary'>
+            <ComponentSubtitle className='text-[var(--color-text-secondary)]'>
               Start by creating your first performance review.
             </ComponentSubtitle>
           </div>
@@ -333,13 +339,13 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
 
         {/* Pagination */}
         {reviewsData && reviewsData.total > reviewsData.limit && (
-          <div className='flex items-center justify-between mt-[var(--spacing-card-lg)] pt-4 border-t border-glass-border'>
-            <div className='text-sm text-tertiary'>
+          <div className='flex items-center justify-between mt-[var(--spacing-card-lg)] pt-[var(--spacing-element)] border-t border-[var(--color-glass-border)]'>
+            <div className='text-sm text-[var(--color-text-tertiary)]'>
               Showing {((page - 1) * reviewsData.limit) + 1} to{' '}
               {Math.min(page * reviewsData.limit, reviewsData.total)} of{' '}
               {reviewsData.total} reviews
             </div>
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-[var(--spacing-tight)]'>
               <Button
                 variant='ghost'
                 size='sm'
@@ -399,16 +405,18 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
           <div className='space-y-[var(--spacing-card-lg)] max-h-[70vh] overflow-y-auto'>
             {/* Review Details */}
             <div>
-              <ComponentTitle className='mb-4'>Review Details</ComponentTitle>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <ComponentTitle className='mb-[var(--spacing-element)] text-[var(--color-text-primary)]'>
+                Review Details
+              </ComponentTitle>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-[var(--spacing-element)]'>
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-1'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-[var(--spacing-tight)]'>
                     Reviewee
                   </ComponentSubtitle>
-                  <div className='text-secondary'>{selectedReview.reviewee_id}</div>
+                  <div className='text-[var(--color-text-secondary)]'>{selectedReview.reviewee_id}</div>
                 </div>
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-1'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-[var(--spacing-tight)]'>
                     Status
                   </ComponentSubtitle>
                   <span className={`text-sm font-medium ${getStatusColor(selectedReview.status)}`}>
@@ -416,18 +424,18 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
                   </span>
                 </div>
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-1'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-[var(--spacing-tight)]'>
                     Review Period
                   </ComponentSubtitle>
-                  <div className='text-secondary'>
+                  <div className='text-[var(--color-text-secondary)]'>
                     {formatDate(selectedReview.review_period_start)} - {formatDate(selectedReview.review_period_end)}
                   </div>
                 </div>
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-1'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-[var(--spacing-tight)]'>
                     Overall Rating
                   </ComponentSubtitle>
-                  <StatSmall className='text-accent-blue'>
+                  <StatSmall className='text-[var(--color-accent-blue)]'>
                     {selectedReview.overall_rating}/5
                   </StatSmall>
                 </div>
@@ -436,21 +444,23 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
 
             {/* Ratings Breakdown */}
             <div>
-              <ComponentTitle className='mb-4'>Ratings Breakdown</ComponentTitle>
-              <div className='space-y-4'>
+              <ComponentTitle className='mb-[var(--spacing-element)] text-[var(--color-text-primary)]'>
+                Ratings Breakdown
+              </ComponentTitle>
+              <div className='space-y-[var(--spacing-element)]'>
                 {Object.entries(selectedReview.ratings).map(([category, rating]) => {
                   return (
                     <Paper key={category} variant='glass-subtle' size='sm'>
-                      <div className='flex items-center justify-between mb-2'>
-                        <ComponentSubtitle className='text-primary'>
+                      <div className='flex items-center justify-between mb-[var(--spacing-tight)]'>
+                        <ComponentSubtitle className='text-[var(--color-text-primary)]'>
                           {category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </ComponentSubtitle>
-                        <StatSmall className='text-accent-blue'>
+                        <StatSmall className='text-[var(--color-accent-blue)]'>
                           {rating.score}/5
                         </StatSmall>
                       </div>
                       {rating.comments && (
-                        <p className='text-sm text-secondary'>
+                        <p className='text-sm text-[var(--color-text-secondary)]'>
                           {rating.comments}
                         </p>
                       )}
@@ -462,16 +472,16 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
 
             {/* Strengths and Areas for Improvement */}
             {(selectedReview.strengths.length > 0 || selectedReview.areas_for_improvement.length > 0) && (
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-[var(--gap-grid-md)]'>
                 {selectedReview.strengths.length > 0 && (
                   <div>
-                    <ComponentTitle className='mb-4 text-success'>
+                    <ComponentTitle className='mb-[var(--spacing-element)] text-[var(--color-success)]'>
                       Strengths
                     </ComponentTitle>
-                    <div className='space-y-2'>
+                    <div className='space-y-[var(--spacing-tight)]'>
                       {selectedReview.strengths.map((strength, index) => (
                         <Paper key={index} variant='glass-subtle' size='sm'>
-                          <p className='text-sm text-secondary'>{strength}</p>
+                          <p className='text-sm text-[var(--color-text-secondary)]'>{strength}</p>
                         </Paper>
                       ))}
                     </div>
@@ -480,13 +490,13 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
 
                 {selectedReview.areas_for_improvement.length > 0 && (
                   <div>
-                    <ComponentTitle className='mb-4 text-warning'>
+                    <ComponentTitle className='mb-[var(--spacing-element)] text-[var(--color-warning)]'>
                       Areas for Improvement
                     </ComponentTitle>
-                    <div className='space-y-2'>
+                    <div className='space-y-[var(--spacing-tight)]'>
                       {selectedReview.areas_for_improvement.map((area, index) => (
                         <Paper key={index} variant='glass-subtle' size='sm'>
-                          <p className='text-sm text-secondary'>{area}</p>
+                          <p className='text-sm text-[var(--color-text-secondary)]'>{area}</p>
                         </Paper>
                       ))}
                     </div>
@@ -498,27 +508,29 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
             {/* Goals */}
             {selectedReview.goals.length > 0 && (
               <div>
-                <ComponentTitle className='mb-4'>Performance Goals</ComponentTitle>
-                <div className='space-y-4'>
+                <ComponentTitle className='mb-[var(--spacing-element)] text-[var(--color-text-primary)]'>
+                  Performance Goals
+                </ComponentTitle>
+                <div className='space-y-[var(--spacing-element)]'>
                   {selectedReview.goals.map((goal, index) => (
                     <Paper key={index} variant='glass-subtle' size='sm'>
-                      <div className='flex items-center justify-between mb-2'>
-                        <ComponentSubtitle className='text-primary'>
+                      <div className='flex items-center justify-between mb-[var(--spacing-tight)]'>
+                        <ComponentSubtitle className='text-[var(--color-text-primary)]'>
                           {goal.title}
                         </ComponentSubtitle>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          goal.status === 'completed' ? 'bg-success/20 text-success' :
-                          goal.status === 'in_progress' ? 'bg-warning/20 text-warning' :
-                          goal.status === 'cancelled' ? 'bg-error/20 text-error' :
-                          'bg-gray-500/20 text-gray-300'
+                        <span className={`text-xs px-2 py-1 rounded-[var(--radius-chip)] ${
+                          goal.status === 'completed' ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]' :
+                          goal.status === 'in_progress' ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]' :
+                          goal.status === 'cancelled' ? 'bg-[var(--color-error-bg)] text-[var(--color-error)]' :
+                          'bg-[var(--color-glass-bg)] text-[var(--color-text-tertiary)]'
                         }`}>
                           {goal.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <p className='text-sm text-secondary mb-2'>
+                      <p className='text-sm text-[var(--color-text-secondary)] mb-[var(--spacing-tight)]'>
                         {goal.description}
                       </p>
-                      <div className='flex items-center justify-between text-xs text-tertiary'>
+                      <div className='flex items-center justify-between text-xs text-[var(--color-text-tertiary)]'>
                         <span>Target: {formatDate(goal.target_date)}</span>
                         <span>{goal.progress_percentage}% complete</span>
                       </div>
@@ -529,7 +541,7 @@ const PerformanceCenter: React.FC<PerformanceCenterProps> = ({ organizationId })
             )}
 
             {/* Close Button */}
-            <div className='flex items-center justify-end pt-4 border-t border-glass-border'>
+            <div className='flex items-center justify-end pt-[var(--spacing-element)] border-t border-[var(--color-glass-border)]'>
               <Button
                 variant='ghost'
                 onClick={() => {

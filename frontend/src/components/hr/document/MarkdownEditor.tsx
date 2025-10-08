@@ -2,6 +2,11 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import { Document } from '../../../types/hr';
 import { debounce } from 'lodash';
+import Input from '../../ui/Input';
+import Textarea from '../../ui/Textarea';
+import Checkbox from '../../ui/Checkbox';
+import Button from '../../ui/Button';
+import Select, { SelectOption } from '../../ui/Select';
 
 // Document metadata interface for the editor
 export interface DocumentMetadata {
@@ -46,7 +51,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // UI state
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
 
@@ -75,24 +80,41 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     setHasUnsavedChanges(hasContentChanges || hasMetadataChanges);
   }, [content, metadata, initialContent, document]);
 
-  // Content validation
-  const validateContent = useCallback((content: string, metadata: DocumentMetadata): string[] => {
-    const errors: string[] = [];
+  // Enhanced content validation with field-specific errors
+  const validateContent = useCallback((content: string, metadata: DocumentMetadata): { [key: string]: string } => {
+    const errors: { [key: string]: string } = {};
     
+    // Title validation
     if (!metadata.title.trim()) {
-      errors.push('Document title is required');
+      errors.title = 'Document title is required';
+    } else if (metadata.title.length > 200) {
+      errors.title = 'Document title is too long (maximum 200 characters)';
+    } else if (metadata.title.length < 3) {
+      errors.title = 'Document title must be at least 3 characters';
     }
     
+    // Content validation
     if (!content.trim()) {
-      errors.push('Document content cannot be empty');
+      errors.content = 'Document content cannot be empty';
+    } else if (content.length > 100000) {
+      errors.content = 'Document content is too long (maximum 100,000 characters)';
+    } else if (content.length < 10) {
+      errors.content = 'Document content must be at least 10 characters';
     }
     
-    if (content.length > 100000) {
-      errors.push('Document content is too long (maximum 100,000 characters)');
+    // Description validation
+    if (metadata.description && metadata.description.length > 500) {
+      errors.description = 'Description is too long (maximum 500 characters)';
     }
     
-    if (metadata.title.length > 200) {
-      errors.push('Document title is too long (maximum 200 characters)');
+    // Folder path validation
+    if (metadata.folder_path && !metadata.folder_path.startsWith('/')) {
+      errors.folder_path = 'Folder path must start with "/"';
+    }
+    
+    // Access roles validation
+    if (metadata.access_roles.length === 0) {
+      errors.access_roles = 'At least one access role must be selected';
     }
     
     return errors;
@@ -195,7 +217,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   // Handle save
   const handleSave = useCallback(async () => {
-    if (validationErrors.length > 0) {
+    if (Object.keys(validationErrors).length > 0) {
       return;
     }
     
@@ -220,7 +242,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // Debounced auto-save functionality
   const debouncedAutoSave = useMemo(
     () => debounce(async () => {
-      if (hasUnsavedChanges && validationErrors.length === 0 && metadata.title.trim()) {
+      if (hasUnsavedChanges && Object.keys(validationErrors).length === 0 && metadata.title.trim()) {
         try {
           await onSave(content, metadata);
           setSaveStatus('saved');
@@ -239,7 +261,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   // Trigger auto-save when content or metadata changes
   useEffect(() => {
-    if (hasUnsavedChanges && validationErrors.length === 0 && metadata.title.trim()) {
+    if (hasUnsavedChanges && Object.keys(validationErrors).length === 0 && metadata.title.trim()) {
       debouncedAutoSave();
     }
     
@@ -362,9 +384,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         );
       default:
         if (hasUnsavedChanges) {
-          if (validationErrors.length > 0) {
+          if (Object.keys(validationErrors).length > 0) {
             return (
-              <span className="text-amber-600 text-sm flex items-center">
+              <span className="text-warning text-sm flex items-center">
                 <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -385,86 +407,100 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
   };
 
+  // Access roles options for the select component
+  const accessRoleOptions: SelectOption[] = [
+    { value: 'member', label: 'Member' },
+    { value: 'admin', label: 'Administrator' },
+    { value: 'hr', label: 'HR Staff' },
+    { value: 'manager', label: 'Manager' },
+    { value: 'trainer', label: 'Trainer' },
+    { value: 'pilot', label: 'Pilot' },
+    { value: 'safety-officer', label: 'Safety Officer' },
+  ];
+
   return (
     <div className={`markdown-editor ${className}`}>
       {/* Header with metadata form */}
-      <div className="bg-dark-glass border-b border-glass-border p-4 backdrop-blur-[var(--blur-glass-strong)]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-glass-elevated border-b border-glass-border p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--spacing-element)]">
           {/* Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-semibold text-primary mb-2">
-              Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={metadata.title}
-              onChange={(e) => handleMetadataChange('title', e.target.value)}
-              className="w-full px-3 py-2 border border-glass-border rounded-[var(--radius-glass-sm)] bg-dark-glass text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-glass-focus transition-all duration-[var(--duration-normal)]"
-              placeholder="Enter document title"
-              disabled={isLoading}
-            />
-          </div>
+          <Input
+            label="Title"
+            value={metadata.title}
+            onChange={(value) => handleMetadataChange('title', value)}
+            placeholder="Enter document title"
+            disabled={isLoading}
+            required
+            {...(validationErrors.title && { error: validationErrors.title })}
+          />
 
           {/* Folder Path */}
-          <div>
-            <label htmlFor="folder_path" className="block text-sm font-semibold text-primary mb-2">
-              Folder Path
-            </label>
-            <input
-              type="text"
-              id="folder_path"
-              value={metadata.folder_path}
-              onChange={(e) => handleMetadataChange('folder_path', e.target.value)}
-              className="w-full px-3 py-2 border border-glass-border rounded-[var(--radius-glass-sm)] bg-dark-glass text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-glass-focus transition-all duration-[var(--duration-normal)]"
-              placeholder="/path/to/folder"
-              disabled={isLoading}
-            />
-          </div>
+          <Input
+            label="Folder Path"
+            value={metadata.folder_path}
+            onChange={(value) => handleMetadataChange('folder_path', value)}
+            placeholder="/path/to/folder"
+            disabled={isLoading}
+            {...(validationErrors.folder_path && { error: validationErrors.folder_path })}
+          />
 
           {/* Description */}
           <div className="md:col-span-2">
-            <label htmlFor="description" className="block text-sm font-semibold text-primary mb-2">
-              Description
-            </label>
-            <textarea
-              id="description"
+            <Textarea
+              label="Description"
               value={metadata.description || ''}
-              onChange={(e) => handleMetadataChange('description', e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 border border-glass-border rounded-[var(--radius-glass-sm)] bg-dark-glass text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-glass-focus transition-all duration-[var(--duration-normal)]"
+              onChange={(value) => handleMetadataChange('description', value)}
               placeholder="Brief description of the document"
               disabled={isLoading}
+              rows={2}
+              {...(validationErrors.description && { error: validationErrors.description })}
+              maxLength={500}
             />
           </div>
 
-          {/* Acknowledgment and Access Controls */}
-          <div className="md:col-span-2 flex flex-wrap gap-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={metadata.requires_acknowledgment}
-                onChange={(e) => handleMetadataChange('requires_acknowledgment', e.target.checked)}
-                className="mr-2 h-4 w-4 text-[var(--color-accent-blue)] focus:ring-glass-focus border-glass-border rounded"
-                disabled={isLoading}
-              />
-              <span className="text-sm text-secondary">Requires acknowledgment</span>
-            </label>
+          {/* Access Roles */}
+          <div className="md:col-span-2">
+            <Select
+              label="Access Roles"
+              value={metadata.access_roles}
+              onChange={(value) => handleMetadataChange('access_roles', value as string[])}
+              options={accessRoleOptions}
+              placeholder="Select access roles..."
+              disabled={isLoading}
+              multiple
+              required
+              description="Select which roles can access this document"
+              {...(validationErrors.access_roles && { error: validationErrors.access_roles })}
+            />
+          </div>
+
+          {/* Acknowledgment Checkbox */}
+          <div className="md:col-span-2">
+            <Checkbox
+              checked={metadata.requires_acknowledgment}
+              onChange={(checked) => handleMetadataChange('requires_acknowledgment', checked)}
+              label="Requires acknowledgment"
+              description="Users must acknowledge they have read this document"
+              disabled={isLoading}
+            />
           </div>
         </div>
 
-        {/* Validation Errors */}
-        {validationErrors.length > 0 && (
-          <div className="mt-4 p-3 bg-error/10 border border-error/20 rounded-[var(--radius-glass-sm)]">
-            <div className="flex">
-              <svg className="h-5 w-5 text-error mr-2" fill="currentColor" viewBox="0 0 20 20">
+        {/* Validation Errors Summary */}
+        {Object.keys(validationErrors).length > 0 && (
+          <div className="mt-[var(--spacing-element)] p-[var(--spacing-card)] bg-error/10 border border-error/20 rounded-[var(--radius-glass-sm)] backdrop-blur-[var(--blur-glass-light)]">
+            <div className="flex items-start gap-[var(--spacing-tight)]">
+              <svg className="h-5 w-5 text-error flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              <div>
-                <h3 className="text-sm font-semibold text-error">Please fix the following errors:</h3>
-                <ul className="mt-1 text-sm text-error/80 list-disc list-inside">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>{error}</li>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-error mb-[var(--spacing-tight)]">Please fix the following errors:</h3>
+                <ul className="text-sm text-error space-y-1">
+                  {Object.entries(validationErrors).map(([field, error]) => (
+                    <li key={field} className="flex items-start gap-2">
+                      <span className="text-error mt-1">•</span>
+                      <span><strong className="capitalize">{field.replace('_', ' ')}:</strong> {error}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -474,13 +510,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       </div>
 
       {/* Custom Toolbar */}
-      <div className="bg-white/5 border-b border-glass-border p-2 backdrop-blur-[var(--blur-glass-strong)]">
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="bg-glass border-b border-glass-border p-[var(--spacing-card)] backdrop-blur-[var(--blur-glass-strong)]">
+        <div className="flex flex-wrap items-center gap-[var(--spacing-tight)]">
           {/* Formatting buttons */}
           <button
             type="button"
             onClick={() => insertMarkdownSyntax('**', '**', 'bold text')}
-            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)]"
+            className="p-2 text-tertiary hover:text-primary hover:bg-glass-hover rounded-[var(--radius-button)] transition-all duration-[var(--duration-normal)] hover:scale-[var(--scale-button-hover)] active:scale-[var(--scale-button-active)]"
             title="Bold (Ctrl+B)"
             disabled={isLoading}
           >
@@ -603,7 +639,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       {/* Markdown Help Panel */}
       {showHelpPanel && (
-        <div className="bg-[var(--color-accent-blue)]/10 border-b border-[var(--color-accent-blue)]/20 p-4 backdrop-blur-[var(--blur-glass-strong)]">
+        <div className="bg-brand-secondary/10 border-b border-brand-secondary/20 p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)]">
           <div className="max-w-4xl">
             <h3 className="text-sm font-semibold text-primary mb-3">Markdown Quick Reference</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
@@ -707,68 +743,62 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       </div>
 
       {/* Footer with actions and status */}
-      <div className="bg-white border-t border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-glass-elevated border-t border-glass-border p-[var(--spacing-card-lg)] backdrop-blur-[var(--blur-glass-strong)]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[var(--spacing-element)]">
           {/* Document stats */}
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
+          <div className="flex items-center gap-[var(--spacing-element)] text-sm text-tertiary">
             <span>{wordCount} words</span>
             <span>{estimatedReadingTime} min read</span>
             {renderSaveStatus()}
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center space-x-3">
-            <button
-              type="button"
+          <div className="flex items-center gap-[var(--spacing-tight)]">
+            <Button
+              variant="secondary"
               onClick={handleCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               disabled={isLoading}
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSave}
-              disabled={isLoading || validationErrors.length > 0}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || Object.keys(validationErrors).length > 0}
             >
               {isLoading ? 'Saving...' : document ? 'Update Document' : 'Create Document'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Unsaved changes warning dialog */}
       {showUnsavedWarning && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
-                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-glass-elevated border border-glass-border rounded-[var(--radius-modal)] shadow-[var(--shadow-glass-xl)] backdrop-blur-[var(--blur-glass-strong)] w-full max-w-md p-[var(--spacing-card-xl)]">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-warning/20 mb-[var(--spacing-element)]">
+                <svg className="h-6 w-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mt-4">Unsaved Changes</h3>
-              <div className="mt-2 px-7 py-3">
-                <p className="text-sm text-gray-500">
-                  You have unsaved changes that will be lost if you continue. Are you sure you want to leave without saving?
-                </p>
-              </div>
-              <div className="flex items-center justify-center gap-3 mt-4">
-                <button
-                  type="button"
+              <h3 className="text-lg font-semibold text-primary mb-[var(--spacing-tight)]">Unsaved Changes</h3>
+              <p className="text-sm text-secondary mb-[var(--spacing-component)]">
+                You have unsaved changes that will be lost if you continue. Are you sure you want to leave without saving?
+              </p>
+              <div className="flex items-center justify-center gap-[var(--spacing-tight)]">
+                <Button
+                  variant="secondary"
                   onClick={cancelCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Keep Editing
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="danger"
                   onClick={confirmCancel}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Discard Changes
-                </button>
+                </Button>
               </div>
             </div>
           </div>

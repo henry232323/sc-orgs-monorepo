@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption } from '@headlessui/react';
 import Paper from '../ui/Paper';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import Button from '../ui/Button';
+import Select, { SelectOption } from '../ui/Select';
 import RadioGroup from '../ui/RadioGroup';
 import Chip from '../ui/Chip';
 import { ComponentTitle, ComponentSubtitle, StatMedium } from '../ui/Typography';
@@ -78,8 +78,7 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   const [createReview, { isLoading: isCreating }] = useCreatePerformanceReviewMutation();
   const [updateReview, { isLoading: isUpdating }] = useUpdatePerformanceReviewMutation();
   
-  // Member search state
-  const [memberSearch, setMemberSearch] = useState('');
+  // Member selection state
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   // API queries
@@ -95,12 +94,7 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   );
   const allMembers = membersResponse || [];
   
-  // Filter members based on search
-  const memberSearchResults = memberSearch.length >= 2 
-    ? allMembers.filter((member: Member) => 
-        member.rsi_handle.toLowerCase().includes(memberSearch.toLowerCase())
-      ).slice(0, 10)
-    : [];
+
   
   // Get historical reviews for comparison
   const { data: historicalReviews } = useGetPerformanceReviewsQuery(
@@ -404,76 +398,57 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   const isLoading = isCreating || isUpdating;
 
   return (
-    <div className="space-y-[var(--spacing-section)]">
+    <div className="space-y-4 lg:space-y-[var(--spacing-section)] responsive-container">
       {/* Header */}
-      <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-        <div className="flex justify-between items-start">
-          <div>
-            <ComponentTitle className="mb-2">
+      <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+          <div className="flex-1">
+            <ComponentTitle className="mb-2 responsive-text-lg">
               {existingReview ? 'Edit Performance Review' : 'Create Performance Review'}
             </ComponentTitle>
-            <ComponentSubtitle>
+            <ComponentSubtitle className="responsive-text-sm">
               Evaluate performance and set goals for continued growth
             </ComponentSubtitle>
           </div>
-          {getHistoricalComparison()}
+          <div className="w-full lg:w-auto">
+            {getHistoricalComparison()}
+          </div>
         </div>
       </Paper>
 
-      <form onSubmit={handleSubmit} className="space-y-[var(--spacing-section)]">
+      <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-[var(--spacing-section)]">
         {/* Member Selection */}
-        <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-          <ComponentTitle className="mb-4">Select Member</ComponentTitle>
-          <div className="relative">
-            <Combobox
-              value={selectedMember}
-              onChange={(member: Member | null) => {
-                setSelectedMember(member);
-                setMemberSearch('');
-              }}
-            >
-              <ComboboxInput
-                className="w-full py-2 px-3 bg-glass border border-glass-border rounded-[var(--radius-glass-sm)] text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent"
-                placeholder="Type to search by RSI handle..."
-                displayValue={(member: Member | null) => member?.rsi_handle || ''}
-                onChange={(event) => setMemberSearch(event.target.value)}
-              />
-              
-              {memberSearchResults.length > 0 && (
-                <ComboboxOptions className="absolute z-10 w-full mt-1 bg-dark-glass border border-glass-border rounded-[var(--radius-dropdown)] shadow-[var(--shadow-glass-lg)] backdrop-blur-[var(--blur-glass-strong)] max-h-60 overflow-auto">
-                  {memberSearchResults.map((member: Member) => (
-                    <ComboboxOption
-                      key={member.id}
-                      value={member}
-                      className={({ focus }) =>
-                        `group flex cursor-pointer items-center px-4 py-2 text-sm text-white transition-all duration-150 ${
-                          focus ? 'bg-accent-blue/20' : ''
-                        } border-b border-white/10 last:border-b-0`
-                      }
-                    >
-                      <div className="font-medium">{member.rsi_handle}</div>
-                    </ComboboxOption>
-                  ))}
-                </ComboboxOptions>
-              )}
-            </Combobox>
-            
-            {errors.reviewee_id && (
-              <p className="text-red-500 text-sm mt-1">{errors.reviewee_id}</p>
-            )}
-          </div>
+        <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
+          <ComponentTitle className="mb-[var(--spacing-element)] responsive-text-lg">Select Member</ComponentTitle>
+          <Select
+            label="Member to Review"
+            value={selectedMember?.id || ''}
+            onChange={(value) => {
+              const member = allMembers.find((m: Member) => m.id === value);
+              setSelectedMember(member || null);
+              setFormData(prev => ({ ...prev, reviewee_id: value as string }));
+            }}
+            options={allMembers.map((member: Member): SelectOption => ({
+              value: member.id,
+              label: member.rsi_handle,
+            }))}
+            placeholder="Select a member to review..."
+            required
+            {...(errors.reviewee_id && { error: errors.reviewee_id })}
+            description="Choose the organization member you want to review"
+          />
         </Paper>
 
         {/* Review Period */}
-        <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-          <ComponentTitle className="mb-4">Review Period</ComponentTitle>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
+          <ComponentTitle className="mb-[var(--spacing-element)] responsive-text-lg">Review Period</ComponentTitle>
+          <div className="responsive-grid-1-2 gap-4 lg:gap-[var(--spacing-element)]">
             <Input
               label="Start Date"
               type="date"
               value={formData.review_period_start}
               onChange={(value) => setFormData(prev => ({ ...prev, review_period_start: value }))}
-              error={errors.review_period_start}
+              {...(errors.review_period_start && { error: errors.review_period_start })}
               required
             />
             <Input
@@ -481,53 +456,52 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
               type="date"
               value={formData.review_period_end}
               onChange={(value) => setFormData(prev => ({ ...prev, review_period_end: value }))}
-              error={errors.review_period_end}
+              {...(errors.review_period_end && { error: errors.review_period_end })}
               required
             />
           </div>
         </Paper>
 
         {/* Ratings */}
-        <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-          <ComponentTitle className="mb-4">Performance Ratings</ComponentTitle>
-          <div className="space-y-6">
+        <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
+          <ComponentTitle className="mb-[var(--spacing-element)] responsive-text-lg">Performance Ratings</ComponentTitle>
+          <div className="space-y-4 lg:space-y-[var(--spacing-component)]">
             {skills.map((skill: Skill) => (
-              <div key={skill.id} className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-primary">{skill.name}</h4>
-                  <p className="text-sm text-secondary">{skill.description || `${skill.category} skill`}</p>
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Category: {skill.category}
-                  </span>
+              <Paper key={skill.id} variant="glass-subtle" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card)] glass-mobile-reduced">
+                <div className="space-y-[var(--spacing-element)]">
+                  <div>
+                    <h4 className="font-semibold text-primary mb-[var(--spacing-tight)]">{skill.name}</h4>
+                    <p className="text-sm text-secondary mb-[var(--spacing-tight)]">{skill.description || `${skill.category} skill`}</p>
+                    <Chip variant="default" size="sm" className="text-tertiary">
+                      {skill.category}
+                    </Chip>
+                  </div>
+                  
+                  <RadioGroup
+                    options={RATING_OPTIONS}
+                    value={formData.ratings[skill.id]?.score || 3}
+                    onChange={(score) => handleRatingChange(skill.id, score)}
+                    variant="buttons"
+                    size="sm"
+                  />
+                  
+                  <Textarea
+                    placeholder={`Comments on ${skill.name.toLowerCase()}...`}
+                    value={formData.ratings[skill.id]?.comments || ''}
+                    onChange={(value) => handleRatingCommentChange(skill.id, value)}
+                    rows={2}
+                    maxLength={500}
+                    {...(errors.ratings?.[skill.id] && { error: errors.ratings[skill.id] })}
+                  />
                 </div>
-                
-                <RadioGroup
-                  options={RATING_OPTIONS}
-                  value={formData.ratings[skill.id]?.score || 3}
-                  onChange={(score) => handleRatingChange(skill.id, score)}
-                  variant="buttons"
-                  size="sm"
-                />
-                
-                <Textarea
-                  placeholder={`Comments on ${skill.name.toLowerCase()}...`}
-                  value={formData.ratings[skill.id]?.comments || ''}
-                  onChange={(value) => handleRatingCommentChange(skill.id, value)}
-                  rows={2}
-                  maxLength={500}
-                />
-                
-                {errors.ratings?.[skill.id] && (
-                  <p className="text-error text-sm">{errors.ratings[skill.id]}</p>
-                )}
-              </div>
+              </Paper>
             ))}
           </div>
           
-          <div className="mt-6 pt-6 border-t border-glass-border">
+          <div className="mt-[var(--spacing-component)] pt-[var(--spacing-component)] border-t border-glass-border">
             <div className="flex items-center justify-between">
               <ComponentSubtitle>Overall Rating</ComponentSubtitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-[var(--spacing-tight)]">
                 <StatMedium className="text-primary">{formData.overall_rating}</StatMedium>
                 <Chip variant="status" size="sm">
                   {RATING_OPTIONS.find(opt => opt.value === formData.overall_rating)?.label.split(' - ')[1] || 'Average'}
@@ -539,19 +513,19 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
 
         {/* Strengths */}
         <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-          <ComponentTitle className="mb-4">Strengths</ComponentTitle>
+          <ComponentTitle className="mb-[var(--spacing-element)]">Strengths</ComponentTitle>
           
           {formData.strengths.length > 0 && (
-            <div className="mb-4 space-y-2">
+            <div className="mb-[var(--spacing-element)] space-y-[var(--spacing-tight)]">
               {formData.strengths.map((strength, index) => (
-                <Paper key={index} variant="glass-subtle" className="p-3">
-                  <div className="flex justify-between items-start">
+                <Paper key={index} variant="glass-subtle" className="p-[var(--spacing-card)]">
+                  <div className="flex justify-between items-start gap-[var(--spacing-tight)]">
                     <span className="text-primary flex-1">{strength}</span>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => removeStrength(index)}
-                      className="text-error hover:text-error ml-2"
+                      className="text-error hover:text-error"
                     >
                       Remove
                     </Button>
@@ -561,12 +535,13 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
             </div>
           )}
           
-          <div className="flex gap-2">
+          <div className="flex gap-[var(--spacing-tight)]">
             <Input
               placeholder="Add a strength..."
               value={newStrength}
               onChange={setNewStrength}
               className="flex-1"
+              {...(errors.strengths && { error: errors.strengths })}
             />
             <Button
               variant="secondary"
@@ -576,27 +551,23 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
               Add
             </Button>
           </div>
-          
-          {errors.strengths && (
-            <p className="text-error text-sm mt-2">{errors.strengths}</p>
-          )}
         </Paper>
 
         {/* Areas for Improvement */}
         <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-          <ComponentTitle className="mb-4">Areas for Improvement</ComponentTitle>
+          <ComponentTitle className="mb-[var(--spacing-element)]">Areas for Improvement</ComponentTitle>
           
           {formData.areas_for_improvement.length > 0 && (
-            <div className="mb-4 space-y-2">
+            <div className="mb-[var(--spacing-element)] space-y-[var(--spacing-tight)]">
               {formData.areas_for_improvement.map((improvement, index) => (
-                <Paper key={index} variant="glass-subtle" className="p-3">
-                  <div className="flex justify-between items-start">
+                <Paper key={index} variant="glass-subtle" className="p-[var(--spacing-card)]">
+                  <div className="flex justify-between items-start gap-[var(--spacing-tight)]">
                     <span className="text-primary flex-1">{improvement}</span>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => removeImprovement(index)}
-                      className="text-error hover:text-error ml-2"
+                      className="text-error hover:text-error"
                     >
                       Remove
                     </Button>
@@ -606,12 +577,13 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
             </div>
           )}
           
-          <div className="flex gap-2">
+          <div className="flex gap-[var(--spacing-tight)]">
             <Input
               placeholder="Add an area for improvement..."
               value={newImprovement}
               onChange={setNewImprovement}
               className="flex-1"
+              {...(errors.areas_for_improvement && { error: errors.areas_for_improvement })}
             />
             <Button
               variant="secondary"
@@ -621,33 +593,29 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
               Add
             </Button>
           </div>
-          
-          {errors.areas_for_improvement && (
-            <p className="text-error text-sm mt-2">{errors.areas_for_improvement}</p>
-          )}
         </Paper>
 
         {/* Goals */}
         <Paper variant="glass-elevated" className="p-[var(--spacing-card-lg)]">
-          <ComponentTitle className="mb-4">Performance Goals</ComponentTitle>
+          <ComponentTitle className="mb-[var(--spacing-element)]">Performance Goals</ComponentTitle>
           
           {formData.goals.length > 0 && (
-            <div className="mb-6 space-y-4">
+            <div className="mb-[var(--spacing-component)] space-y-[var(--spacing-element)]">
               {formData.goals.map((goal, index) => (
-                <Paper key={index} variant="glass" className="p-4">
-                  <div className="flex justify-between items-start">
+                <Paper key={index} variant="glass" className="p-[var(--spacing-card)]">
+                  <div className="flex justify-between items-start gap-[var(--spacing-element)]">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-primary">{goal.title}</h4>
-                      <p className="text-sm text-secondary mt-1">{goal.description}</p>
-                      <p className="text-xs text-tertiary mt-2">
+                      <h4 className="font-semibold text-primary mb-[var(--spacing-tight)]">{goal.title}</h4>
+                      <p className="text-sm text-secondary mb-[var(--spacing-tight)]">{goal.description}</p>
+                      <Chip variant="default" size="sm" className="text-tertiary">
                         Target: {new Date(goal.target_date).toLocaleDateString()}
-                      </p>
+                      </Chip>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => removeGoal(index)}
-                      className="text-error hover:text-error ml-4"
+                      className="text-error hover:text-error"
                     >
                       Remove
                     </Button>
@@ -657,8 +625,8 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
             </div>
           )}
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-[var(--spacing-element)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--spacing-element)]">
               <Input
                 label="Goal Title"
                 placeholder="e.g., Improve leadership skills"
@@ -691,20 +659,25 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
 
         {/* Submit Error */}
         {errors.submit && (
-          <Paper variant="glass-subtle" className="p-4 border-error/20">
-            <p className="text-error text-sm">{errors.submit}</p>
+          <Paper variant="glass-subtle" className="p-[var(--spacing-card)] border border-error/20 bg-error/10">
+            <div className="flex items-start gap-[var(--spacing-tight)]">
+              <svg className="h-5 w-5 text-error flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <p className="text-error text-sm">{errors.submit}</p>
+            </div>
           </Paper>
         )}
 
         {/* Action Buttons */}
-        <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
+          <div className="responsive-flex-col-row">
             <Button
               type="submit"
               variant="primary"
               size="lg"
               disabled={isLoading}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto touch-friendly"
             >
               {isLoading ? 'Saving...' : existingReview ? 'Update Review' : 'Create Review'}
             </Button>
@@ -716,7 +689,7 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
                 size="lg"
                 onClick={onCancel}
                 disabled={isLoading}
-                className="flex-1 sm:flex-none"
+                className="w-full sm:w-auto touch-friendly"
               >
                 Cancel
               </Button>

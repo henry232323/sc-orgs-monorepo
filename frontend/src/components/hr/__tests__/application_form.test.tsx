@@ -196,7 +196,7 @@ describe('ApplicationForm', () => {
     
     renderWithProvider(<ApplicationForm onSuccess={mockOnSuccess} onCancel={mockOnCancel} />);
     
-    expect(screen.getByText('Submitting...')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Submitting.../ })).toBeDisabled();
+    expect(screen.getByText('Submitting Application...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Submitting Application.../ })).toBeDisabled();
   });
 });

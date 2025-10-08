@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
-  FolderIcon, 
-  DocumentIcon, 
+import {
+  FolderIcon,
+  DocumentIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   EyeIcon,
@@ -73,7 +73,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-    
+
     return undefined;
   }, [exportingDocument]);
 
@@ -118,11 +118,11 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     if (!finalResponse?.data) return {};
 
     const structure: FolderStructure = {};
-    
+
     finalResponse.data.forEach(doc => {
       const pathParts = doc.folder_path.split('/').filter(Boolean);
       let current = structure;
-      
+
       // Build folder hierarchy
       pathParts.forEach(part => {
         if (!current[part]) {
@@ -130,7 +130,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
         }
         current = current[part].subfolders;
       });
-      
+
       // Add document to appropriate folder
       const folderKey = pathParts[pathParts.length - 1] || 'root';
       if (!structure[folderKey]) {
@@ -144,13 +144,13 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
   const getCurrentFolderDocuments = useCallback((): Document[] => {
     if (!finalResponse?.data) return [];
-    
+
     // If searching, return all results regardless of folder
     if (debouncedSearch) {
       return finalResponse.data;
     }
-    
-    return finalResponse.data.filter(doc => 
+
+    return finalResponse.data.filter(doc =>
       doc.folder_path === currentFolder ||
       (currentFolder === '/' && doc.folder_path === '')
     );
@@ -169,7 +169,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
       // Refetch both documents list and acknowledgment status
       finalRefetch();
-      
+
       // Note: The acknowledgment status will be automatically refetched due to cache invalidation
       // when the component re-renders after the documents list is updated
     } catch (error) {
@@ -185,11 +185,11 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
   const highlightSearchTerm = (text: string, searchTerm: string): React.ReactNode => {
     if (!searchTerm || !text) return text;
-    
+
     const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     const parts = text.split(regex);
-    
-    return parts.map((part, index) => 
+
+    return parts.map((part, index) =>
       regex.test(part) ? (
         <mark key={index} className="bg-yellow-200 px-1 rounded">
           {part}
@@ -290,7 +290,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
   const getAcknowledgmentStatus = (doc: Document) => {
     const { data: acknowledgmentStatus, isLoading: isLoadingAcknowledgment, error: acknowledgmentError, refetch: refetchAcknowledgment } = useDocumentAcknowledgmentStatus(doc);
-    
+
     if (!doc.requires_acknowledgment) {
       return null;
     }
@@ -361,12 +361,12 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   const currentDocuments = getCurrentFolderDocuments();
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-col lg:flex-row h-full gap-4 lg:gap-0">
       {/* Sidebar - Folder Navigation */}
-      <div className="w-64 flex-shrink-0">
-        <Paper variant="glass-elevated" className="h-full">
-          <div className="p-4 border-b border-glass-border">
-            <ComponentTitle className="mb-2">Folders</ComponentTitle>
+      <div className="w-full lg:w-64 flex-shrink-0 order-2 lg:order-1">
+        <Paper variant="glass-elevated" className="h-auto lg:h-full">
+          <div className="responsive-padding-x responsive-padding-y border-b border-glass-border lg:border-b">
+            <ComponentTitle className="mb-2 responsive-text-lg">Folders</ComponentTitle>
             <Input
               placeholder="Search documents and content..."
               value={searchQuery}
@@ -375,11 +375,11 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
               className="w-full"
             />
           </div>
-          
-          <div className="p-2 overflow-y-auto">
+
+          <div className="p-2 overflow-y-auto max-h-48 lg:max-h-none">
             {debouncedSearch ? (
               <div className="text-center py-4">
-                <p className="text-sm text-secondary">
+                <p className="responsive-text-sm text-secondary">
                   Searching all documents...
                 </p>
                 {finalResponse?.total && (
@@ -393,17 +393,17 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                 <SidebarItem
                   icon={<FolderIcon />}
                   onClick={() => setCurrentFolder('/')}
-                  className={currentFolder === '/' ? 'bg-glass-elevated' : ''}
+                  className={`touch-friendly ${currentFolder === '/' ? 'bg-glass-elevated' : ''}`}
                 >
                   Root
                 </SidebarItem>
-                
+
                 {Object.entries(folderStructure).map(([folderName, folder]) => (
                   <SidebarItem
                     key={folderName}
                     icon={<FolderIcon />}
                     onClick={() => setCurrentFolder(`/${folderName}`)}
-                    className={currentFolder === `/${folderName}` ? 'bg-glass-elevated' : ''}
+                    className={`touch-friendly ${currentFolder === `/${folderName}` ? 'bg-glass-elevated' : ''}`}
                   >
                     {folderName}
                     <span className="ml-auto text-xs text-muted">
@@ -418,30 +418,32 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-[var(--spacing-section)]">
-        <div className="space-y-[var(--spacing-section)]">
+      <div className="flex-1 order-1 lg:order-2 responsive-padding-x responsive-padding-y lg:p-[var(--spacing-section)]">
+        <div className="space-y-4 lg:space-y-[var(--spacing-section)]">
           {/* Header */}
-          <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-            <div className="flex justify-between items-start">
-              <div>
-                <ComponentTitle className="mb-2">
+          <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)]">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <ComponentTitle className="mb-2 responsive-text-lg">
                   Document Library
                 </ComponentTitle>
-                <ComponentSubtitle>
-                  {debouncedSearch 
-                    ? `Search results for "${debouncedSearch}"` 
+                <ComponentSubtitle className="responsive-text-sm">
+                  {debouncedSearch
+                    ? `Search results for "${debouncedSearch}"`
                     : `Current folder: ${currentFolder === '/' ? 'Root' : currentFolder}`
                   }
                 </ComponentSubtitle>
               </div>
-              
+
               {allowCreate && (
                 <Button
                   variant="primary"
                   onClick={() => setIsCreatingDocument(true)}
+                  className="w-full sm:w-auto touch-friendly"
                 >
                   <PlusIcon className="w-4 h-4" />
-                  Create Document
+                  <span className="hidden sm:inline">Create Document</span>
+                  <span className="sm:hidden">Create</span>
                 </Button>
               )}
             </div>
@@ -449,21 +451,22 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
           {/* Markdown Editor Modal */}
           {(isCreatingDocument || editingDocument) && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between p-4 border-b">
-                  <ComponentTitle>
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between responsive-padding-x responsive-padding-y border-b">
+                  <ComponentTitle className="responsive-text-lg">
                     {editingDocument ? 'Edit Document' : 'Create New Document'}
                   </ComponentTitle>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleCancelEdit}
+                    className="touch-friendly"
                   >
                     ✕
                   </Button>
                 </div>
-                
+
                 <div className="flex-1 overflow-hidden">
                   <MarkdownEditor
                     initialContent={editingDocument?.content || ''}
@@ -478,11 +481,11 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
           )}
 
           {/* Document List */}
-          <Paper variant="glass-subtle" className="p-[var(--spacing-card-lg)]">
-            <ComponentTitle className="mb-4">
+          <Paper variant="glass-subtle" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)]">
+            <ComponentTitle className="mb-4 responsive-text-lg">
               Documents ({currentDocuments.length})
             </ComponentTitle>
-            
+
             {finalIsLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map(i => (
@@ -519,47 +522,51 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                     key={doc.id}
                     variant="glass"
                     interactive
-                    className="p-4 hover:shadow-[var(--shadow-glass-md)]"
+                    className="responsive-padding-x responsive-padding-y hover:shadow-[var(--shadow-glass-md)] glass-mobile-reduced"
                     onClick={() => {
                       setSelectedDocument(doc);
                       onDocumentSelect?.(doc);
                     }}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className="text-2xl flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                        <div className="text-xl sm:text-2xl flex-shrink-0">
                           📝
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-primary truncate">
+                          <h4 className="font-semibold text-primary truncate responsive-text-base">
                             {highlightSearchTerm(doc.title, debouncedSearch)}
                           </h4>
                           {doc.description && (
-                            <p className="text-sm text-secondary truncate">
+                            <p className="responsive-text-sm text-secondary truncate">
                               {highlightSearchTerm(doc.description, debouncedSearch)}
                             </p>
                           )}
-                          <div className="flex items-center gap-4 mt-1">
-                            <Caption>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
+                            <Caption className="responsive-text-sm">
                               {doc.word_count || 0} words
                             </Caption>
-                            <Caption>
+                            <Caption className="responsive-text-sm">
                               {formatReadingTime(doc.estimated_reading_time || 0)}
                             </Caption>
-                            <Caption>
+                            <Caption className="responsive-text-sm">
                               v{doc.version}
                             </Caption>
-                            <Caption>
+                            <Caption className="responsive-text-sm">
                               {new Date(doc.created_at).toLocaleDateString()}
                             </Caption>
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {showAcknowledgments && getAcknowledgmentStatus(doc)}
-                        
+
+                      <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:justify-start">
+                        {showAcknowledgments && (
+                          <div className="w-full sm:w-auto">
+                            {getAcknowledgmentStatus(doc)}
+                          </div>
+                        )}
+
                         {doc.requires_acknowledgment && !isDocumentAcknowledged(doc) && (
                           <Button
                             variant="secondary"
@@ -569,81 +576,91 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                               handleDocumentAcknowledge(doc.id);
                             }}
                             disabled={isAcknowledging}
+                            className="touch-friendly w-full sm:w-auto"
                           >
                             <CheckCircleIcon className="w-4 h-4" />
-                            Acknowledge
+                            <span className="sm:hidden">Acknowledge</span>
+                            <span className="hidden sm:inline">Acknowledge</span>
                           </Button>
                         )}
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e?.stopPropagation();
-                            setEditingDocument(doc);
-                          }}
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e?.stopPropagation();
-                            onDocumentSelect?.(doc);
-                          }}
-                        >
-                          <EyeIcon className="w-4 h-4" />
-                        </Button>
 
-                        {/* Export dropdown */}
-                        <div className="relative">
+                        <div className="flex items-center gap-1 sm:gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={(e) => {
                               e?.stopPropagation();
-                              setExportingDocument(exportingDocument === doc.id ? null : doc.id);
+                              setEditingDocument(doc);
                             }}
+                            className="touch-friendly"
+                            title="Edit document"
                           >
-                            <ArrowDownTrayIcon className="w-4 h-4" />
+                            <PencilIcon className="w-4 h-4" />
                           </Button>
-                          
-                          {exportingDocument === doc.id && (
-                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
-                              <button
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 first:rounded-t-md"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExportDocument(doc, 'html');
-                                  setExportingDocument(null);
-                                }}
-                              >
-                                Export as HTML
-                              </button>
-                              <button
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExportDocument(doc, 'pdf');
-                                  setExportingDocument(null);
-                                }}
-                              >
-                                Export as PDF
-                              </button>
-                              <button
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 last:rounded-b-md"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExportDocument(doc, 'markdown');
-                                  setExportingDocument(null);
-                                }}
-                              >
-                                Export as Markdown
-                              </button>
-                            </div>
-                          )}
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e?.stopPropagation();
+                              onDocumentSelect?.(doc);
+                            }}
+                            className="touch-friendly"
+                            title="View document"
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </Button>
+
+                          {/* Export dropdown */}
+                          <div className="relative">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e?.stopPropagation();
+                                setExportingDocument(exportingDocument === doc.id ? null : doc.id);
+                              }}
+                              className="touch-friendly"
+                              title="Export document"
+                            >
+                              <ArrowDownTrayIcon className="w-4 h-4" />
+                            </Button>
+
+                            {exportingDocument === doc.id && (
+                              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[140px] sm:min-w-[120px]">
+                                <button
+                                  className="w-full px-3 py-3 sm:py-2 text-left responsive-text-sm hover:bg-gray-50 first:rounded-t-md touch-friendly"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExportDocument(doc, 'html');
+                                    setExportingDocument(null);
+                                  }}
+                                >
+                                  Export as HTML
+                                </button>
+                                <button
+                                  className="w-full px-3 py-3 sm:py-2 text-left responsive-text-sm hover:bg-gray-50 touch-friendly"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExportDocument(doc, 'pdf');
+                                    setExportingDocument(null);
+                                  }}
+                                >
+                                  Export as PDF
+                                </button>
+                                <button
+                                  className="w-full px-3 py-3 sm:py-2 text-left responsive-text-sm hover:bg-gray-50 last:rounded-b-md touch-friendly"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExportDocument(doc, 'markdown');
+                                    setExportingDocument(null);
+                                  }}
+                                >
+                                  Export as Markdown
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

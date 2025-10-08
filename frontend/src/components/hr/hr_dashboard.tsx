@@ -10,6 +10,8 @@ import {
   StatSmall,
   ComponentTitle,
   ComponentSubtitle,
+  PaperTitle,
+  PaperSubtitle,
 } from '../ui';
 import {
   useGetHRAnalyticsQuery,
@@ -127,18 +129,18 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
   ];
 
   return (
-    <div className='space-y-[var(--spacing-section)]'>
+    <div className='space-y-4 lg:space-y-[var(--spacing-section)] responsive-container'>
       {/* Header */}
-      <div className='flex items-center justify-between'>
-        <PageTitle>HR Management</PageTitle>
-        <div className='flex items-center gap-[var(--gap-button)]'>
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+        <PageTitle className="responsive-text-lg">HR Management</PageTitle>
+        <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-[var(--gap-button)]'>
           {canViewAnalytics && (
-            <Button variant='glass' size='sm'>
+            <Button variant='glass' size='sm' className="touch-friendly">
               <ChartBarIcon className='w-5 h-5 mr-2' />
               Analytics
             </Button>
           )}
-          <Button variant='glass' size='sm'>
+          <Button variant='glass' size='sm' className="touch-friendly">
             <DocumentTextIcon className='w-5 h-5 mr-2' />
             Reports
           </Button>
@@ -148,22 +150,22 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
       {/* Key Metrics Overview */}
       {canViewAnalytics && (
         <div>
-          <SectionTitle className='mb-[var(--spacing-card-lg)]'>
+          <SectionTitle className='mb-4 lg:mb-[var(--spacing-card-lg)] responsive-text-lg'>
             Key Metrics
           </SectionTitle>
-          <div className='grid grid-cols-2 md:grid-cols-4 gap-[var(--gap-grid-md)]'>
+          <div className='responsive-grid-1-2-4 gap-3 lg:gap-[var(--gap-grid-md)]'>
             {/* Applications Metric */}
             <Paper
               variant='glass'
               size='md'
-              className='text-center glass-interactive'
+              className='text-center glass-mobile-reduced'
             >
-              <UserPlusIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-              <StatLarge className='mb-1'>
+              <UserPlusIcon className='w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-[var(--spacing-tight)]' style={{ color: 'var(--color-text-tertiary)' }} />
+              <StatLarge className='mb-[var(--spacing-tight)] responsive-text-lg'>
                 {analyticsLoading ? '...' : hrAnalytics?.metrics.applications.total_received || 0}
               </StatLarge>
-              <div className='text-sm text-tertiary mb-2'>Applications</div>
-              <div className='text-xs text-success'>
+              <PaperSubtitle className='mb-[var(--spacing-tight)] responsive-text-sm'>Applications</PaperSubtitle>
+              <div className='responsive-text-sm' style={{ color: 'var(--color-success)' }}>
                 {analyticsLoading ? '...' : `${((hrAnalytics?.metrics.applications.approval_rate || 0) * 100).toFixed(1)}% approved`}
               </div>
             </Paper>
@@ -172,14 +174,14 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
             <Paper
               variant='glass'
               size='md'
-              className='text-center glass-interactive'
+              className='text-center glass-mobile-reduced'
             >
-              <ClipboardDocumentListIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-              <StatLarge className='mb-1'>
+              <ClipboardDocumentListIcon className='w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-[var(--spacing-tight)]' style={{ color: 'var(--color-text-tertiary)' }} />
+              <StatLarge className='mb-[var(--spacing-tight)] responsive-text-lg'>
                 {analyticsLoading ? '...' : hrAnalytics?.metrics.onboarding.total_started || 0}
               </StatLarge>
-              <div className='text-sm text-tertiary mb-2'>Onboarding</div>
-              <div className='text-xs text-warning'>
+              <PaperSubtitle className='mb-[var(--spacing-tight)] responsive-text-sm'>Onboarding</PaperSubtitle>
+              <div className='responsive-text-sm' style={{ color: 'var(--color-warning)' }}>
                 {analyticsLoading ? '...' : `${hrAnalytics?.metrics.onboarding.overdue_count || 0} overdue`}
               </div>
             </Paper>
@@ -188,14 +190,14 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
             <Paper
               variant='glass'
               size='md'
-              className='text-center glass-interactive'
+              className='text-center glass-mobile-reduced'
             >
-              <TrophyIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-              <StatLarge className='mb-1'>
+              <TrophyIcon className='w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-[var(--spacing-tight)]' style={{ color: 'var(--color-text-tertiary)' }} />
+              <StatLarge className='mb-[var(--spacing-tight)] responsive-text-lg'>
                 {analyticsLoading ? '...' : hrAnalytics?.metrics.performance.reviews_completed || 0}
               </StatLarge>
-              <div className='text-sm text-tertiary mb-2'>Reviews</div>
-              <div className='text-xs text-success'>
+              <PaperSubtitle className='mb-[var(--spacing-tight)] responsive-text-sm'>Reviews</PaperSubtitle>
+              <div className='responsive-text-sm' style={{ color: 'var(--color-success)' }}>
                 {analyticsLoading ? '...' : `${(hrAnalytics?.metrics.performance.average_rating || 0).toFixed(1)} avg rating`}
               </div>
             </Paper>
@@ -204,14 +206,14 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
             <Paper
               variant='glass'
               size='md'
-              className='text-center glass-interactive'
+              className='text-center glass-mobile-reduced'
             >
-              <AcademicCapIcon className='w-8 h-8 text-tertiary mx-auto mb-3' />
-              <StatLarge className='mb-1'>
+              <AcademicCapIcon className='w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-[var(--spacing-tight)]' style={{ color: 'var(--color-text-tertiary)' }} />
+              <StatLarge className='mb-[var(--spacing-tight)] responsive-text-lg'>
                 {analyticsLoading ? '...' : hrAnalytics?.metrics.skills.total_skills_tracked || 0}
               </StatLarge>
-              <div className='text-sm text-tertiary mb-2'>Skills</div>
-              <div className='text-xs text-info'>
+              <PaperSubtitle className='mb-[var(--spacing-tight)] responsive-text-sm'>Skills</PaperSubtitle>
+              <div className='responsive-text-sm' style={{ color: 'var(--color-info)' }}>
                 {analyticsLoading ? '...' : `${((hrAnalytics?.metrics.skills.verification_rate || 0) * 100).toFixed(1)}% verified`}
               </div>
             </Paper>
@@ -221,36 +223,36 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
 
       {/* Quick Actions */}
       <div>
-        <SectionTitle className='mb-[var(--spacing-card-lg)]'>
+        <SectionTitle className='mb-4 lg:mb-[var(--spacing-card-lg)] responsive-text-lg'>
           Quick Actions
         </SectionTitle>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--gap-grid-md)]'>
+        <div className='responsive-grid-1-3 gap-3 lg:gap-[var(--gap-grid-md)]'>
           {quickActions.map(action => (
             <Link key={action.title} to={action.href} className='block'>
               <Paper
                 variant='elevated'
                 size='lg'
                 interactive
-                className='h-full transition-all duration-[var(--duration-normal)] hover:scale-[var(--scale-hover)] cursor-pointer'
+                className='h-full transition-all duration-[var(--duration-normal)] hover:scale-[var(--scale-hover)] cursor-pointer glass-mobile-reduced touch-friendly'
               >
                 <div className='text-center'>
-                  <action.icon className='w-12 h-12 text-tertiary mx-auto mb-4 group-hover:text-secondary transition-colors duration-[var(--duration-normal)]' />
-                  <h3 className='text-lg font-semibold text-primary mb-2'>
+                  <action.icon className='w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-[var(--spacing-element)] group-hover:text-secondary transition-colors duration-[var(--duration-normal)]' style={{ color: 'var(--color-text-tertiary)' }} />
+                  <PaperTitle className='mb-[var(--spacing-tight)] responsive-text-base'>
                     {action.title}
-                  </h3>
-                  <p className='text-secondary text-sm mb-4'>
+                  </PaperTitle>
+                  <PaperSubtitle className='mb-[var(--spacing-element)] responsive-text-sm'>
                     {action.description}
-                  </p>
+                  </PaperSubtitle>
                   {action.count !== undefined && (
-                    <div className='mb-4'>
-                      <StatMedium className='text-accent-blue'>
+                    <div className='mb-[var(--spacing-element)]'>
+                      <StatMedium className="responsive-text-lg" style={{ color: 'var(--color-accent-blue)' }}>
                         {action.count}
                       </StatMedium>
                     </div>
                   )}
-                  <div className='flex items-center justify-center text-[var(--color-accent-blue)] text-sm font-medium'>
+                  <div className='flex items-center justify-center responsive-text-sm font-medium' style={{ color: 'var(--color-accent-blue)' }}>
                     Open
-                    <ArrowRightIcon className='w-4 h-4 ml-2' />
+                    <ArrowRightIcon className='w-4 h-4 ml-[var(--spacing-tight)]' />
                   </div>
                 </div>
               </Paper>
@@ -260,24 +262,24 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
       </div>
 
       {/* Recent Activity & Alerts */}
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-[var(--gap-grid-lg)]'>
+      <div className='responsive-grid-1-2 gap-4 lg:gap-[var(--gap-grid-lg)]'>
         {/* Recent Activity */}
         <div>
-          <SectionTitle className='mb-[var(--spacing-card-lg)]'>
+          <SectionTitle className='mb-4 lg:mb-[var(--spacing-card-lg)] responsive-text-lg'>
             Recent Activity
           </SectionTitle>
-          <Paper variant='glass' size='lg'>
+          <Paper variant='glass' size='lg' className="glass-mobile-reduced">
             {activitiesLoading ? (
               // Loading state
               <div className='space-y-4'>
                 {[1, 2, 3].map(i => (
                   <div key={i} className='animate-pulse'>
-                    <div className='flex items-start space-x-4 p-4'>
-                      <div className='w-10 h-10 bg-white/10 rounded-lg flex-shrink-0'></div>
-                      <div className='flex-1 space-y-2'>
-                        <div className='h-4 bg-white/10 rounded w-3/4'></div>
-                        <div className='h-3 bg-white/5 rounded w-full'></div>
-                        <div className='h-3 bg-white/5 rounded w-1/4'></div>
+                    <div className='flex items-start p-[var(--spacing-element)]' style={{ gap: 'var(--spacing-element)' }}>
+                      <div className='w-10 h-10 flex-shrink-0 rounded-lg' style={{ backgroundColor: 'var(--color-glass-bg)' }}></div>
+                      <div className='flex-1' style={{ gap: 'var(--spacing-tight)' }}>
+                        <div className='h-4 rounded w-3/4 mb-[var(--spacing-tight)]' style={{ backgroundColor: 'var(--color-glass-bg)' }}></div>
+                        <div className='h-3 rounded w-full mb-[var(--spacing-tight)]' style={{ backgroundColor: 'var(--color-glass-bg-hover)' }}></div>
+                        <div className='h-3 rounded w-1/4' style={{ backgroundColor: 'var(--color-glass-bg-hover)' }}></div>
                       </div>
                     </div>
                   </div>
@@ -285,12 +287,12 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
               </div>
             ) : activitiesError ? (
               // Error state
-              <div className='text-center py-8'>
-                <ExclamationTriangleIcon className='w-12 h-12 text-error mx-auto mb-4' />
-                <ComponentTitle className='text-primary mb-2'>
+              <div className='text-center' style={{ padding: 'var(--spacing-loose) 0' }}>
+                <ExclamationTriangleIcon className='w-12 h-12 mx-auto mb-[var(--spacing-element)]' style={{ color: 'var(--color-error)' }} />
+                <ComponentTitle className='mb-[var(--spacing-tight)]'>
                   Failed to Load Activities
                 </ComponentTitle>
-                <ComponentSubtitle className='text-secondary mb-4'>
+                <ComponentSubtitle className='mb-[var(--spacing-element)]'>
                   Unable to fetch recent HR activities
                 </ComponentSubtitle>
                 <Button variant='secondary' onClick={() => refetchActivities()}>
@@ -299,33 +301,33 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
               </div>
             ) : !recentActivities?.data?.length ? (
               // Empty state
-              <div className='text-center py-12'>
-                <ClockIcon className='w-16 h-16 text-tertiary mx-auto mb-4' />
-                <ComponentTitle className='text-primary mb-2'>
+              <div className='text-center' style={{ padding: 'var(--spacing-section) 0' }}>
+                <ClockIcon className='w-16 h-16 mx-auto mb-[var(--spacing-element)]' style={{ color: 'var(--color-text-tertiary)' }} />
+                <ComponentTitle className='mb-[var(--spacing-tight)]'>
                   No Recent Activity
                 </ComponentTitle>
-                <ComponentSubtitle className='text-secondary'>
+                <ComponentSubtitle>
                   HR activities will appear here as they occur in your organization.
                 </ComponentSubtitle>
               </div>
             ) : (
               // Activity list
-              <div className='space-y-4'>
+              <div style={{ gap: 'var(--spacing-element)' }} className='flex flex-col'>
                 {recentActivities.data.map((activity) => {
                   const ActivityIcon = getHRActivityIcon(activity.activity_type);
                   return (
-                    <div key={activity.id} className='flex items-start space-x-4 p-4 bg-white/5 rounded-lg'>
-                      <div className='w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0'>
-                        <ActivityIcon className='w-5 h-5 text-white/60' />
+                    <div key={activity.id} className='flex items-start rounded-lg' style={{ gap: 'var(--spacing-element)', padding: 'var(--spacing-element)', backgroundColor: 'var(--color-glass-bg-hover)' }}>
+                      <div className='w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0' style={{ backgroundColor: 'var(--color-glass-bg)' }}>
+                        <ActivityIcon className='w-5 h-5' style={{ color: 'var(--color-text-tertiary)' }} />
                       </div>
                       <div className='flex-1 min-w-0'>
-                        <h4 className='text-sm font-semibold text-primary'>
+                        <ComponentTitle className='text-sm mb-1'>
                           {activity.title}
-                        </h4>
-                        <p className='text-sm text-secondary'>
+                        </ComponentTitle>
+                        <ComponentSubtitle className='text-sm mb-1'>
                           {activity.description}
-                        </p>
-                        <p className='text-xs text-tertiary mt-1'>
+                        </ComponentSubtitle>
+                        <p className='text-xs' style={{ color: 'var(--color-text-tertiary)' }}>
                           {formatRelativeTime(activity.created_at)}
                         </p>
                       </div>
@@ -339,60 +341,60 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
 
         {/* Alerts & Notifications */}
         <div>
-          <SectionTitle className='mb-[var(--spacing-card-lg)]'>
+          <SectionTitle className='mb-4 lg:mb-[var(--spacing-card-lg)] responsive-text-lg'>
             Alerts & Notifications
           </SectionTitle>
-          <Paper variant='glass' size='lg'>
-            <div className='space-y-4'>
+          <Paper variant='glass' size='lg' className="glass-mobile-reduced">
+            <div style={{ gap: 'var(--spacing-element)' }} className='flex flex-col'>
               {/* High priority alerts */}
-              <div className='flex items-start space-x-4 p-4 bg-warning/10 border border-warning/20 rounded-lg'>
-                <div className='w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center flex-shrink-0'>
-                  <ExclamationTriangleIcon className='w-5 h-5 text-warning' />
+              <div className='flex items-start rounded-lg border' style={{ gap: 'var(--spacing-element)', padding: 'var(--spacing-element)', backgroundColor: 'var(--color-warning-bg)', borderColor: 'var(--color-warning-border)' }}>
+                <div className='w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0' style={{ backgroundColor: 'var(--color-warning-bg)' }}>
+                  <ExclamationTriangleIcon className='w-5 h-5' style={{ color: 'var(--color-warning)' }} />
                 </div>
                 <div className='flex-1 min-w-0'>
-                  <h4 className='text-sm font-semibold text-primary'>
+                  <ComponentTitle className='text-sm mb-1'>
                     Overdue Onboarding
-                  </h4>
-                  <p className='text-sm text-secondary'>
+                  </ComponentTitle>
+                  <ComponentSubtitle className='text-sm mb-1'>
                     {hrAnalytics?.metrics.onboarding.overdue_count || 0} members have overdue onboarding tasks
-                  </p>
-                  <StatSmall className='text-warning mt-1'>
+                  </ComponentSubtitle>
+                  <StatSmall style={{ color: 'var(--color-warning)' }}>
                     Action Required
                   </StatSmall>
                 </div>
               </div>
 
               {/* Medium priority alerts */}
-              <div className='flex items-start space-x-4 p-4 bg-info/10 border border-info/20 rounded-lg'>
-                <div className='w-10 h-10 bg-info/20 rounded-lg flex items-center justify-center flex-shrink-0'>
-                  <ClipboardDocumentListIcon className='w-5 h-5 text-info' />
+              <div className='flex items-start rounded-lg border' style={{ gap: 'var(--spacing-element)', padding: 'var(--spacing-element)', backgroundColor: 'var(--color-info-bg)', borderColor: 'var(--color-info-border)' }}>
+                <div className='w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0' style={{ backgroundColor: 'var(--color-info-bg)' }}>
+                  <ClipboardDocumentListIcon className='w-5 h-5' style={{ color: 'var(--color-info)' }} />
                 </div>
                 <div className='flex-1 min-w-0'>
-                  <h4 className='text-sm font-semibold text-primary'>
+                  <ComponentTitle className='text-sm mb-1'>
                     Pending Applications
-                  </h4>
-                  <p className='text-sm text-secondary'>
+                  </ComponentTitle>
+                  <ComponentSubtitle className='text-sm mb-1'>
                     {hrAnalytics?.metrics.applications.total_received || 0} applications awaiting review
-                  </p>
-                  <StatSmall className='text-info mt-1'>
+                  </ComponentSubtitle>
+                  <StatSmall style={{ color: 'var(--color-info)' }}>
                     Review Needed
                   </StatSmall>
                 </div>
               </div>
 
               {/* Success notifications */}
-              <div className='flex items-start space-x-4 p-4 bg-success/10 border border-success/20 rounded-lg'>
-                <div className='w-10 h-10 bg-success/20 rounded-lg flex items-center justify-center flex-shrink-0'>
-                  <TrophyIcon className='w-5 h-5 text-success' />
+              <div className='flex items-start rounded-lg border' style={{ gap: 'var(--spacing-element)', padding: 'var(--spacing-element)', backgroundColor: 'var(--color-success-bg)', borderColor: 'var(--color-success-border)' }}>
+                <div className='w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0' style={{ backgroundColor: 'var(--color-success-bg)' }}>
+                  <TrophyIcon className='w-5 h-5' style={{ color: 'var(--color-success)' }} />
                 </div>
                 <div className='flex-1 min-w-0'>
-                  <h4 className='text-sm font-semibold text-primary'>
+                  <ComponentTitle className='text-sm mb-1'>
                     Performance Goals Met
-                  </h4>
-                  <p className='text-sm text-secondary'>
+                  </ComponentTitle>
+                  <ComponentSubtitle className='text-sm mb-1'>
                     {((hrAnalytics?.metrics.performance.goals_completion_rate || 0) * 100).toFixed(0)}% of performance goals completed this quarter
-                  </p>
-                  <StatSmall className='text-success mt-1'>
+                  </ComponentSubtitle>
+                  <StatSmall style={{ color: 'var(--color-success)' }}>
                     Great Progress!
                   </StatSmall>
                 </div>
@@ -411,22 +413,23 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ organizationId }) => {
           <Paper variant='glass-subtle' size='lg'>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--gap-grid-md)]'>
               {hrAnalytics.metrics.skills.skill_gaps.slice(0, 6).map((gap, index) => (
-                <div key={index} className='text-center p-4 bg-white/5 rounded-lg'>
-                  <h4 className='text-sm font-semibold text-primary mb-2'>
+                <div key={index} className='text-center rounded-lg' style={{ padding: 'var(--spacing-element)', backgroundColor: 'var(--color-glass-bg-hover)' }}>
+                  <ComponentTitle className='text-sm mb-[var(--spacing-tight)]'>
                     {gap.skill_name}
-                  </h4>
-                  <div className='mb-2'>
-                    <StatMedium className='text-warning'>
+                  </ComponentTitle>
+                  <div className='mb-[var(--spacing-tight)]'>
+                    <StatMedium style={{ color: 'var(--color-warning)' }}>
                       {gap.current_count}/{gap.required_count}
                     </StatMedium>
                   </div>
-                  <div className='text-xs text-tertiary'>
+                  <div className='text-xs mb-[var(--spacing-tight)]' style={{ color: 'var(--color-text-tertiary)' }}>
                     {gap.gap_percentage.toFixed(0)}% gap
                   </div>
-                  <div className='w-full bg-white/10 rounded-full h-2 mt-2'>
+                  <div className='w-full rounded-full h-2' style={{ backgroundColor: 'var(--color-glass-bg)' }}>
                     <div
-                      className='bg-warning h-2 rounded-full'
+                      className='h-2 rounded-full'
                       style={{
+                        backgroundColor: 'var(--color-warning)',
                         width: `${Math.max(0, 100 - gap.gap_percentage)}%`,
                       }}
                     />

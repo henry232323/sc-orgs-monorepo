@@ -7,9 +7,13 @@ import {
   FilterGroup,
   Dropdown,
   Textarea,
+  Input,
+  Checkbox,
   SectionTitle,
   ComponentTitle,
   ComponentSubtitle,
+  LoadingState,
+  EmptyState,
 } from '../ui';
 import {
   useGetApplicationsQuery,
@@ -68,19 +72,34 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
     { value: 'rejected', label: 'Rejected', description: 'Application rejected' },
   ];
 
-  // Get status chip variant and color
+  // Get status chip variant and color using design system colors
   const getStatusChipProps = (status: Application['status']) => {
     switch (status) {
       case 'approved':
-        return { variant: 'status' as const, className: 'bg-success/20 text-success border-success/30' };
+        return { 
+          variant: 'status' as const, 
+          className: 'bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success-border)]' 
+        };
       case 'rejected':
-        return { variant: 'status' as const, className: 'bg-error/20 text-error border-error/30' };
+        return { 
+          variant: 'status' as const, 
+          className: 'bg-[var(--color-error-bg)] text-[var(--color-error)] border-[var(--color-error-border)]' 
+        };
       case 'interview_scheduled':
-        return { variant: 'status' as const, className: 'bg-info/20 text-info border-info/30' };
+        return { 
+          variant: 'status' as const, 
+          className: 'bg-[var(--color-info-bg)] text-[var(--color-info)] border-[var(--color-info-border)]' 
+        };
       case 'under_review':
-        return { variant: 'status' as const, className: 'bg-warning/20 text-warning border-warning/30' };
+        return { 
+          variant: 'status' as const, 
+          className: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-warning-border)]' 
+        };
       default:
-        return { variant: 'default' as const, className: 'bg-gray-500/20 text-gray-300 border-gray-500/30' };
+        return { 
+          variant: 'default' as const, 
+          className: 'bg-[var(--color-glass-bg)] text-[var(--color-text-tertiary)] border-[var(--color-glass-border)]' 
+        };
     }
   };
 
@@ -215,26 +234,26 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
             </FilterGroup>
 
             <FilterGroup title='Date Range'>
-              <div className='space-y-2'>
-                <input
+              <div className='space-y-[var(--spacing-tight)]'>
+                <Input
                   type='date'
                   placeholder='From date'
                   value={filters.date_from || ''}
-                  onChange={(e) => setFilters(prev => ({ ...prev, date_from: e.target.value }))}
-                  className='w-full px-3 py-2 bg-glass border border-glass-border rounded-[var(--radius-glass-sm)] text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent'
+                  onChange={(value) => setFilters(prev => ({ ...prev, date_from: value }))}
+                  className='w-full'
                 />
-                <input
+                <Input
                   type='date'
                   placeholder='To date'
                   value={filters.date_to || ''}
-                  onChange={(e) => setFilters(prev => ({ ...prev, date_to: e.target.value }))}
-                  className='w-full px-3 py-2 bg-glass border border-glass-border rounded-[var(--radius-glass-sm)] text-primary placeholder-tertiary focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent'
+                  onChange={(value) => setFilters(prev => ({ ...prev, date_to: value }))}
+                  className='w-full'
                 />
               </div>
             </FilterGroup>
 
             <FilterGroup title='Actions'>
-              <div className='space-y-2'>
+              <div className='space-y-[var(--spacing-tight)]'>
                 <Button
                   variant='outline'
                   size='sm'
@@ -253,7 +272,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
       <Paper variant='glass' size='lg'>
         {/* Selection Controls */}
         {applicationsData?.data && applicationsData.data.length > 0 && (
-          <div className='flex items-center justify-between mb-[var(--spacing-card-lg)] pb-4 border-b border-glass-border'>
+          <div className='flex items-center justify-between mb-[var(--spacing-card-lg)] pb-[var(--spacing-element)] border-b border-[var(--color-glass-border)]'>
             <div className='flex items-center gap-[var(--gap-button)]'>
               <Button
                 variant='ghost'
@@ -272,7 +291,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                 </Button>
               )}
             </div>
-            <div className='text-sm text-tertiary'>
+            <div className='text-sm text-[var(--color-text-tertiary)]'>
               {applicationsData.total} applications total
             </div>
           </div>
@@ -280,9 +299,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
 
         {/* Applications Grid */}
         {isLoading ? (
-          <div className='flex items-center justify-center py-12'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary'></div>
-          </div>
+          <LoadingState title="Loading applications..." />
         ) : applicationsData?.data && applicationsData.data.length > 0 ? (
           <div className='space-y-[var(--gap-grid-md)]'>
             {applicationsData.data.map((application) => (
@@ -298,16 +315,15 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                 }`}
               >
                 <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-4'>
-                    <input
-                      type='checkbox'
+                  <div className='flex items-center gap-[var(--spacing-element)]'>
+                    <Checkbox
                       checked={selectedApplications.includes(application.id)}
                       onChange={() => toggleApplicationSelection(application.id)}
-                      className='w-4 h-4 text-accent-blue bg-transparent border-glass-border rounded focus:ring-accent-blue focus:ring-2'
+                      size='sm'
                     />
                     <div className='flex-1'>
-                      <div className='flex items-center gap-3 mb-2'>
-                        <ComponentTitle className='text-primary'>
+                      <div className='flex items-center gap-[var(--spacing-tight)] mb-[var(--spacing-tight)]'>
+                        <ComponentTitle className='text-[var(--color-text-primary)]'>
                           Application #{application.id.slice(-8)}
                         </ComponentTitle>
                         <Chip
@@ -317,32 +333,32 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                           {statusOptions.find(opt => opt.value === application.status)?.label || application.status}
                         </Chip>
                       </div>
-                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
+                      <div className='grid grid-cols-1 md:grid-cols-3 gap-[var(--spacing-element)] text-sm'>
                         <div>
-                          <ComponentSubtitle className='text-tertiary mb-1'>
+                          <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-1'>
                             Submitted
                           </ComponentSubtitle>
-                          <div className='flex items-center text-secondary'>
+                          <div className='flex items-center text-[var(--color-text-secondary)]'>
                             <CalendarIcon className='w-4 h-4 mr-1' />
                             {formatDate(application.created_at)}
                           </div>
                         </div>
                         {application.application_data.experience && (
                           <div>
-                            <ComponentSubtitle className='text-tertiary mb-1'>
+                            <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-1'>
                               Experience
                             </ComponentSubtitle>
-                            <div className='text-secondary truncate'>
+                            <div className='text-[var(--color-text-secondary)] truncate'>
                               {application.application_data.experience}
                             </div>
                           </div>
                         )}
                         {application.reviewer_id && (
                           <div>
-                            <ComponentSubtitle className='text-tertiary mb-1'>
+                            <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-1'>
                               Reviewer
                             </ComponentSubtitle>
-                            <div className='text-secondary'>
+                            <div className='text-[var(--color-text-secondary)]'>
                               {application.reviewer_id}
                             </div>
                           </div>
@@ -351,7 +367,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                     </div>
                   </div>
                   
-                  <div className='flex items-center gap-2'>
+                  <div className='flex items-center gap-[var(--spacing-tight)]'>
                     <Button
                       variant='ghost'
                       size='sm'
@@ -368,7 +384,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                           variant='ghost'
                           size='sm'
                           onClick={() => handleStatusUpdate(application.id, 'approved')}
-                          className='text-success hover:bg-success/10'
+                          className='text-[var(--color-success)] hover:bg-[var(--color-success-bg)]'
                         >
                           <CheckIcon className='w-4 h-4' />
                         </Button>
@@ -376,7 +392,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                           variant='ghost'
                           size='sm'
                           onClick={() => handleStatusUpdate(application.id, 'rejected')}
-                          className='text-error hover:bg-error/10'
+                          className='text-[var(--color-error)] hover:bg-[var(--color-error-bg)]'
                         >
                           <XMarkIcon className='w-4 h-4' />
                         </Button>
@@ -388,28 +404,26 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
             ))}
           </div>
         ) : (
-          <div className='text-center py-12'>
-            <UserPlusIcon className='w-16 h-16 text-tertiary mx-auto mb-4' />
-            <ComponentTitle className='text-primary mb-2'>
-              No Applications Found
-            </ComponentTitle>
-            <ComponentSubtitle className='text-secondary'>
-              {Object.keys(filters).length > 0
+          <EmptyState
+            icon={UserPlusIcon as React.ComponentType<{ className?: string }>}
+            title="No Applications Found"
+            description={
+              Object.keys(filters).length > 0
                 ? 'No applications match your current filters.'
-                : 'No applications have been submitted yet.'}
-            </ComponentSubtitle>
-          </div>
+                : 'No applications have been submitted yet.'
+            }
+          />
         )}
 
         {/* Pagination */}
         {applicationsData && applicationsData.total > applicationsData.limit && (
-          <div className='flex items-center justify-between mt-[var(--spacing-card-lg)] pt-4 border-t border-glass-border'>
-            <div className='text-sm text-tertiary'>
+          <div className='flex items-center justify-between mt-[var(--spacing-card-lg)] pt-[var(--spacing-element)] border-t border-[var(--color-glass-border)]'>
+            <div className='text-sm text-[var(--color-text-tertiary)]'>
               Showing {((page - 1) * applicationsData.limit) + 1} to{' '}
               {Math.min(page * applicationsData.limit, applicationsData.total)} of{' '}
               {applicationsData.total} applications
             </div>
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-[var(--spacing-tight)]'>
               <Button
                 variant='ghost'
                 size='sm'
@@ -448,9 +462,9 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
             {/* Application Details */}
             <div>
               <ComponentTitle className='mb-4'>Application Details</ComponentTitle>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-[var(--spacing-element)]'>
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-1'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-1'>
                     Status
                   </ComponentSubtitle>
                   <Chip
@@ -461,10 +475,10 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                   </Chip>
                 </div>
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-1'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-1'>
                     Submitted
                   </ComponentSubtitle>
-                  <div className='text-secondary'>
+                  <div className='text-[var(--color-text-secondary)]'>
                     {formatDate(selectedApplication.created_at)}
                   </div>
                 </div>
@@ -474,11 +488,11 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
             {/* Application Data */}
             {selectedApplication.application_data.cover_letter && (
               <div>
-                <ComponentSubtitle className='text-tertiary mb-2'>
+                <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
                   Cover Letter
                 </ComponentSubtitle>
                 <Paper variant='glass-subtle' size='sm'>
-                  <p className='text-secondary text-sm whitespace-pre-wrap'>
+                  <p className='text-[var(--color-text-secondary)] text-sm whitespace-pre-wrap'>
                     {selectedApplication.application_data.cover_letter}
                   </p>
                 </Paper>
@@ -487,11 +501,11 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
 
             {selectedApplication.application_data.experience && (
               <div>
-                <ComponentSubtitle className='text-tertiary mb-2'>
+                <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
                   Experience
                 </ComponentSubtitle>
                 <Paper variant='glass-subtle' size='sm'>
-                  <p className='text-secondary text-sm whitespace-pre-wrap'>
+                  <p className='text-[var(--color-text-secondary)] text-sm whitespace-pre-wrap'>
                     {selectedApplication.application_data.experience}
                   </p>
                 </Paper>
@@ -500,11 +514,11 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
 
             {selectedApplication.application_data.availability && (
               <div>
-                <ComponentSubtitle className='text-tertiary mb-2'>
+                <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
                   Availability
                 </ComponentSubtitle>
                 <Paper variant='glass-subtle' size='sm'>
-                  <p className='text-secondary text-sm'>
+                  <p className='text-[var(--color-text-secondary)] text-sm'>
                     {selectedApplication.application_data.availability}
                   </p>
                 </Paper>
@@ -514,9 +528,9 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
             {/* Review Form */}
             <div>
               <ComponentTitle className='mb-4'>Review Application</ComponentTitle>
-              <div className='space-y-4'>
+              <div className='space-y-[var(--spacing-element)]'>
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-2'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
                     Status
                   </ComponentSubtitle>
                   <Dropdown
@@ -528,7 +542,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
                 </div>
 
                 <div>
-                  <ComponentSubtitle className='text-tertiary mb-2'>
+                  <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
                     Review Notes
                   </ComponentSubtitle>
                   <Textarea
@@ -542,7 +556,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
 
                 {selectedApplication.status === 'rejected' && (
                   <div>
-                    <ComponentSubtitle className='text-tertiary mb-2'>
+                    <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
                       Rejection Reason
                     </ComponentSubtitle>
                     <Textarea
@@ -558,7 +572,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
             </div>
 
             {/* Action Buttons */}
-            <div className='flex items-center justify-end gap-[var(--gap-button)] pt-4 border-t border-glass-border'>
+            <div className='flex items-center justify-end gap-[var(--gap-button)] pt-[var(--spacing-element)] border-t border-[var(--color-glass-border)]'>
               <Button
                 variant='ghost'
                 onClick={() => {
@@ -589,7 +603,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
       >
         <div className='space-y-[var(--spacing-card-lg)]'>
           <div>
-            <ComponentSubtitle className='text-tertiary mb-2'>
+            <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
               New Status
             </ComponentSubtitle>
             <Dropdown
@@ -601,7 +615,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
           </div>
 
           <div>
-            <ComponentSubtitle className='text-tertiary mb-2'>
+            <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
               Review Notes
             </ComponentSubtitle>
             <Textarea
@@ -615,7 +629,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
 
           {bulkStatus === 'rejected' && (
             <div>
-              <ComponentSubtitle className='text-tertiary mb-2'>
+              <ComponentSubtitle className='text-[var(--color-text-tertiary)] mb-2'>
                 Rejection Reason
               </ComponentSubtitle>
               <Textarea
@@ -628,7 +642,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ organizationId 
             </div>
           )}
 
-          <div className='flex items-center justify-end gap-[var(--gap-button)] pt-4 border-t border-glass-border'>
+          <div className='flex items-center justify-end gap-[var(--gap-button)] pt-[var(--spacing-element)] border-t border-[var(--color-glass-border)]'>
             <Button
               variant='ghost'
               onClick={() => {

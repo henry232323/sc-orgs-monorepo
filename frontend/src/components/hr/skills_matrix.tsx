@@ -6,7 +6,8 @@ import {
   Dialog,
   Input,
   Textarea,
-  Dropdown,
+  Select,
+  Checkbox,
   SectionTitle,
   ComponentTitle,
   ComponentSubtitle,
@@ -132,23 +133,23 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
     { value: 'expert', label: 'Expert', description: 'Master level expertise' },
   ];
 
-  // Get category color
+  // Get category color using design system colors
   const getCategoryColor = (category: Skill['category']) => {
     switch (category) {
       case 'pilot':
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+        return 'bg-accent-blue/20 text-accent-blue border-accent-blue/30';
       case 'engineer':
-        return 'bg-green-500/20 text-green-300 border-green-500/30';
+        return 'bg-success/20 text-success border-success/30';
       case 'medic':
-        return 'bg-red-500/20 text-red-300 border-red-500/30';
+        return 'bg-error/20 text-error border-error/30';
       case 'security':
-        return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+        return 'bg-warning/20 text-warning border-warning/30';
       case 'logistics':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+        return 'bg-brand-secondary/20 text-brand-secondary border-brand-secondary/30';
       case 'leadership':
-        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+        return 'bg-brand-primary/20 text-brand-primary border-brand-primary/30';
       default:
-        return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+        return 'bg-muted/20 text-muted border-muted/30';
     }
   };
 
@@ -323,8 +324,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
           
           <div className='grid grid-cols-1 md:grid-cols-3 gap-[var(--gap-grid-md)] mb-6'>
             <Paper variant='glass-subtle' size='md' className='text-center'>
-              <AcademicCapIcon className='w-8 h-8 text-blue-400 mx-auto mb-3' />
-              <StatMedium className='mb-1 text-blue-300'>
+              <AcademicCapIcon className='w-8 h-8 text-accent-blue mx-auto mb-3' />
+              <StatMedium className='mb-1 text-accent-blue'>
                 {eventAnalytics.skill_development.skill_verifications_earned}
               </StatMedium>
               <ComponentSubtitle className='text-tertiary'>
@@ -333,8 +334,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             </Paper>
             
             <Paper variant='glass-subtle' size='md' className='text-center'>
-              <CheckBadgeIcon className='w-8 h-8 text-green-400 mx-auto mb-3' />
-              <StatMedium className='mb-1 text-green-300'>
+              <CheckBadgeIcon className='w-8 h-8 text-success mx-auto mb-3' />
+              <StatMedium className='mb-1 text-success'>
                 {eventAnalytics.skill_development.training_events_attended}
               </StatMedium>
               <ComponentSubtitle className='text-tertiary'>
@@ -343,8 +344,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             </Paper>
             
             <Paper variant='glass-subtle' size='md' className='text-center'>
-              <StarIcon className='w-8 h-8 text-purple-400 mx-auto mb-3' />
-              <StatMedium className='mb-1 text-purple-300'>
+              <StarIcon className='w-8 h-8 text-brand-secondary mx-auto mb-3' />
+              <StatMedium className='mb-1 text-brand-secondary'>
                 {eventAnalytics.skill_development.skills_demonstrated.length}
               </StatMedium>
               <ComponentSubtitle className='text-tertiary'>
@@ -382,11 +383,11 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
               <ComponentSubtitle className='text-tertiary mb-2'>
                 Category
               </ComponentSubtitle>
-              <Dropdown
+              <Select
                 value={filters.category || ''}
                 onChange={(value) => {
                   const newFilters = { ...filters };
-                  if (value) {
+                  if (value && typeof value === 'string') {
                     newFilters.category = value as Skill['category'];
                   } else {
                     delete newFilters.category;
@@ -406,11 +407,11 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
               <ComponentSubtitle className='text-tertiary mb-2'>
                 Verification Status
               </ComponentSubtitle>
-              <Dropdown
+              <Select
                 value={filters.verified?.toString() || ''}
                 onChange={(value) => {
                   const newFilters = { ...filters };
-                  if (value === '') {
+                  if (value === '' || typeof value !== 'string') {
                     delete newFilters.verified;
                   } else {
                     newFilters.verified = value === 'true';
@@ -641,7 +642,7 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
           <Paper variant='glass-subtle' size='lg'>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--gap-grid-md)]'>
               {analyticsData.skill_gaps.map((gap, index) => (
-                <div key={index} className='text-center p-4 bg-white/5 rounded-lg'>
+                <Paper key={index} variant='glass-subtle' size='md' className='text-center'>
                   <ComponentTitle className='text-primary mb-2'>
                     {gap.skill_name}
                   </ComponentTitle>
@@ -656,15 +657,15 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
                   <div className='text-xs text-tertiary mb-2'>
                     {gap.gap_percentage.toFixed(0)}% gap
                   </div>
-                  <div className='w-full bg-white/10 rounded-full h-2'>
+                  <div className='w-full bg-glass-border rounded-full h-2'>
                     <div
-                      className='bg-warning h-2 rounded-full'
+                      className='bg-warning h-2 rounded-full transition-all duration-[var(--duration-normal)]'
                       style={{
                         width: `${Math.max(0, 100 - gap.gap_percentage)}%`,
                       }}
                     />
                   </div>
-                </div>
+                </Paper>
               ))}
             </div>
           </Paper>
@@ -732,11 +733,11 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             <ComponentSubtitle className='text-tertiary mb-2'>
               Category
             </ComponentSubtitle>
-            <Dropdown
+            <Select
               value={skillFormData.category}
               onChange={(value) => setSkillFormData(prev => ({ 
                 ...prev, 
-                category: value as Skill['category'] 
+                category: typeof value === 'string' ? value as Skill['category'] : prev.category
               }))}
               options={skillCategories}
               className='w-full'
@@ -756,21 +757,16 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             />
           </div>
 
-          <div className='flex items-center gap-3'>
-            <input
-              type='checkbox'
-              id='verification-required'
-              checked={skillFormData.verification_required}
-              onChange={(e) => setSkillFormData(prev => ({ 
-                ...prev, 
-                verification_required: e.target.checked 
-              }))}
-              className='w-4 h-4 text-accent-blue bg-transparent border-glass-border rounded focus:ring-accent-blue focus:ring-2'
-            />
-            <label htmlFor='verification-required' className='text-sm text-secondary'>
-              Requires verification
-            </label>
-          </div>
+          <Checkbox
+            checked={skillFormData.verification_required}
+            onChange={(checked) => setSkillFormData(prev => ({ 
+              ...prev, 
+              verification_required: checked 
+            }))}
+            label='Requires verification'
+            description='Skills that require verification will need approval from authorized personnel'
+            size='md'
+          />
 
           <div className='flex items-center justify-end gap-[var(--gap-button)] pt-4 border-t border-glass-border'>
             <Button
@@ -817,13 +813,15 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             <ComponentSubtitle className='text-tertiary mb-2'>
               Skill
             </ComponentSubtitle>
-            <Dropdown
+            <Select
               value={userSkillFormData.skill_id}
-              onChange={(value) => setUserSkillFormData(prev => ({ ...prev, skill_id: value }))}
+              onChange={(value) => setUserSkillFormData(prev => ({ 
+                ...prev, 
+                skill_id: typeof value === 'string' ? value : prev.skill_id 
+              }))}
               options={skillsData?.data.map(skill => ({
                 value: skill.id,
                 label: skill.name,
-                description: skill.description,
               })) || []}
               placeholder='Select a skill'
               className='w-full'
@@ -834,11 +832,11 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             <ComponentSubtitle className='text-tertiary mb-2'>
               Proficiency Level
             </ComponentSubtitle>
-            <Dropdown
+            <Select
               value={userSkillFormData.proficiency_level}
               onChange={(value) => setUserSkillFormData(prev => ({ 
                 ...prev, 
-                proficiency_level: value as UserSkill['proficiency_level'] 
+                proficiency_level: typeof value === 'string' ? value as UserSkill['proficiency_level'] : prev.proficiency_level
               }))}
               options={proficiencyLevels}
               className='w-full'

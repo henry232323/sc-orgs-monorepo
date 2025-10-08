@@ -124,12 +124,12 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
 
   if (isLoading) {
     return (
-      <Paper variant="glass-subtle" className="p-6">
+      <Paper variant="glass-subtle" className="p-[var(--spacing-card-lg)]">
         <div className="animate-pulse">
-          <div className="h-6 bg-glass rounded mb-4"></div>
-          <div className="space-y-3">
+          <div className="h-6 bg-glass rounded-[var(--radius-md)] mb-[var(--spacing-element)]"></div>
+          <div className="space-y-[var(--spacing-tight)]">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-4 bg-glass rounded"></div>
+              <div key={i} className="h-4 bg-glass rounded-[var(--radius-sm)]"></div>
             ))}
           </div>
         </div>
@@ -139,9 +139,9 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
 
   if (error || !onboardingProgress) {
     return (
-      <Paper variant="glass-subtle" className="p-6">
+      <Paper variant="glass-subtle" className="p-[var(--spacing-card-lg)]">
         <div className="text-center">
-          <p className="text-error mb-4">
+          <p className="text-error mb-[var(--spacing-element)]">
             {error ? 'Failed to load onboarding checklist' : 'No onboarding progress found'}
           </p>
           <Button variant="secondary" onClick={() => refetch()}>
@@ -156,36 +156,36 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
   const estimatedHours = getEstimatedTimeRemaining();
 
   return (
-    <div className="space-y-[var(--spacing-section)]">
+    <div className="space-y-4 lg:space-y-[var(--spacing-section)] responsive-container">
       {/* Header */}
-      <Paper variant="glass" className="p-[var(--spacing-card-lg)]">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <ComponentTitle className="mb-2">
+      <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 lg:gap-[var(--spacing-element)]">
+          <div className="flex-1">
+            <ComponentTitle className="mb-[var(--spacing-tight)] responsive-text-lg">
               Onboarding Checklist
             </ComponentTitle>
-            <ComponentSubtitle>
+            <ComponentSubtitle className="responsive-text-sm">
               Role: {onboardingProgress.template?.role_name || 'General Member'}
             </ComponentSubtitle>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-[var(--spacing-element)]">
             {getStatusChip(onboardingProgress.status)}
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-secondary">Progress</span>
-            <span className="text-sm font-bold text-primary">{progress}%</span>
+        <div className="mt-4 lg:mt-[var(--spacing-component)]">
+          <div className="flex justify-between items-center mb-[var(--spacing-tight)]">
+            <span className="responsive-text-sm font-medium text-secondary">Progress</span>
+            <span className="responsive-text-sm font-bold text-primary">{progress}%</span>
           </div>
           <div className="w-full bg-glass rounded-full h-3 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-brand-secondary to-brand-primary transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-brand-secondary to-brand-primary transition-all duration-[var(--duration-normal)] ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="flex justify-between items-center mt-2 text-xs text-tertiary">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-[var(--spacing-tight)] gap-1 responsive-text-sm text-tertiary">
             <span>
               {localCompletedTasks.length} of {onboardingProgress.template?.tasks?.length || 0} tasks completed
             </span>
@@ -199,11 +199,11 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
       </Paper>
 
       {/* Task List */}
-      <Paper variant="glass-subtle" className="p-[var(--spacing-card-lg)]">
-        <ComponentTitle className="mb-4">Tasks</ComponentTitle>
+      <Paper variant="glass-subtle" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
+        <ComponentTitle className="mb-4 lg:mb-[var(--spacing-element)] responsive-text-lg">Tasks</ComponentTitle>
         
         {onboardingProgress.template?.tasks?.length ? (
-          <div className="space-y-4">
+          <div className="space-y-3 lg:space-y-[var(--spacing-element)]">
             {onboardingProgress.template.tasks
               .sort((a: any, b: any) => a.order_index - b.order_index)
               .map((task: OnboardingTask) => {
@@ -214,30 +214,31 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
                   <Paper
                     key={task.id}
                     variant="glass"
-                    className={`p-4 transition-all duration-200 ${
+                    className={`responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-md)] transition-all duration-[var(--duration-normal)] glass-mobile-reduced ${
                       isCompleted ? 'opacity-75' : ''
                     }`}
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3 lg:gap-[var(--spacing-element)]">
                       <div className="flex-shrink-0 pt-1">
                         <Checkbox
                           checked={isCompleted}
                           onChange={(checked) => handleTaskToggle(task.id, checked)}
                           disabled={isDisabled}
                           size="md"
+                          className="touch-friendly"
                         />
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 lg:gap-[var(--spacing-element)]">
                           <div className="flex-1">
-                            <h4 className={`font-semibold ${
+                            <h4 className={`font-semibold responsive-text-base ${
                               isCompleted ? 'text-secondary line-through' : 'text-primary'
                             }`}>
                               {task.title}
                             </h4>
                             {task.description && (
-                              <p className={`mt-1 text-sm ${
+                              <p className={`mt-[var(--spacing-tight)] responsive-text-sm ${
                                 isCompleted ? 'text-muted' : 'text-secondary'
                               }`}>
                                 {task.description}
@@ -245,7 +246,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex flex-wrap items-center gap-2 lg:gap-[var(--spacing-tight)] flex-shrink-0">
                             {task.required && (
                               <Chip variant="default" size="sm" className="text-warning">
                                 Required
@@ -257,7 +258,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
                               </Chip>
                             )}
                             {isCompleted && (
-                              <Chip variant="status" size="sm">
+                              <Chip variant="status" size="sm" className="text-success">
                                 ✓ Done
                               </Chip>
                             )}
@@ -270,7 +271,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
               })}
           </div>
         ) : (
-          <div className="text-center py-8">
+          <div className="text-center py-[var(--spacing-loose)]">
             <p className="text-secondary">No onboarding tasks available</p>
           </div>
         )}
@@ -280,14 +281,14 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
       {progress === 100 && onboardingProgress.status === 'completed' && (
         <Paper variant="glass-elevated" className="p-[var(--spacing-card-lg)] border-success/20">
           <div className="text-center">
-            <div className="text-4xl mb-4">🎉</div>
-            <ComponentTitle className="text-success mb-2">
+            <div className="text-4xl mb-[var(--spacing-element)]">🎉</div>
+            <ComponentTitle className="text-success mb-[var(--spacing-tight)]">
               Onboarding Complete!
             </ComponentTitle>
             <ComponentSubtitle>
               Congratulations! You have successfully completed your onboarding process.
               {onboardingProgress.completed_at && (
-                <span className="block mt-2">
+                <span className="block mt-[var(--spacing-tight)]">
                   Completed on {new Date(onboardingProgress.completed_at).toLocaleDateString()}
                 </span>
               )}
