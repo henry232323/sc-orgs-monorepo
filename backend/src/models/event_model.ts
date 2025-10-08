@@ -172,7 +172,7 @@ export class EventModel {
 
     // Filter by visibility - only show public events unless explicitly including private
     if (!filters.include_private) {
-      query = query.where({ is_public: true });
+      query = query.where({ 'events.is_public': true });
     } else if (filters.user_id) {
       // If including private events, only show those the user has access to
       query = query.where(function() {
@@ -207,7 +207,7 @@ export class EventModel {
     }
 
     if (filters.is_active !== undefined) {
-      query = query.where({ is_active: filters.is_active });
+      query = query.where({ 'events.is_active': filters.is_active });
     }
 
     if (filters.languages) {
@@ -277,7 +277,7 @@ export class EventModel {
     }
 
     if (filters.is_active !== undefined) {
-      countQuery = countQuery.where({ is_active: filters.is_active });
+      countQuery = countQuery.where({ 'events.is_active': filters.is_active });
     }
 
     if (filters.languages) {
