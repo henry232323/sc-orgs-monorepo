@@ -84,7 +84,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
   const { 
     data: analyticsData,
     isLoading: analyticsLoading,
-    error: analyticsError
+    error: analyticsError,
+    refetch: refetchAnalytics
   } = useGetSkillsAnalyticsQuery({
     organizationId,
   });
@@ -175,6 +176,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
       setShowCreateSkillModal(false);
     } catch (error) {
       console.error('Failed to create skill:', error);
+      // TODO: Add user-friendly error notification
+      // This could be enhanced with a toast notification system
     }
   };
 
@@ -197,6 +200,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
       setShowAddUserSkillModal(false);
     } catch (error) {
       console.error('Failed to add user skill:', error);
+      // TODO: Add user-friendly error notification
+      // This could be enhanced with a toast notification system
     }
   };
 
@@ -210,6 +215,8 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
       }).unwrap();
     } catch (error) {
       console.error('Failed to verify skill:', error);
+      // TODO: Add user-friendly error notification
+      // This could be enhanced with a toast notification system
     }
   };
 
@@ -266,9 +273,11 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
         }}
         errorProps={{
           title: 'Analytics Unavailable',
-          description: 'Unable to load skills analytics at the moment.',
-          showRetry: false,
+          description: 'Unable to load skills analytics at the moment. This might be a temporary issue.',
+          showRetry: true,
+          retryText: 'Retry Analytics',
         }}
+        onRetry={() => refetchAnalytics()}
       >
         {(analyticsData) => (
           <div className='grid grid-cols-1 md:grid-cols-4 gap-[var(--gap-grid-md)]'>
@@ -460,9 +469,9 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
         }}
         errorProps={{
           title: 'Failed to Load Skills',
-          description: 'Unable to fetch skills data. This might be a temporary issue.',
+          description: 'Unable to fetch skills data. This could be due to a network issue or server problem. Please try again.',
           showRetry: true,
-          retryText: 'Retry Loading',
+          retryText: 'Retry Loading Skills',
         }}
         emptyProps={{
           variant: 'no-skills',
@@ -482,153 +491,191 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
             return acc;
           }, {} as Record<string, Skill[]>) || {};
 
-          return Object.keys(skillsByCategory).length > 0 ? (
-        <div className='space-y-[var(--spacing-section)]'>
-          {skillCategories.map((category) => {
-            const categorySkills = skillsByCategory[category.value] || [];
-            if (categorySkills.length === 0) return null;
+          return (
+            <div className='space-y-[var(--spacing-section)]'>
+              {Object.keys(skillsByCategory).length > 0 ? (
+                <>
+                  <div className='space-y-[var(--spacing-section)]'>
+                    {skillCategories.map((category) => {
+                      const categorySkills = skillsByCategory[category.value] || [];
+                      if (categorySkills.length === 0) return null;
 
-            return (
-              <div key={category.value}>
-                <div className='flex items-center gap-3 mb-[var(--spacing-card-lg)]'>
-                  <SectionTitle>{category.label}</SectionTitle>
-                  <Chip
-                    variant='status'
-                    size='sm'
-                    className={getCategoryColor(category.value as Skill['category'])}
-                  >
-                    {categorySkills.length} skills
-                  </Chip>
-                </div>
-
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--gap-grid-md)]'>
-                  {categorySkills.map((skill) => (
-                    <Paper
-                      key={skill.id}
-                      variant='glass-subtle'
-                      size='lg'
-                      interactive
-                      className='transition-all duration-[var(--duration-normal)]'
-                    >
-                      <div className='flex items-start justify-between mb-3'>
-                        <div className='flex-1'>
-                          <ComponentTitle className='text-primary mb-1'>
-                            {skill.name}
-                          </ComponentTitle>
-                          <ComponentSubtitle className='text-secondary text-sm'>
-                            {skill.description}
-                          </ComponentSubtitle>
-                        </div>
-                        
-                        {skill.verification_required && (
-                          <ShieldCheckIcon className='w-5 h-5 text-warning flex-shrink-0 ml-2' />
-                        )}
-                      </div>
-
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2'>
-                          <Chip
-                            variant='status'
-                            size='sm'
-                            className={getCategoryColor(skill.category)}
-                          >
-                            {category.label}
-                          </Chip>
-                        </div>
-
-                        <div className='flex items-center gap-2'>
-                          {skill.verification_required && (
-                            <>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={() => handleVerifySkill(skill.id, true)}
-                                className='text-success hover:bg-success/10'
-                              >
-                                <CheckBadgeIcon className='w-4 h-4' />
-                              </Button>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={() => handleVerifySkill(skill.id, false)}
-                                className='text-warning hover:bg-warning/10'
-                              >
-                                <ClockIcon className='w-4 h-4' />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Skill Statistics */}
-                      <div className='mt-4 pt-3 border-t border-glass-border'>
-                        <div className='grid grid-cols-2 gap-4 text-center'>
-                          <div>
-                            <StatSmall className='text-accent-blue'>
-                              {statisticsLoading ? (
-                                <div className="animate-pulse bg-white/10 h-4 w-8 rounded mx-auto"></div>
-                              ) : statisticsError ? (
-                                '—'
-                              ) : (
-                                skillsStatistics?.[skill.id]?.total_members ?? 0
-                              )}
-                            </StatSmall>
-                            <ComponentSubtitle className='text-tertiary text-xs'>
-                              Members
-                            </ComponentSubtitle>
-                          </div>
-                          <div>
-                            <StatSmall className='text-success'>
-                              {statisticsLoading ? (
-                                <div className="animate-pulse bg-white/10 h-4 w-8 rounded mx-auto"></div>
-                              ) : statisticsError ? (
-                                '—'
-                              ) : (
-                                `${((skillsStatistics?.[skill.id]?.verification_rate ?? 0) * 100).toFixed(0)}%`
-                              )}
-                            </StatSmall>
-                            <ComponentSubtitle className='text-tertiary text-xs'>
-                              Verified
-                            </ComponentSubtitle>
-                          </div>
-                        </div>
-                        
-                        {/* Statistics error state */}
-                        {statisticsError && canRetryStatistics && (
-                          <div className="mt-2 text-center">
-                            <button
-                              onClick={retryStatistics}
-                              className="text-xs text-tertiary hover:text-secondary transition-colors"
-                              disabled={statisticsRetrying}
+                      return (
+                        <div key={category.value}>
+                          <div className='flex items-center gap-3 mb-[var(--spacing-card-lg)]'>
+                            <SectionTitle>{category.label}</SectionTitle>
+                            <Chip
+                              variant='status'
+                              size='sm'
+                              className={getCategoryColor(category.value as Skill['category'])}
                             >
-                              {statisticsRetrying ? 'Retrying...' : 'Retry Stats'}
-                            </button>
+                              {categorySkills.length} skills
+                            </Chip>
                           </div>
-                        )}
+
+                          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[var(--gap-grid-md)]'>
+                            {categorySkills.map((skill) => (
+                              <Paper
+                                key={skill.id}
+                                variant='glass-subtle'
+                                size='lg'
+                                interactive
+                                className='transition-all duration-[var(--duration-normal)]'
+                              >
+                                <div className='flex items-start justify-between mb-3'>
+                                  <div className='flex-1'>
+                                    <ComponentTitle className='text-primary mb-1'>
+                                      {skill.name}
+                                    </ComponentTitle>
+                                    <ComponentSubtitle className='text-secondary text-sm'>
+                                      {skill.description}
+                                    </ComponentSubtitle>
+                                  </div>
+                                  
+                                  {skill.verification_required && (
+                                    <ShieldCheckIcon className='w-5 h-5 text-warning flex-shrink-0 ml-2' />
+                                  )}
+                                </div>
+
+                                <div className='flex items-center justify-between'>
+                                  <div className='flex items-center gap-2'>
+                                    <Chip
+                                      variant='status'
+                                      size='sm'
+                                      className={getCategoryColor(skill.category)}
+                                    >
+                                      {category.label}
+                                    </Chip>
+                                  </div>
+
+                                  <div className='flex items-center gap-2'>
+                                    {skill.verification_required && (
+                                      <>
+                                        <Button
+                                          variant='ghost'
+                                          size='sm'
+                                          onClick={() => handleVerifySkill(skill.id, true)}
+                                          className='text-success hover:bg-success/10'
+                                        >
+                                          <CheckBadgeIcon className='w-4 h-4' />
+                                        </Button>
+                                        <Button
+                                          variant='ghost'
+                                          size='sm'
+                                          onClick={() => handleVerifySkill(skill.id, false)}
+                                          className='text-warning hover:bg-warning/10'
+                                        >
+                                          <ClockIcon className='w-4 h-4' />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Skill Statistics */}
+                                <div className='mt-4 pt-3 border-t border-glass-border'>
+                                  <div className='grid grid-cols-2 gap-4 text-center'>
+                                    <div>
+                                      <StatSmall className='text-accent-blue'>
+                                        {statisticsLoading ? (
+                                          <div className="animate-pulse bg-white/10 h-4 w-8 rounded mx-auto"></div>
+                                        ) : statisticsError ? (
+                                          '—'
+                                        ) : (
+                                          skillsStatistics?.[skill.id]?.total_members ?? 0
+                                        )}
+                                      </StatSmall>
+                                      <ComponentSubtitle className='text-tertiary text-xs'>
+                                        Members
+                                      </ComponentSubtitle>
+                                    </div>
+                                    <div>
+                                      <StatSmall className='text-success'>
+                                        {statisticsLoading ? (
+                                          <div className="animate-pulse bg-white/10 h-4 w-8 rounded mx-auto"></div>
+                                        ) : statisticsError ? (
+                                          '—'
+                                        ) : (
+                                          `${((skillsStatistics?.[skill.id]?.verification_rate ?? 0) * 100).toFixed(0)}%`
+                                        )}
+                                      </StatSmall>
+                                      <ComponentSubtitle className='text-tertiary text-xs'>
+                                        Verified
+                                      </ComponentSubtitle>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Statistics error state */}
+                                  {statisticsError && canRetryStatistics && (
+                                    <div className="mt-2 text-center">
+                                      <button
+                                        onClick={retryStatistics}
+                                        className="text-xs text-tertiary hover:text-secondary transition-colors"
+                                        disabled={statisticsRetrying}
+                                      >
+                                        {statisticsRetrying ? 'Retrying...' : 'Retry Stats'}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </Paper>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination - Now safely inside DataStateWrapper */}
+                  {skillsData && 
+                   skillsData.total && 
+                   skillsData.limit && 
+                   skillsData.total > skillsData.limit && (
+                    <div className='flex items-center justify-between'>
+                      <div className='text-sm text-tertiary'>
+                        Showing {((page - 1) * skillsData.limit) + 1} to{' '}
+                        {Math.min(page * skillsData.limit, skillsData.total)} of{' '}
+                        {skillsData.total} skills
                       </div>
-                    </Paper>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-          ) : (
-            <EmptyState
-              variant="no-results"
-              title="No Skills Match Filters"
-              description="Try adjusting your search criteria or filters to find skills."
-              action={{
-                label: 'Clear Filters',
-                onClick: () => setFilters({}),
-                variant: 'secondary',
-              }}
-              secondaryAction={{
-                label: 'Create New Skill',
-                onClick: () => setShowCreateSkillModal(true),
-                variant: 'primary',
-              }}
-            />
+                      <div className='flex items-center gap-2'>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          disabled={page === 1}
+                          onClick={() => setPage(page - 1)}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          disabled={page * skillsData.limit >= skillsData.total}
+                          onClick={() => setPage(page + 1)}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <EmptyState
+                  variant="no-results"
+                  title="No Skills Match Filters"
+                  description="Try adjusting your search criteria or filters to find skills."
+                  action={{
+                    label: 'Clear Filters',
+                    onClick: () => setFilters({}),
+                    variant: 'secondary',
+                  }}
+                  secondaryAction={{
+                    label: 'Create New Skill',
+                    onClick: () => setShowCreateSkillModal(true),
+                    variant: 'primary',
+                  }}
+                />
+              )}
+            </div>
           );
         }}
       </DataStateWrapper>
@@ -672,34 +719,7 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
         </div>
       )}
 
-      {/* Pagination */}
-      {skillsData && skillsData.total > skillsData.limit && (
-        <div className='flex items-center justify-between'>
-          <div className='text-sm text-tertiary'>
-            Showing {((page - 1) * skillsData.limit) + 1} to{' '}
-            {Math.min(page * skillsData.limit, skillsData.total)} of{' '}
-            {skillsData.total} skills
-          </div>
-          <div className='flex items-center gap-2'>
-            <Button
-              variant='ghost'
-              size='sm'
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant='ghost'
-              size='sm'
-              disabled={page * skillsData.limit >= skillsData.total}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+
 
       {/* Create Skill Modal */}
       <Dialog
@@ -819,11 +839,20 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
                 ...prev, 
                 skill_id: typeof value === 'string' ? value : prev.skill_id 
               }))}
-              options={skillsData?.data.map(skill => ({
+              options={skillsData?.data?.map(skill => ({
                 value: skill.id,
                 label: skill.name,
               })) || []}
-              placeholder='Select a skill'
+              placeholder={
+                skillsLoading 
+                  ? 'Loading skills...' 
+                  : skillsError 
+                  ? 'Error loading skills' 
+                  : (!skillsData?.data || skillsData.data.length === 0)
+                  ? 'No skills available'
+                  : 'Select a skill'
+              }
+              disabled={skillsLoading || !!skillsError || !skillsData?.data || skillsData.data.length === 0}
               className='w-full'
             />
           </div>
