@@ -15,7 +15,7 @@ interface DocumentEditorModalProps {
     folder_path: string;
     requires_acknowledgment: boolean;
     access_roles: string[];
-  }) => Promise<void>;
+  }) => Promise<Document>;
   isLoading: boolean;
 }
 

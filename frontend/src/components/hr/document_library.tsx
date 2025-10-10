@@ -206,13 +206,15 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     folder_path: string;
     requires_acknowledgment: boolean;
     access_roles: string[];
-  }) => {
-    if (!organizationId) return;
+  }): Promise<Document> => {
+    if (!organizationId) throw new Error('Organization ID is required');
 
     try {
+      let savedDocument: Document;
+      
       if (editingDocument) {
         // Update existing document
-        await updateDocument({
+        savedDocument = await updateDocument({
           organizationId,
           documentId: editingDocument.id,
           data: {
@@ -222,7 +224,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
         }).unwrap();
       } else {
         // Create new document
-        await createDocument({
+        savedDocument = await createDocument({
           organizationId,
           data: {
             ...metadata,
@@ -235,6 +237,8 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       setIsCreatingDocument(false);
       setEditingDocument(null);
       finalRefetch();
+      
+      return savedDocument;
     } catch (error) {
       console.error('Failed to save document:', error);
       throw error; // Re-throw to let MarkdownEditor handle the error

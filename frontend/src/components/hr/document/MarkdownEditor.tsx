@@ -20,7 +20,7 @@ export interface DocumentMetadata {
 // Props interface for the MarkdownEditor component
 export interface MarkdownEditorProps {
   initialContent?: string;
-  onSave: (content: string, metadata: DocumentMetadata) => Promise<void>;
+  onSave: (content: string, metadata: DocumentMetadata) => Promise<Document>;
   onCancel: () => void;
   document?: Document; // For editing existing documents
   isLoading?: boolean;
@@ -48,6 +48,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     access_roles: document?.access_roles || []
   });
 
+  // Document state tracking
+  const [isNewDocument, setIsNewDocument] = useState<boolean>(!document);
+  const [documentId, setDocumentId] = useState<string | undefined>(document?.id);
+
   // UI state
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -59,6 +63,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   useEffect(() => {
     setContent(initialContent);
   }, [initialContent]);
+
+  // Update document state when document prop changes
+  useEffect(() => {
+    setIsNewDocument(!document);
+    setDocumentId(document?.id);
+  }, [document]);
 
   // Track unsaved changes
   useEffect(() => {
@@ -224,7 +234,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     setSaveStatus('saving');
     
     try {
-      await onSave(content, metadata);
+      const savedDocument = await onSave(content, metadata);
+      
+      // Update document state after successful creation
+      if (isNewDocument && savedDocument) {
+        setIsNewDocument(false);
+        setDocumentId(savedDocument.id);
+      }
+      
       setSaveStatus('saved');
       setHasUnsavedChanges(false);
       
@@ -237,14 +254,22 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       // Reset error status after 3 seconds
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
-  }, [content, metadata, onSave, validationErrors]);
+  }, [content, metadata, onSave, validationErrors, isNewDocument]);
 
   // Debounced auto-save functionality
   const debouncedAutoSave = useMemo(
     () => debounce(async () => {
       if (hasUnsavedChanges && Object.keys(validationErrors).length === 0 && metadata.title.trim()) {
         try {
-          await onSave(content, metadata);
+          setSaveStatus('saving');
+          const savedDocument = await onSave(content, metadata);
+          
+          // Update document state after successful creation
+          if (isNewDocument && savedDocument) {
+            setIsNewDocument(false);
+            setDocumentId(savedDocument.id);
+          }
+          
           setSaveStatus('saved');
           setHasUnsavedChanges(false);
           
@@ -252,11 +277,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (error) {
           console.error('Auto-save failed:', error);
-          // Don't show error for auto-save failures to avoid interrupting user
+          setSaveStatus('error');
+          
+          // Reset error status after 3 seconds for auto-save failures
+          setTimeout(() => setSaveStatus('idle'), 3000);
         }
       }
     }, 3000), // 3 second delay for auto-save
-    [hasUnsavedChanges, validationErrors, metadata.title, content, metadata, onSave]
+    [hasUnsavedChanges, validationErrors, metadata.title, content, metadata, onSave, isNewDocument]
   );
 
   // Trigger auto-save when content or metadata changes
@@ -267,7 +295,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     
     // Cleanup debounced function on unmount
     return () => {
-      debouncedAutoSave.cancel();
+      if (debouncedAutoSave && typeof debouncedAutoSave.cancel === 'function') {
+        debouncedAutoSave.cancel();
+      }
     };
   }, [hasUnsavedChanges, validationErrors, metadata.title, debouncedAutoSave]);
 
@@ -370,7 +400,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
-            Auto-saved
+            {!documentId ? 'Document created' : 'Auto-saved'}
           </span>
         );
       case 'error':
