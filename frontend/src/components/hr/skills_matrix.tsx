@@ -68,6 +68,9 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
     notes: '',
   });
 
+  // Retry tracking for skills loading
+  const [skillsRetryCount, setSkillsRetryCount] = useState(0);
+
   // Fetch data with enhanced error handling
   const { 
     data: skillsData, 
@@ -79,6 +82,19 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
     page,
     limit: 20,
     filters,
+  });
+
+  // Separate query for all skills (for dropdown usage)
+  const { 
+    data: allSkillsData, 
+    isLoading: allSkillsLoading, 
+    error: allSkillsError,
+    refetch: refetchAllSkills
+  } = useGetSkillsQuery({
+    organizationId,
+    page: 1,
+    limit: 1000, // Get all skills for dropdown
+    filters: {}, // No filters for dropdown
   });
 
   const { 
@@ -179,6 +195,12 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
       // TODO: Add user-friendly error notification
       // This could be enhanced with a toast notification system
     }
+  };
+
+  // Handle skills retry with tracking
+  const handleSkillsRetry = () => {
+    setSkillsRetryCount(prev => prev + 1);
+    refetchAllSkills();
   };
 
   // Handle add user skill
@@ -839,22 +861,105 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
                 ...prev, 
                 skill_id: typeof value === 'string' ? value : prev.skill_id 
               }))}
-              options={skillsData?.data?.map(skill => ({
+              options={allSkillsData?.data?.map(skill => ({
                 value: skill.id,
                 label: skill.name,
               })) || []}
               placeholder={
-                skillsLoading 
+                allSkillsLoading 
                   ? 'Loading skills...' 
-                  : skillsError 
-                  ? 'Error loading skills' 
-                  : (!skillsData?.data || skillsData.data.length === 0)
-                  ? 'No skills available'
+                  : allSkillsError 
+                  ? 'Error loading skills - Click to retry' 
+                  : (!allSkillsData?.data || allSkillsData.data.length === 0)
+                  ? 'No skills available - Create a skill first'
                   : 'Select a skill'
               }
-              disabled={skillsLoading || !!skillsError || !skillsData?.data || skillsData.data.length === 0}
+              disabled={allSkillsLoading || (!allSkillsData?.data || allSkillsData.data.length === 0)}
               className='w-full'
+              {...(allSkillsError && { error: 'Failed to load skills' })}
             />
+            
+            {/* Loading indicator */}
+            {allSkillsLoading && (
+              <div className='mt-2 flex items-center gap-2 text-sm text-secondary'>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent-blue"></div>
+                <span>Loading available skills...</span>
+              </div>
+            )}
+            
+            {/* Error state with retry button */}
+            {allSkillsError && (
+              <div className='mt-2 p-3 bg-error/10 border border-error/20 rounded-lg'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <svg className='w-4 h-4 text-error' fill='currentColor' viewBox='0 0 20 20'>
+                      <path fillRule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z' clipRule='evenodd' />
+                    </svg>
+                    <div>
+                      <ComponentSubtitle className='text-error text-sm'>
+                        Unable to load skills
+                      </ComponentSubtitle>
+                      <p className='text-xs text-error/80 mt-1'>
+                        {skillsRetryCount >= 3 
+                          ? 'Persistent connection issue. Please check your network or try again later.'
+                          : 'Network error or server issue. Please try again.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={handleSkillsRetry}
+                    className='text-error hover:bg-error/10'
+                  >
+                    Retry {skillsRetryCount > 0 && `(${skillsRetryCount})`}
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* No skills available state */}
+            {!allSkillsLoading && !allSkillsError && (!allSkillsData?.data || allSkillsData.data.length === 0) && (
+              <div className='mt-2 p-3 bg-warning/10 border border-warning/20 rounded-lg'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <svg className='w-4 h-4 text-warning' fill='currentColor' viewBox='0 0 20 20'>
+                      <path fillRule='evenodd' d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z' clipRule='evenodd' />
+                    </svg>
+                    <div>
+                      <ComponentSubtitle className='text-warning text-sm'>
+                        No skills available
+                      </ComponentSubtitle>
+                      <p className='text-xs text-warning/80 mt-1'>
+                        Create organizational skills first before adding user skills.
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex gap-2'>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => refetchAllSkills()}
+                      className='text-warning hover:bg-warning/10'
+                    >
+                      Refresh
+                    </Button>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => {
+                        setShowAddUserSkillModal(false);
+                        setShowCreateSkillModal(true);
+                      }}
+                      className='text-warning hover:bg-warning/10'
+                    >
+                      Create Skill
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

@@ -82,8 +82,18 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   // API queries
-  const { data: skillsResponse } = useGetSkillsQuery(
-    { organizationId: organizationId! },
+  const { 
+    data: skillsResponse, 
+    isLoading: skillsLoading, 
+    error: skillsError,
+    refetch: refetchSkills
+  } = useGetSkillsQuery(
+    { 
+      organizationId: organizationId!,
+      page: 1,
+      limit: 1000, // Get all skills for performance review
+      filters: {}
+    },
     { skip: !organizationId }
   );
   const skills = skillsResponse?.data || [];
@@ -465,8 +475,75 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
         {/* Ratings */}
         <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
           <ComponentTitle className="mb-[var(--spacing-element)] responsive-text-lg">Performance Ratings</ComponentTitle>
-          <div className="space-y-4 lg:space-y-[var(--spacing-component)]">
-            {skills.map((skill: Skill) => (
+          
+          {/* Skills loading state */}
+          {skillsLoading && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 bg-glass-subtle rounded-lg">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent-blue"></div>
+                <ComponentSubtitle className="text-secondary">Loading skills for evaluation...</ComponentSubtitle>
+              </div>
+              {/* Loading skeleton */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <Paper variant="glass-subtle" className="p-4">
+                    <div className="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-white/5 rounded w-2/3 mb-3"></div>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((j) => (
+                        <div key={j} className="h-8 w-12 bg-white/5 rounded"></div>
+                      ))}
+                    </div>
+                  </Paper>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Skills error state */}
+          {skillsError && (
+            <div className="p-4 bg-error/10 border border-error/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-error" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <ComponentSubtitle className="text-error">Failed to load skills</ComponentSubtitle>
+                    <p className="text-sm text-error/80">Unable to load organization skills for performance evaluation.</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => refetchSkills()}
+                  className="text-error hover:bg-error/10"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* No skills available */}
+          {!skillsLoading && !skillsError && skills.length === 0 && (
+            <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <ComponentSubtitle className="text-warning">No skills defined</ComponentSubtitle>
+                  <p className="text-sm text-warning/80">This organization has no skills defined yet. Skills are required to create performance reviews.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Skills list */}
+          {!skillsLoading && !skillsError && skills.length > 0 && (
+            <div className="space-y-4 lg:space-y-[var(--spacing-component)]">
+              {skills.map((skill: Skill) => (
               <Paper key={skill.id} variant="glass-subtle" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card)] glass-mobile-reduced">
                 <div className="space-y-[var(--spacing-element)]">
                   <div>
@@ -495,20 +572,24 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
                   />
                 </div>
               </Paper>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           
-          <div className="mt-[var(--spacing-component)] pt-[var(--spacing-component)] border-t border-glass-border">
-            <div className="flex items-center justify-between">
-              <ComponentSubtitle>Overall Rating</ComponentSubtitle>
-              <div className="flex items-center gap-[var(--spacing-tight)]">
-                <StatMedium className="text-primary">{formData.overall_rating}</StatMedium>
-                <Chip variant="status" size="sm">
-                  {RATING_OPTIONS.find(opt => opt.value === formData.overall_rating)?.label.split(' - ')[1] || 'Average'}
-                </Chip>
+          {/* Overall Rating - only show if skills are loaded */}
+          {!skillsLoading && !skillsError && skills.length > 0 && (
+            <div className="mt-[var(--spacing-component)] pt-[var(--spacing-component)] border-t border-glass-border">
+              <div className="flex items-center justify-between">
+                <ComponentSubtitle>Overall Rating</ComponentSubtitle>
+                <div className="flex items-center gap-[var(--spacing-tight)]">
+                  <StatMedium className="text-primary">{formData.overall_rating}</StatMedium>
+                  <Chip variant="status" size="sm">
+                    {RATING_OPTIONS.find(opt => opt.value === formData.overall_rating)?.label.split(' - ')[1] || 'Average'}
+                  </Chip>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </Paper>
 
         {/* Strengths */}

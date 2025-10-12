@@ -48,19 +48,19 @@
   - Test error handling scenarios
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 3. Fix Skills Dropdown Data Loading
+- [x] 3. Fix Skills Dropdown Data Loading
   - Ensure skills query is properly triggered in user skills components
   - Transform skills data correctly for Select component
   - Add loading and error states to skills dropdown
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 3.1 Update user skills component data fetching
+- [x] 3.1 Update user skills component data fetching
   - Verify `useGetSkillsQuery` is called with correct parameters
   - Ensure skills data is properly transformed for dropdown options
   - Add loading indicator while skills are being fetched
   - _Requirements: 4.1, 4.2_
 
-- [ ] 3.2 Add error handling for skills dropdown
+- [x] 3.2 Add error handling for skills dropdown
   - Display appropriate message when no skills are available
   - Add retry functionality when skills fail to load
   - Handle network errors gracefully
