@@ -66,25 +66,25 @@
   - Handle network errors gracefully
   - _Requirements: 4.3, 4.4_
 
-- [ ] 4. Create Document Role Migration
+- [x] 4. Create Document Role Migration
   - Analyze existing document access_roles data
   - Create migration script to map roles to organization roles
   - Implement rollback strategy for migration
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 4.1 Create role migration analysis script
+- [x] 4.1 Create role migration analysis script
   - Query all documents to identify unique access_roles values
   - Generate report of role usage across organizations
   - Identify documents with unmappable roles
   - _Requirements: 2.1, 2.4_
 
-- [ ] 4.2 Implement role mapping migration
+- [x] 4.2 Implement role mapping migration
   - Create database migration to map common roles to organization roles
   - Handle creation of missing roles in organizations
   - Update document access_roles with valid organization role names
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 4.3 Add migration rollback functionality
+- [x] 4.3 Add migration rollback functionality
   - Store original access_roles values before migration
   - Create rollback script to restore original values if needed
   - Add migration status tracking
