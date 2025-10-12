@@ -8,6 +8,7 @@ import type { Document } from '../../../types/hr';
 interface DocumentEditorModalProps {
   isOpen: boolean;
   editingDocument?: Document | null;
+  organizationId: string;
   onClose: () => void;
   onSave: (content: string, metadata: {
     title: string;
@@ -22,6 +23,7 @@ interface DocumentEditorModalProps {
 const DocumentEditorModal: React.FC<DocumentEditorModalProps> = ({
   isOpen,
   editingDocument,
+  organizationId,
   onClose,
   onSave,
   isLoading,
@@ -68,6 +70,7 @@ const DocumentEditorModal: React.FC<DocumentEditorModalProps> = ({
             <MarkdownEditor
               initialContent={editingDocument?.content || ''}
               {...(editingDocument && { document: editingDocument })}
+              organizationId={organizationId}
               onSave={onSave}
               onCancel={onClose}
               isLoading={isLoading}

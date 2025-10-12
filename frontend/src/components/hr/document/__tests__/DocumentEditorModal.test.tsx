@@ -43,6 +43,7 @@ const mockDocument: Document = {
 describe('DocumentEditorModal', () => {
   const defaultProps = {
     isOpen: true,
+    organizationId: 'test-org-id',
     onClose: vi.fn(),
     onSave: vi.fn(),
     isLoading: false,

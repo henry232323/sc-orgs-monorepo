@@ -24,13 +24,27 @@ vi.mock('lodash', () => ({
   debounce: (fn: any) => fn
 }));
 
+// Mock API slice
+vi.mock('../../../../services/apiSlice', () => ({
+  useGetOrganizationRolesQuery: vi.fn(() => ({
+    data: [
+      { name: 'member', description: 'Organization Member' },
+      { name: 'admin', description: 'Organization Administrator' },
+    ],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
+}));
+
 describe('MarkdownEditor', () => {
   const mockOnSave = vi.fn();
   const mockOnCancel = vi.fn();
 
   const defaultProps = {
     onSave: mockOnSave,
-    onCancel: mockOnCancel
+    onCancel: mockOnCancel,
+    organizationId: 'test-org-id'
   };
 
   const mockDocument: Document = {

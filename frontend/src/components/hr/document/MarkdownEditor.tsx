@@ -7,6 +7,7 @@ import Textarea from '../../ui/Textarea';
 import Checkbox from '../../ui/Checkbox';
 import Button from '../../ui/Button';
 import Select, { SelectOption } from '../../ui/Select';
+import { useGetOrganizationRolesQuery } from '../../../services/apiSlice';
 
 // Document metadata interface for the editor
 export interface DocumentMetadata {
@@ -23,6 +24,7 @@ export interface MarkdownEditorProps {
   onSave: (content: string, metadata: DocumentMetadata) => Promise<Document>;
   onCancel: () => void;
   document?: Document; // For editing existing documents
+  organizationId: string; // Required for fetching organization roles
   isLoading?: boolean;
   className?: string;
 }
@@ -35,6 +37,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   onSave,
   onCancel,
   document,
+  organizationId,
   isLoading = false,
   className = ''
 }) => {
@@ -437,8 +440,18 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
   };
 
-  // Access roles options for the select component
-  const accessRoleOptions: SelectOption[] = [
+  // Fetch organization roles
+  const {
+    data: organizationRoles,
+    isLoading: isLoadingRoles,
+    error: rolesError,
+    refetch: refetchRoles,
+  } = useGetOrganizationRolesQuery(organizationId, {
+    skip: !organizationId,
+  });
+
+  // Default fallback roles when organization roles are unavailable
+  const defaultRoleOptions: SelectOption[] = [
     { value: 'member', label: 'Member' },
     { value: 'admin', label: 'Administrator' },
     { value: 'hr', label: 'HR Staff' },
@@ -447,6 +460,18 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     { value: 'pilot', label: 'Pilot' },
     { value: 'safety-officer', label: 'Safety Officer' },
   ];
+
+  // Transform organization roles to select options
+  const accessRoleOptions: SelectOption[] = useMemo(() => {
+    if (organizationRoles && organizationRoles.length > 0) {
+      return organizationRoles.map((role: any) => ({
+        value: role.name,
+        label: role.name,
+        description: role.description,
+      }));
+    }
+    return defaultRoleOptions;
+  }, [organizationRoles]);
 
   return (
     <div className={`markdown-editor flex flex-col ${className}`}>
@@ -495,13 +520,34 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               value={metadata.access_roles}
               onChange={(value) => handleMetadataChange('access_roles', value as string[])}
               options={accessRoleOptions}
-              placeholder="Select access roles..."
-              disabled={isLoading}
+              placeholder={isLoadingRoles ? "Loading roles..." : "Select access roles..."}
+              disabled={isLoading || isLoadingRoles}
               multiple
               required
-              description="Select which roles can access this document"
+              description={
+                rolesError 
+                  ? "Failed to load organization roles. Using default roles."
+                  : organizationRoles && organizationRoles.length > 0
+                    ? "Select which organization roles can access this document"
+                    : "Select which roles can access this document (using default roles)"
+              }
               {...(validationErrors.access_roles && { error: validationErrors.access_roles })}
             />
+            {rolesError && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-warning">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>Could not load organization roles. Using default roles instead.</span>
+                <button
+                  type="button"
+                  onClick={() => refetchRoles()}
+                  className="text-primary hover:text-primary-dark underline"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Acknowledgment Checkbox */}

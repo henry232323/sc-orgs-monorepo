@@ -48,7 +48,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   allowCreate = true,
   showAcknowledgments = true,
 }) => {
-  const { organizationId } = useParams<{ organizationId: string }>();
+  const { spectrumId } = useParams<{ spectrumId: string }>();
   const [currentFolder, setCurrentFolder] = useState('/');
   const [searchQuery, setSearchQuery] = useState('');
   const [, setSelectedDocument] = useState<Document | null>(null);
@@ -89,8 +89,8 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     error,
     refetch,
   } = useGetDocumentsQuery(
-    { organizationId: organizationId!, filters },
-    { skip: !organizationId || !!debouncedSearch }
+    { organizationId: spectrumId!, filters },
+    { skip: !spectrumId || !!debouncedSearch }
   );
 
   const {
@@ -99,8 +99,8 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     error: searchError,
     refetch: refetchSearch,
   } = useSearchDocumentsQuery(
-    { organizationId: organizationId!, query: debouncedSearch },
-    { skip: !organizationId || !debouncedSearch }
+    { organizationId: spectrumId!, query: debouncedSearch },
+    { skip: !spectrumId || !debouncedSearch }
   );
 
   // Combine results from both queries
@@ -159,11 +159,11 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
 
   const handleDocumentAcknowledge = async (documentId: string) => {
-    if (!organizationId) return;
+    if (!spectrumId) return;
 
     try {
       await acknowledgeDocument({
-        organizationId,
+        organizationId: spectrumId,
         documentId,
       }).unwrap();
 
@@ -207,7 +207,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     requires_acknowledgment: boolean;
     access_roles: string[];
   }): Promise<Document> => {
-    if (!organizationId) throw new Error('Organization ID is required');
+    if (!spectrumId) throw new Error('Organization ID is required');
 
     try {
       let savedDocument: Document;
@@ -215,7 +215,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       if (editingDocument) {
         // Update existing document
         savedDocument = await updateDocument({
-          organizationId,
+          organizationId: spectrumId,
           documentId: editingDocument.id,
           data: {
             ...metadata,
@@ -225,7 +225,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       } else {
         // Create new document
         savedDocument = await createDocument({
-          organizationId,
+          organizationId: spectrumId,
           data: {
             ...metadata,
             content,
@@ -285,10 +285,10 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
 
   const useDocumentAcknowledgmentStatus = (doc: Document) => {
     return useGetDocumentAcknowledmentStatusQuery({
-      organizationId: organizationId!,
+      organizationId: spectrumId!,
       documentId: doc.id,
     }, {
-      skip: !doc.requires_acknowledgment || !organizationId,
+      skip: !doc.requires_acknowledgment || !spectrumId,
     });
   };
 
@@ -457,6 +457,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
           <DocumentEditorModal
             isOpen={isCreatingDocument || !!editingDocument}
             editingDocument={editingDocument}
+            organizationId={spectrumId!}
             onClose={handleCancelEdit}
             onSave={handleSaveDocument}
             isLoading={isCreating || isUpdating}

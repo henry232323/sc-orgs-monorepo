@@ -96,19 +96,19 @@
   - Test data integrity after migration
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 5. Update Backend Role Validation
+- [x] 5. Update Backend Role Validation
   - Modify HRDocumentService to validate against organization roles
   - Add database queries for role validation
   - Update error messages for invalid roles
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 5.1 Update document validation service
+- [x] 5.1 Update document validation service
   - Replace hardcoded role validation with organization role query
   - Add `validateAccessRoles` method to check against organization_roles table
   - Update validation error messages to be more specific
   - _Requirements: 2.1, 2.4_
 
-- [ ] 5.2 Add role validation database queries
+- [x] 5.2 Add role validation database queries
   - Create query to fetch valid organization roles for validation
   - Ensure role validation joins with organization_roles table
   - Add caching for frequently accessed organization roles
@@ -120,19 +120,19 @@
   - Test validation error messages
   - _Requirements: 2.1, 2.4_
 
-- [ ] 6. Implement Frontend Organization Role Integration
+- [x] 6. Implement Frontend Organization Role Integration
   - Update MarkdownEditor to use organization-specific roles
   - Fetch organization roles for access role dropdown
   - Add fallback handling when roles are unavailable
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 6.1 Update MarkdownEditor role selection
+- [x] 6.1 Update MarkdownEditor role selection
   - Replace hardcoded access role options with organization roles
   - Use `useGetOrganizationRolesQuery` to fetch roles
   - Transform organization role data for Select component
   - _Requirements: 2.1, 2.2_
 
-- [ ] 6.2 Add role loading and error states
+- [x] 6.2 Add role loading and error states
   - Display loading indicator while roles are being fetched
   - Show error message when roles fail to load
   - Provide fallback to default roles when organization roles unavailable

@@ -4,6 +4,7 @@ import { HRDocumentVersionService, ChangeDetectionResult } from './hr_document_v
 import { HRDocumentAcknowledmentVersionService } from './hr_document_acknowledgment_version_service';
 import { NotificationService } from './notification_service';
 import { HRDocumentSearchService, SearchOptions, SearchResponse } from './hr_document_search_service';
+import { RoleModel } from '../models/role_model';
 import { NotificationEntityType } from '../types/notification';
 import logger from '../config/logger';
 import * as fs from 'fs';
@@ -58,6 +59,9 @@ export class HRDocumentService {
   private acknowledgmentVersionService: HRDocumentAcknowledmentVersionService;
   private notificationService: NotificationService;
   private searchService: HRDocumentSearchService;
+  private roleModel: RoleModel;
+  private roleCache: Map<string, { roles: string[]; timestamp: number }>;
+  private readonly ROLE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
     this.documentModel = new HRDocumentModel();
@@ -66,6 +70,100 @@ export class HRDocumentService {
     this.acknowledgmentVersionService = new HRDocumentAcknowledmentVersionService();
     this.notificationService = new NotificationService();
     this.searchService = new HRDocumentSearchService();
+    this.roleModel = new RoleModel();
+    this.roleCache = new Map();
+  }
+
+  /**
+   * Gets organization role names with caching
+   */
+  private async getOrganizationRoleNames(organizationId: string): Promise<string[]> {
+    try {
+      // Check cache first
+      const cached = this.roleCache.get(organizationId);
+      const now = Date.now();
+      
+      if (cached && (now - cached.timestamp) < this.ROLE_CACHE_TTL) {
+        return cached.roles;
+      }
+
+      // Fetch from database
+      const organizationRoles = await this.roleModel.getRolesByOrganization(organizationId);
+      const roleNames = organizationRoles.map(role => role.name);
+
+      // Update cache
+      this.roleCache.set(organizationId, {
+        roles: roleNames,
+        timestamp: now,
+      });
+
+      return roleNames;
+    } catch (error) {
+      logger.error('Error fetching organization role names', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Clears role cache for an organization (useful after role changes)
+   */
+  private clearRoleCache(organizationId: string): void {
+    this.roleCache.delete(organizationId);
+  }
+
+  /**
+   * Validates access roles against organization roles
+   */
+  async validateAccessRoles(
+    organizationId: string,
+    accessRoles: string[]
+  ): Promise<{ validRoles: string[]; invalidRoles: string[] }> {
+    try {
+      if (!accessRoles || accessRoles.length === 0) {
+        return { validRoles: [], invalidRoles: [] };
+      }
+
+      // Get valid role names (with caching)
+      const validRoleNames = await this.getOrganizationRoleNames(organizationId);
+
+      // Separate valid and invalid roles
+      const validRoles = accessRoles.filter(role => validRoleNames.includes(role));
+      const invalidRoles = accessRoles.filter(role => !validRoleNames.includes(role));
+
+      return { validRoles, invalidRoles };
+    } catch (error) {
+      logger.error('Error validating access roles', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+        accessRoles,
+      });
+
+      // In case of error, treat all roles as invalid for safety
+      return { validRoles: [], invalidRoles: accessRoles };
+    }
+  }
+
+  /**
+   * Validates a single access role against organization roles
+   */
+  async validateSingleAccessRole(
+    organizationId: string,
+    accessRole: string
+  ): Promise<boolean> {
+    try {
+      const validRoleNames = await this.getOrganizationRoleNames(organizationId);
+      return validRoleNames.includes(accessRole);
+    } catch (error) {
+      logger.error('Error validating single access role', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+        accessRole,
+      });
+      return false;
+    }
   }
 
   /**
@@ -107,12 +205,11 @@ export class HRDocumentService {
         errors.push('Folder path must start with /');
       }
 
-      // Validate access roles
+      // Validate access roles against organization roles
       if (documentData.access_roles && documentData.access_roles.length > 0) {
-        const validRoles = ['owner', 'admin', 'manager', 'member', 'recruiter', 'supervisor'];
-        const invalidRoles = documentData.access_roles.filter(role => !validRoles.includes(role));
-        if (invalidRoles.length > 0) {
-          errors.push(`Invalid access roles: ${invalidRoles.join(', ')}`);
+        const roleValidation = await this.validateAccessRoles(organizationId, documentData.access_roles);
+        if (roleValidation.invalidRoles.length > 0) {
+          errors.push(`Invalid access roles for this organization: ${roleValidation.invalidRoles.join(', ')}. Valid roles are available through the organization roles API.`);
         }
       }
 
