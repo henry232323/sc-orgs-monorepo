@@ -11,7 +11,7 @@ export interface HRDocument {
   folder_path: string;
   version: number;
   requires_acknowledgment: boolean;
-  access_roles: string[];
+  access_roles: string[]; // Array of role IDs (UUIDs)
   uploaded_by: string; // Changed from created_by to match database schema
   created_at: Date;
   updated_at: Date;

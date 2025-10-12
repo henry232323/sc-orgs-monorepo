@@ -205,7 +205,7 @@ export interface Document {
   folder_path: string;
   version: number;
   requires_acknowledgment: boolean;
-  access_roles: string[];
+  access_roles: string[]; // Array of role IDs (UUIDs)
   uploaded_by: string; // Changed from created_by to match backend schema
   created_at: string;
   updated_at: string;

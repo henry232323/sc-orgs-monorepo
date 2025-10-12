@@ -108,6 +108,40 @@ export class HRDocumentService {
   }
 
   /**
+   * Gets organization role IDs with caching
+   */
+  private async getOrganizationRoleIds(organizationId: string): Promise<string[]> {
+    try {
+      // Check cache first - we'll use a separate cache key for IDs
+      const cacheKey = `${organizationId}_ids`;
+      const cached = this.roleCache.get(cacheKey);
+      const now = Date.now();
+      
+      if (cached && (now - cached.timestamp) < this.ROLE_CACHE_TTL) {
+        return cached.roles;
+      }
+
+      // Fetch from database
+      const organizationRoles = await this.roleModel.getRolesByOrganization(organizationId);
+      const roleIds = organizationRoles.map(role => role.id);
+
+      // Update cache
+      this.roleCache.set(cacheKey, {
+        roles: roleIds,
+        timestamp: now,
+      });
+
+      return roleIds;
+    } catch (error) {
+      logger.error('Error fetching organization role IDs', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        organizationId,
+      });
+      return [];
+    }
+  }
+
+  /**
    * Clears role cache for an organization (useful after role changes)
    */
   private clearRoleCache(organizationId: string): void {
@@ -126,12 +160,12 @@ export class HRDocumentService {
         return { validRoles: [], invalidRoles: [] };
       }
 
-      // Get valid role names (with caching)
-      const validRoleNames = await this.getOrganizationRoleNames(organizationId);
+      // Get valid role IDs (updated to use IDs instead of names)
+      const validRoleIds = await this.getOrganizationRoleIds(organizationId);
 
       // Separate valid and invalid roles
-      const validRoles = accessRoles.filter(role => validRoleNames.includes(role));
-      const invalidRoles = accessRoles.filter(role => !validRoleNames.includes(role));
+      const validRoles = accessRoles.filter(role => validRoleIds.includes(role));
+      const invalidRoles = accessRoles.filter(role => !validRoleIds.includes(role));
 
       return { validRoles, invalidRoles };
     } catch (error) {

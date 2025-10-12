@@ -15,7 +15,7 @@ export interface DocumentMetadata {
   description?: string;
   folder_path: string;
   requires_acknowledgment: boolean;
-  access_roles: string[];
+  access_roles: string[]; // Array of role IDs (UUIDs)
 }
 
 // Props interface for the MarkdownEditor component
@@ -126,7 +126,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
     
     // Access roles validation
-    if (metadata.access_roles.length === 0) {
+    if (accessRoleOptions.length === 0) {
+      errors.access_roles = 'No organization roles available. Please contact an administrator to set up roles.';
+    } else if (metadata.access_roles.length === 0) {
       errors.access_roles = 'At least one access role must be selected';
     }
     
@@ -451,25 +453,20 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   });
 
   // Default fallback roles when organization roles are unavailable
-  const defaultRoleOptions: SelectOption[] = [
-    { value: 'member', label: 'Member' },
-    { value: 'admin', label: 'Administrator' },
-    { value: 'hr', label: 'HR Staff' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'trainer', label: 'Trainer' },
-    { value: 'pilot', label: 'Pilot' },
-    { value: 'safety-officer', label: 'Safety Officer' },
-  ];
+  // Note: These should not be used in production - organization should always have roles
+  const defaultRoleOptions: SelectOption[] = [];
 
   // Transform organization roles to select options
   const accessRoleOptions: SelectOption[] = useMemo(() => {
     if (organizationRoles && organizationRoles.length > 0) {
       return organizationRoles.map((role: any) => ({
-        value: role.name,
+        value: role.id, // Use role ID instead of name
         label: role.name,
         description: role.description,
       }));
     }
+    // If no organization roles are available, return empty array
+    // This will show an error state in the UI
     return defaultRoleOptions;
   }, [organizationRoles]);
 
