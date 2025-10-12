@@ -148,7 +148,7 @@ export class HRDocumentSearchService {
               version: doc.version,
               requires_acknowledgment: doc.requires_acknowledgment,
               access_roles: doc.access_roles,
-              created_by: doc.created_by,
+              uploaded_by: doc.uploaded_by,
               created_at: doc.created_at,
               updated_at: doc.updated_at,
             },

@@ -31,7 +31,7 @@ const mockDocument: Document = {
   content: 'Test content',
   folder_path: '/',
   version: 1,
-  created_by: 'user-1',
+  uploaded_by: 'user-1',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   word_count: 100,

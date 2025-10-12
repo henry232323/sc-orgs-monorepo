@@ -206,7 +206,7 @@ export interface Document {
   version: number;
   requires_acknowledgment: boolean;
   access_roles: string[];
-  created_by: string;
+  uploaded_by: string; // Changed from created_by to match backend schema
   created_at: string;
   updated_at: string;
 }

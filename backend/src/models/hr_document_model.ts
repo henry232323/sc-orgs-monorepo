@@ -12,7 +12,7 @@ export interface HRDocument {
   version: number;
   requires_acknowledgment: boolean;
   access_roles: string[];
-  created_by: string;
+  uploaded_by: string; // Changed from created_by to match database schema
   created_at: Date;
   updated_at: Date;
 }
@@ -78,8 +78,12 @@ export class HRDocumentModel {
   async createDocument(documentData: CreateHRDocumentData): Promise<HRDocument> {
     this.validateDocumentData(documentData);
 
+    // Map created_by to uploaded_by to match database schema
+    const { created_by, ...restData } = documentData;
+    
     const insertData = {
-      ...documentData,
+      ...restData,
+      uploaded_by: created_by, // Map created_by to uploaded_by for database
       folder_path: documentData.folder_path || '/',
       version: 1,
       requires_acknowledgment: documentData.requires_acknowledgment || false,
@@ -763,7 +767,7 @@ export class HRDocumentModel {
           change_summary: 'Current version',
           change_metadata: {},
           created_at: document.updated_at,
-          created_by: document.created_by,
+          created_by: document.uploaded_by,
           created_by_handle: null,
         },
       ];

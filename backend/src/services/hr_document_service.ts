@@ -632,7 +632,7 @@ export class HRDocumentService {
           access_roles: currentDocument.access_roles,
           change_summary: 'Previous version before update',
           change_metadata: { is_pre_update_snapshot: true },
-          created_by: currentDocument.created_by,
+          created_by: currentDocument.uploaded_by,
         });
 
         // Increment version number
@@ -961,7 +961,7 @@ export class HRDocumentService {
         entity_id: document.id,
         title: 'Document Requires Acknowledgment',
         message: `Please review and acknowledge "${document.title}"`,
-        actor_id: document.created_by,
+        actor_id: document.uploaded_by,
         custom_data: {
           document_id: document.id,
           document_title: document.title,
@@ -997,9 +997,9 @@ export class HRDocumentService {
       const user = await userModel.findById(userId);
       
       // Notify the document creator about the acknowledgment
-      if (document.created_by && document.created_by !== userId) {
+      if (document.uploaded_by && document.uploaded_by !== userId) {
         await this.notificationService.createNotification({
-          user_id: document.created_by,
+          user_id: document.uploaded_by,
           entity_type: NotificationEntityType.HR_DOCUMENT_REQUIRES_ACKNOWLEDGMENT,
           entity_id: document.id,
           title: 'Document Acknowledged',
@@ -1018,7 +1018,7 @@ export class HRDocumentService {
         documentId: document.id,
         userId,
         documentTitle: document.title,
-        createdBy: document.created_by,
+        createdBy: document.uploaded_by,
       });
     } catch (error) {
       logger.error('Failed to send acknowledgment completed notification', {
