@@ -611,77 +611,89 @@ export class HRSkillModel {
     };
     recent_verifications: number;
   }>> {
-    // Get all skills with their statistics in a single optimized query
-    const skillsWithStats = await db('hr_skills')
-      .leftJoin('hr_user_skills', 'hr_skills.id', 'hr_user_skills.skill_id')
-      .leftJoin('users', 'hr_user_skills.user_id', 'users.id')
-      .leftJoin('organization_members', function() {
-        this.on('users.id', '=', 'organization_members.user_id')
-          .andOn('organization_members.organization_id', '=', db.raw('?', [organizationId]))
-          .andOn('organization_members.is_active', '=', db.raw('true'));
-      })
-      .select(
-        'hr_skills.id as skill_id',
-        'hr_skills.name as skill_name',
-        'hr_skills.category as skill_category',
-        'hr_user_skills.proficiency_level',
-        'hr_user_skills.verified',
-        db.raw(`CASE WHEN hr_user_skills.verified = true AND hr_user_skills.verified_at >= NOW() - INTERVAL '30 days' THEN 1 ELSE 0 END as recent_verification`)
-      )
-      .where('organization_members.user_id', 'is not', null)
-      .orWhere('organization_members.user_id', 'is', null);
-
-    // Process the results to build statistics
-    const statisticsMap: Record<string, any> = {};
-
-    // Initialize all skills with zero stats
-    const allSkills = await db('hr_skills').select('id', 'name', 'category');
-    allSkills.forEach(skill => {
-      statisticsMap[skill.id] = {
-        skill_id: skill.id,
-        skill_name: skill.name,
-        skill_category: skill.category,
-        total_members: 0,
-        verified_members: 0,
-        verification_rate: 0,
-        proficiency_breakdown: {
-          beginner: 0,
-          intermediate: 0,
-          advanced: 0,
-          expert: 0,
-        },
-        recent_verifications: 0,
-      };
-    });
-
-    // Aggregate the statistics
-    skillsWithStats.forEach((row: any) => {
-      if (!row.skill_id || !row.proficiency_level) return;
-
-      const stats = statisticsMap[row.skill_id];
-      if (!stats) return;
-
-      stats.total_members++;
+    try {
+      // Get all skills first
+      const allSkills = await db('hr_skills').select('id', 'name', 'category');
+      const statisticsMap: Record<string, any> = {};
       
-      if (row.verified) {
-        stats.verified_members++;
+      // Initialize all skills with zero stats
+      allSkills.forEach(skill => {
+        statisticsMap[skill.id] = {
+          skill_id: skill.id,
+          skill_name: skill.name,
+          skill_category: skill.category,
+          total_members: 0,
+          verified_members: 0,
+          verification_rate: 0,
+          proficiency_breakdown: {
+            beginner: 0,
+            intermediate: 0,
+            advanced: 0,
+            expert: 0,
+          },
+          recent_verifications: 0,
+        };
+      });
+
+      // Try to get user skills statistics, but don't fail if tables don't exist
+      try {
+        // Check if hr_user_skills table exists
+        const tableExists = await db.schema.hasTable('hr_user_skills');
+        
+        if (tableExists) {
+          const skillsWithStats = await db('hr_user_skills')
+            .join('hr_skills', 'hr_skills.id', 'hr_user_skills.skill_id')
+            .join('users', 'hr_user_skills.user_id', 'users.id')
+            .join('organization_members', function() {
+              this.on('users.id', '=', 'organization_members.user_id')
+                .andOn('organization_members.organization_id', '=', db.raw('?', [organizationId]))
+                .andOn('organization_members.is_active', '=', db.raw('true'));
+            })
+            .select(
+              'hr_skills.id as skill_id',
+              'hr_user_skills.proficiency_level',
+              'hr_user_skills.verified',
+              db.raw(`CASE WHEN hr_user_skills.verified = true AND hr_user_skills.verified_at >= NOW() - INTERVAL '30 days' THEN 1 ELSE 0 END as recent_verification`)
+            );
+
+          // Aggregate the statistics
+          skillsWithStats.forEach((row: any) => {
+            if (!row.skill_id || !row.proficiency_level) return;
+
+            const stats = statisticsMap[row.skill_id];
+            if (!stats) return;
+
+            stats.total_members++;
+            
+            if (row.verified) {
+              stats.verified_members++;
+            }
+
+            if (row.proficiency_level && stats.proficiency_breakdown[row.proficiency_level] !== undefined) {
+              stats.proficiency_breakdown[row.proficiency_level]++;
+            }
+
+            if (row.recent_verification) {
+              stats.recent_verifications++;
+            }
+          });
+
+          // Calculate verification rates
+          Object.values(statisticsMap).forEach((stats: any) => {
+            stats.verification_rate = stats.total_members > 0 ? stats.verified_members / stats.total_members : 0;
+          });
+        }
+      } catch (userSkillsError) {
+        // If user skills query fails, just log and continue with zero stats
+        console.warn('Failed to get user skills statistics:', userSkillsError);
       }
 
-      if (row.proficiency_level && stats.proficiency_breakdown[row.proficiency_level] !== undefined) {
-        stats.proficiency_breakdown[row.proficiency_level]++;
-      }
-
-      if (row.recent_verification) {
-        stats.recent_verifications++;
-      }
-    });
-
-    // Calculate verification rates
-    Object.values(statisticsMap).forEach((stats: any) => {
-      stats.verification_rate = stats.total_members > 0 ? stats.verified_members / stats.total_members : 0;
-    });
-
-    return statisticsMap;
+      return statisticsMap;
+    } catch (error) {
+      console.error('Failed to get skills statistics:', error);
+      // Return empty object to prevent frontend from hanging
+      return {};
+    }
   }
 
   async getSkillStatisticsByCategory(organizationId: string, category: string): Promise<Array<{

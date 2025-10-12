@@ -2798,15 +2798,22 @@ export const apiSlice = createApi({
 
     // Skills Statistics endpoints
     getSkillsStatistics: builder.query<
-      import('../types/hr').OrganizationSkillsStatistics,
+      {
+        success: boolean;
+        data: import('../types/hr').OrganizationSkillsStatistics;
+        organization_id: string;
+        total_skills: number;
+        filters_applied?: any;
+      },
       { organizationId: string }
     >({
       query: ({ organizationId }) => `/api/organizations/${organizationId}/skills/statistics`,
-      transformResponse: (response: import('../types/hr').SkillsStatisticsResponse) => response.data,
+      // No transformResponse - return the full API response to access all metadata
+      // Component will need to access response.data for the statistics object
       providesTags: (result, _, { organizationId }) => [
         { type: 'SkillStatistics', id: organizationId },
         // Tag individual skill statistics for selective invalidation
-        ...(result ? Object.keys(result).map(skillId => ({
+        ...(result?.data ? Object.keys(result.data).map(skillId => ({
           type: 'SkillStatistics' as const,
           id: `${organizationId}-${skillId}`
         })) : []),

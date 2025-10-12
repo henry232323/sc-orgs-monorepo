@@ -346,6 +346,18 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
         )}
       </DataStateWrapper>
 
+      {/* Skills Statistics Summary */}
+      {skillsStatistics?.success && skillsStatistics.total_skills > 0 && (
+        <Paper variant='glass-subtle' size='md' className='text-center'>
+          <ComponentSubtitle className='text-tertiary mb-2'>
+            Statistics available for {skillsStatistics.total_skills} skills
+          </ComponentSubtitle>
+          <div className='text-xs text-tertiary'>
+            Organization: {skillsStatistics.organization_id}
+          </div>
+        </Paper>
+      )}
+
       {/* Event-Based Skill Development */}
       {eventAnalytics && (
         <Paper variant='glass' size='lg'>
@@ -604,7 +616,7 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
                                         ) : statisticsError ? (
                                           '—'
                                         ) : (
-                                          skillsStatistics?.[skill.id]?.total_members ?? 0
+                                          skillsStatistics?.data?.[skill.id]?.total_members ?? 0
                                         )}
                                       </StatSmall>
                                       <ComponentSubtitle className='text-tertiary text-xs'>
@@ -618,7 +630,7 @@ const SkillsMatrix: React.FC<SkillsMatrixProps> = ({ organizationId }) => {
                                         ) : statisticsError ? (
                                           '—'
                                         ) : (
-                                          `${((skillsStatistics?.[skill.id]?.verification_rate ?? 0) * 100).toFixed(0)}%`
+                                          `${((skillsStatistics?.data?.[skill.id]?.verification_rate ?? 0) * 100).toFixed(0)}%`
                                         )}
                                       </StatSmall>
                                       <ComponentSubtitle className='text-tertiary text-xs'>
