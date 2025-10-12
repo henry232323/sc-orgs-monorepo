@@ -474,8 +474,8 @@ export class HRDocumentService {
         return userRoles.length > 0; // User must be a member
       }
 
-      // Check if user has at least one matching role
-      return userRoles.some(role => document.access_roles.includes(role));
+      // Check if user has at least one matching role ID
+      return userRoles.some(roleId => document.access_roles.includes(roleId));
     } catch (error) {
       logger.error('Error checking document access', {
         error: error instanceof Error ? error.message : 'Unknown error',

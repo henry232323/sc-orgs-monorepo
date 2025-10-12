@@ -1071,7 +1071,13 @@ export const apiSlice = createApi({
     getOrganizationRoles: builder.query<any[], string>({
       query: spectrumId =>
         `/api/roles/organizations/${spectrumId}/roles`,
-      transformResponse: (response: { roles: any[] }) => response.roles,
+      transformResponse: (response: any) => {
+        // Handle both direct response and wrapped response formats
+        if (response.success && response.data) {
+          return response.data.roles || response.data;
+        }
+        return response.roles || response.data || [];
+      },
       providesTags: (_, __, organizationId) => [
         { type: 'Role', id: organizationId },
       ],
@@ -1139,7 +1145,13 @@ export const apiSlice = createApi({
     getOrganizationMembers: builder.query<any[], string>({
       query: spectrumId =>
         `/api/roles/organizations/${spectrumId}/members`,
-      transformResponse: (response: { members: any[] }) => response.members,
+      transformResponse: (response: any) => {
+        // Handle both direct response and wrapped response formats
+        if (response.success && response.data) {
+          return response.data.members || response.data;
+        }
+        return response.members || response.data || [];
+      },
       providesTags: (_, __, spectrumId) => [
         { type: 'Member', id: spectrumId },
       ],
@@ -1726,12 +1738,26 @@ export const apiSlice = createApi({
 
         return `/api/organizations/${organizationId}/applications?${params.toString()}`;
       },
-      transformResponse: (response: import('../types/hr').ApplicationListResponse) => ({
-        data: response.data.data,
-        total: response.data.total,
-        page: response.data.pagination.page,
-        limit: response.data.pagination.limit,
-      }),
+      transformResponse: (response: any) => {
+        // Handle both direct response and wrapped response formats
+        if (response.success && response.data) {
+          // API returns { success: true, data: { data: [...], total: number, pagination: { page, limit } } }
+          const responseData = response.data;
+          return {
+            data: responseData.data || responseData,
+            total: responseData.total || 0,
+            page: responseData.pagination?.page || responseData.page || 1,
+            limit: responseData.pagination?.limit || responseData.limit || 20,
+          };
+        }
+        // Direct response format
+        return {
+          data: response.data || [],
+          total: response.total || 0,
+          page: response.pagination?.page || response.page || 1,
+          limit: response.pagination?.limit || response.limit || 20,
+        };
+      },
       providesTags: (result, _, { organizationId, page = 1, filters = {} }) => {
         const filterKey = Object.keys(filters).length > 0 ?
           `-filtered-${JSON.stringify(filters)}` : '';
@@ -1978,12 +2004,26 @@ export const apiSlice = createApi({
 
         return `/api/organizations/${organizationId}/performance/reviews?${params.toString()}`;
       },
-      transformResponse: (response: import('../types/hr').PerformanceReviewListResponse) => ({
-        data: response.data.data,
-        total: response.data.total,
-        page: response.data.pagination.page,
-        limit: response.data.pagination.limit,
-      }),
+      transformResponse: (response: any) => {
+        // Handle both direct response and wrapped response formats
+        if (response.success && response.data) {
+          // API returns { success: true, data: { data: [...], total: number, pagination: { page, limit } } }
+          const responseData = response.data;
+          return {
+            data: responseData.data || responseData,
+            total: responseData.total || 0,
+            page: responseData.pagination?.page || responseData.page || 1,
+            limit: responseData.pagination?.limit || responseData.limit || 20,
+          };
+        }
+        // Direct response format
+        return {
+          data: response.data || [],
+          total: response.total || 0,
+          page: response.pagination?.page || response.page || 1,
+          limit: response.pagination?.limit || response.limit || 20,
+        };
+      },
       providesTags: (result, _, { organizationId }) =>
         result
           ? [
@@ -2080,12 +2120,26 @@ export const apiSlice = createApi({
 
         return `/api/organizations/${organizationId}/skills?${params.toString()}`;
       },
-      transformResponse: (response: import('../types/hr').SkillListResponse) => ({
-        data: response.data.data,
-        total: response.data.total,
-        page: response.data.pagination.page,
-        limit: response.data.pagination.limit,
-      }),
+      transformResponse: (response: any) => {
+        // Handle both direct response and wrapped response formats
+        if (response.success && response.data) {
+          // API returns { success: true, data: { data: [...], total: number, pagination: { page, limit } } }
+          const responseData = response.data;
+          return {
+            data: responseData.data || responseData,
+            total: responseData.total || 0,
+            page: responseData.pagination?.page || responseData.page || 1,
+            limit: responseData.pagination?.limit || responseData.limit || 20,
+          };
+        }
+        // Direct response format
+        return {
+          data: response.data || [],
+          total: response.total || 0,
+          page: response.pagination?.page || response.page || 1,
+          limit: response.pagination?.limit || response.limit || 20,
+        };
+      },
       providesTags: (result, _, { organizationId, page = 1 }) =>
         result
           ? [
@@ -2208,12 +2262,25 @@ export const apiSlice = createApi({
 
         return `/api/organizations/${organizationId}/documents?${params.toString()}`;
       },
-      transformResponse: (response: import('../types/hr').DocumentListResponse) => ({
-        data: response.data.data,
-        total: response.data.total,
-        page: response.data.pagination.page,
-        limit: response.data.pagination.limit,
-      }),
+      transformResponse: (response: any) => {
+        // Handle both direct response and wrapped response formats
+        if (response.success && response.data) {
+          // API returns { success: true, data: { data: [...], total: number, page: number, limit: number } }
+          return {
+            data: response.data.data || response.data,
+            total: response.data.total || 0,
+            page: response.data.page || 1,
+            limit: response.data.limit || 20,
+          };
+        }
+        // Direct response format
+        return {
+          data: response.data || [],
+          total: response.total || 0,
+          page: response.page || 1,
+          limit: response.limit || 20,
+        };
+      },
       providesTags: (result, _, { organizationId }) =>
         result
           ? [

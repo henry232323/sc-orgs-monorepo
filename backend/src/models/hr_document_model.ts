@@ -176,11 +176,11 @@ export class HRDocumentModel {
     if (filters.user_roles && filters.user_roles.length > 0) {
       query = query.where(function() {
         // Documents with empty access_roles are accessible to all
-        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        this.whereRaw('array_length(access_roles, 1) = 0');
         
         // Or documents where user has at least one matching role
         filters.user_roles!.forEach(role => {
-          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+          this.orWhereRaw('access_roles && ?', [`{${role}}`]);
         });
       });
     }
@@ -218,12 +218,12 @@ export class HRDocumentModel {
     } = {}
   ): Promise<{ data: any[]; total: number }> {
     let query = db('hr_documents')
-      .join('users', 'hr_documents.created_by', 'users.id')
+      .join('users', 'hr_documents.uploaded_by', 'users.id')
       .where({ 'hr_documents.organization_id': organizationId })
       .select(
         'hr_documents.*',
-        'users.rsi_handle as created_by_rsi_handle',
-        'users.discord_username as created_by_discord_username'
+        'users.rsi_handle as uploaded_by_rsi_handle',
+        'users.discord_username as uploaded_by_discord_username'
       );
 
     if (filters.folder_path) {
@@ -238,11 +238,11 @@ export class HRDocumentModel {
     if (filters.user_roles && filters.user_roles.length > 0) {
       query = query.where(function() {
         // Documents with empty access_roles are accessible to all
-        this.whereRaw('jsonb_array_length(hr_documents.access_roles) = 0');
+        this.whereRaw('array_length(hr_documents.access_roles, 1) = 0');
         
         // Or documents where user has at least one matching role
         filters.user_roles!.forEach(role => {
-          this.orWhereRaw('hr_documents.access_roles @> ?', [JSON.stringify([role])]);
+          this.orWhereRaw('hr_documents.access_roles && ?', [`{${role}}`]);
         });
       });
     }
@@ -297,7 +297,7 @@ export class HRDocumentModel {
     } else {
       query = query.select([
         'id', 'organization_id', 'title', 'description', 'folder_path',
-        'version', 'requires_acknowledgment', 'access_roles', 'created_by',
+        'version', 'requires_acknowledgment', 'access_roles', 'uploaded_by',
         'created_at', 'updated_at', 'word_count', 'estimated_reading_time'
       ]);
     }
@@ -306,11 +306,11 @@ export class HRDocumentModel {
     if (filters.user_roles && filters.user_roles.length > 0) {
       query = query.where(function() {
         // Documents with empty access_roles are accessible to all
-        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        this.whereRaw('array_length(access_roles, 1) = 0');
         
         // Or documents where user has at least one matching role
         filters.user_roles!.forEach(role => {
-          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+          this.orWhereRaw('access_roles && ?', [`{${role}}`]);
         });
       });
     }
@@ -356,11 +356,11 @@ export class HRDocumentModel {
     if (userRoles && userRoles.length > 0) {
       query = query.where(function() {
         // Documents with empty access_roles are accessible to all
-        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        this.whereRaw('array_length(access_roles, 1) = 0');
         
         // Or documents where user has at least one matching role
         userRoles.forEach(role => {
-          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+          this.orWhereRaw('access_roles && ?', [`{${role}}`]);
         });
       });
     }
@@ -546,11 +546,11 @@ export class HRDocumentModel {
     if (filters.user_roles && filters.user_roles.length > 0) {
       query = query.where(function() {
         // Documents with empty access_roles are accessible to all
-        this.whereRaw('jsonb_array_length(hr_documents.access_roles) = 0');
+        this.whereRaw('array_length(hr_documents.access_roles, 1) = 0');
         
         // Or documents where user has at least one matching role
         filters.user_roles!.forEach(role => {
-          this.orWhereRaw('hr_documents.access_roles @> ?', [JSON.stringify([role])]);
+          this.orWhereRaw('hr_documents.access_roles && ?', [`{${role}}`]);
         });
       });
     }
@@ -653,11 +653,11 @@ export class HRDocumentModel {
       .where({ organization_id: organizationId, requires_acknowledgment: true })
       .where(function() {
         // Documents with empty access_roles are accessible to all
-        this.whereRaw('jsonb_array_length(access_roles) = 0');
+        this.whereRaw('array_length(access_roles, 1) = 0');
         
         // Or documents where user has at least one matching role
         userRoles.forEach(role => {
-          this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+          this.orWhereRaw('access_roles && ?', [`{${role}}`]);
         });
       });
 

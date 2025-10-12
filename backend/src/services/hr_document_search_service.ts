@@ -79,11 +79,11 @@ export class HRDocumentSearchService {
       if (options.user_roles && options.user_roles.length > 0) {
         query = query.where(function() {
           // Documents with empty access_roles are accessible to all
-          this.whereRaw('jsonb_array_length(access_roles) = 0');
+          this.whereRaw('array_length(access_roles, 1) = 0');
           
           // Or documents where user has at least one matching role
           options.user_roles!.forEach(role => {
-            this.orWhereRaw('access_roles @> ?', [JSON.stringify([role])]);
+            this.orWhereRaw('access_roles && ?', [`{${role}}`]);
           });
         });
       }

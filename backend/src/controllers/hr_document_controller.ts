@@ -1353,29 +1353,24 @@ export class HRDocumentController {
   private async hasDocumentAccess(document: any, userRoles: string[]): Promise<boolean> {
     // If document has no access restrictions, it's accessible to all organization members
     if (!document.access_roles || document.access_roles.length === 0) {
-      return true;
+      return userRoles.length > 0; // User must be a member
     }
 
-    // Check if user has at least one matching role
-    return userRoles.some(role => document.access_roles.includes(role));
+    // Check if user has at least one matching role ID
+    return userRoles.some(roleId => document.access_roles.includes(roleId));
   }
 
   private async getUserRoles(organizationId: string, userId: string): Promise<string[]> {
     try {
       // Import here to avoid circular dependencies
-      const { OrganizationModel } = await import('../models/organization_model');
-      const organizationModel = new OrganizationModel();
+      const { RoleModel } = await import('../models/role_model');
+      const roleModel = new RoleModel();
 
-      // Check if user is organization owner
-      const organization = await organizationModel.findById(organizationId);
-      if (organization?.owner_id === userId) {
-        return ['owner', 'admin', 'manager', 'member'];
-      }
-
-      // For now, return basic member role
-      // This should be enhanced with proper role-based access control
-      const isMember = await organizationModel.isUserMember(organizationId, userId);
-      return isMember ? ['member'] : [];
+      // Get user's actual role IDs in this organization
+      const userRoles = await roleModel.getUserRoles(organizationId, userId);
+      
+      // Return array of role IDs
+      return userRoles.map(role => role.id);
     } catch (error) {
       logger.error('Error getting user roles', {
         error: error instanceof Error ? error.message : 'Unknown error',

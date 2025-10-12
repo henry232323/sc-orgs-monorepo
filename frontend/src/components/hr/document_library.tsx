@@ -174,7 +174,9 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       // when the component re-renders after the documents list is updated
     } catch (error) {
       console.error('Failed to acknowledge document:', error);
-      // TODO: Show user-friendly error message
+      // Show user-friendly error message
+      // Note: In a real app, you might want to use a toast notification system here
+      alert('Failed to acknowledge document. Please try again.');
     }
   };
 
@@ -346,20 +348,19 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
       }
     } catch (error) {
       console.error('Failed to export document:', error);
+      // Show user-friendly error message
+      alert('Failed to export document. Please try again.');
     }
   };
 
-  const useDocumentAcknowledgmentStatus = (doc: Document) => {
-    return useGetDocumentAcknowledmentStatusQuery({
+  // Create a separate component for acknowledgment status to avoid hooks rule violations
+  const DocumentAcknowledgmentStatus: React.FC<{ doc: Document }> = ({ doc }) => {
+    const { data: acknowledgmentStatus, isLoading: isLoadingAcknowledgment, error: acknowledgmentError, refetch: refetchAcknowledgment } = useGetDocumentAcknowledmentStatusQuery({
       organizationId: spectrumId!,
       documentId: doc.id,
     }, {
       skip: !doc.requires_acknowledgment || !spectrumId,
     });
-  };
-
-  const getAcknowledgmentStatus = (doc: Document) => {
-    const { data: acknowledgmentStatus, isLoading: isLoadingAcknowledgment, error: acknowledgmentError, refetch: refetchAcknowledgment } = useDocumentAcknowledgmentStatus(doc);
 
     if (!doc.requires_acknowledgment) {
       return null;
@@ -389,6 +390,7 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
               refetchAcknowledgment();
             }}
             className="text-xs px-1 py-0.5 h-auto"
+
           >
             Retry
           </Button>
@@ -423,9 +425,16 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     );
   };
 
-  const isDocumentAcknowledged = (doc: Document) => {
-    const { data: acknowledgmentStatus } = useDocumentAcknowledgmentStatus(doc);
-    return acknowledgmentStatus?.current_user_acknowledged || false;
+  // Create a separate component for checking acknowledgment status
+  const DocumentAcknowledgmentChecker: React.FC<{ doc: Document; children: (isAcknowledged: boolean) => React.ReactNode }> = ({ doc, children }) => {
+    const { data: acknowledgmentStatus } = useGetDocumentAcknowledmentStatusQuery({
+      organizationId: spectrumId!,
+      documentId: doc.id,
+    }, {
+      skip: !doc.requires_acknowledgment || !spectrumId,
+    });
+    
+    return <>{children(acknowledgmentStatus?.current_user_acknowledged || false)}</>;
   };
 
   const currentDocuments = getCurrentFolderDocuments();
@@ -545,7 +554,10 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
               </div>
             ) : finalError ? (
               <div className="text-center py-8">
-                <p className="text-error mb-4">Failed to load documents</p>
+                <p className="text-error mb-2">Failed to load documents</p>
+                <p className="text-secondary text-sm mb-4">
+                  There was an error loading the document library. Please try again.
+                </p>
                 <Button variant="secondary" onClick={() => finalRefetch()}>
                   Retry
                 </Button>
@@ -612,25 +624,29 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                       <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:justify-start">
                         {showAcknowledgments && (
                           <div className="w-full sm:w-auto">
-                            {getAcknowledgmentStatus(doc)}
+                            <DocumentAcknowledgmentStatus doc={doc} />
                           </div>
                         )}
 
-                        {doc.requires_acknowledgment && !isDocumentAcknowledged(doc) && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={(e) => {
-                              e?.stopPropagation();
-                              handleDocumentAcknowledge(doc.id);
-                            }}
-                            disabled={isAcknowledging}
-                            className="touch-friendly w-full sm:w-auto"
-                          >
-                            <CheckCircleIcon className="w-4 h-4" />
-                            <span className="sm:hidden">Acknowledge</span>
-                            <span className="hidden sm:inline">Acknowledge</span>
-                          </Button>
+                        {doc.requires_acknowledgment && (
+                          <DocumentAcknowledgmentChecker doc={doc}>
+                            {(isAcknowledged) => !isAcknowledged && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={(e) => {
+                                  e?.stopPropagation();
+                                  handleDocumentAcknowledge(doc.id);
+                                }}
+                                disabled={isAcknowledging}
+                                className="touch-friendly w-full sm:w-auto"
+                              >
+                                <CheckCircleIcon className="w-4 h-4" />
+                                <span className="sm:hidden">Acknowledge</span>
+                                <span className="hidden sm:inline">Acknowledge</span>
+                              </Button>
+                            )}
+                          </DocumentAcknowledgmentChecker>
                         )}
 
                         <div className="flex items-center gap-1 sm:gap-2">
