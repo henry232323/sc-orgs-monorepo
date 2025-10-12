@@ -4,7 +4,8 @@ import Paper from '../ui/Paper';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import Button from '../ui/Button';
-import Select, { SelectOption } from '../ui/Select';
+// Removed unused Select import
+import MemberAutocomplete, { OrganizationMember } from '../ui/MemberAutocomplete';
 import RadioGroup from '../ui/RadioGroup';
 import Chip from '../ui/Chip';
 import { ComponentTitle, ComponentSubtitle, StatMedium } from '../ui/Typography';
@@ -28,10 +29,7 @@ interface PerformanceReviewFormProps {
   onCancel?: () => void;
 }
 
-interface Member {
-  id: string;
-  rsi_handle: string;
-}
+// Remove the local Member interface since we're using OrganizationMember from MemberAutocomplete
 
 interface FormData {
   reviewee_id: string;
@@ -79,7 +77,7 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   const [updateReview, { isLoading: isUpdating }] = useUpdatePerformanceReviewMutation();
   
   // Member selection state
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<OrganizationMember | null>(null);
 
   // API queries
   const { 
@@ -98,7 +96,12 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   );
   const skills = skillsResponse?.data || [];
 
-  const { data: membersResponse } = useGetOrganizationMembersQuery(
+  const { 
+    data: membersResponse, 
+    isLoading: membersLoading, 
+    error: membersError,
+    refetch: refetchMembers
+  } = useGetOrganizationMembersQuery(
     organizationId!,
     { skip: !organizationId }
   );
@@ -152,7 +155,9 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
   // Initialize form with default values or existing review
   useEffect(() => {
     if (existingReview) {
-      setSelectedMember({ id: existingReview.reviewee_id, rsi_handle: 'Loading...' });
+      // Find the selected member from the members list
+      const member = allMembers.find((m: OrganizationMember) => m.id === existingReview.reviewee_id);
+      setSelectedMember(member || null);
       setFormData({
         reviewee_id: existingReview.reviewee_id,
         review_period_start: existingReview.review_period_start?.split('T')[0] || '',
@@ -186,7 +191,7 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
         goals: [],
       });
     }
-  }, [existingReview]);
+  }, [existingReview, allMembers]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -208,6 +213,11 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
     // Validate member selection
     if (!selectedMember) {
       newErrors.reviewee_id = 'Please select a member to review';
+    }
+
+    // Additional validation for member loading errors
+    if (membersError && !selectedMember) {
+      newErrors.reviewee_id = 'Unable to load members. Please try again.';
     }
 
     // Validate ratings for each skill
@@ -430,20 +440,45 @@ const PerformanceReviewForm: React.FC<PerformanceReviewFormProps> = ({
         {/* Member Selection */}
         <Paper variant="glass" className="responsive-padding-x responsive-padding-y lg:p-[var(--spacing-card-lg)] glass-mobile-reduced">
           <ComponentTitle className="mb-[var(--spacing-element)] responsive-text-lg">Select Member</ComponentTitle>
-          <Select
+          
+          {/* Show error state for member loading if needed */}
+          {membersError && allMembers.length === 0 && (
+            <div className="mb-4 p-4 bg-error/10 border border-error/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-error" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <ComponentSubtitle className="text-error">Failed to load organization members</ComponentSubtitle>
+                    <p className="text-sm text-error/80">Unable to load members for selection. Please try again.</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => refetchMembers()}
+                  className="text-error hover:bg-error/10"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          <MemberAutocomplete
             label="Member to Review"
             value={selectedMember?.id || ''}
-            onChange={(value) => {
-              const member = allMembers.find((m: Member) => m.id === value);
+            onChange={(memberId) => {
+              const member = allMembers.find((m: OrganizationMember) => m.id === memberId);
               setSelectedMember(member || null);
-              setFormData(prev => ({ ...prev, reviewee_id: value as string }));
+              setFormData(prev => ({ ...prev, reviewee_id: memberId }));
             }}
-            options={allMembers.map((member: Member): SelectOption => ({
-              value: member.id,
-              label: member.rsi_handle,
-            }))}
-            placeholder="Select a member to review..."
+            members={allMembers}
+            placeholder="Search for a member to review..."
             required
+            isLoading={membersLoading}
+            {...(membersError && { onRetry: () => refetchMembers() })}
             {...(errors.reviewee_id && { error: errors.reviewee_id })}
             description="Choose the organization member you want to review"
           />

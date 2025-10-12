@@ -144,25 +144,25 @@
   - Test fallback behavior
   - _Requirements: 2.1, 2.2, 2.3_
 
-- [ ] 7. Implement Performance Review Member Autocomplete
+- [x] 7. Implement Performance Review Member Autocomplete
   - Replace basic Select with autocomplete Combobox component
   - Add search filtering for member names
   - Implement proper loading and error states
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 7.1 Create MemberAutocomplete component
+- [x] 7.1 Create MemberAutocomplete component
   - Build autocomplete component using Headless UI Combobox
   - Add search filtering functionality for member names
   - Include member avatar and role information in dropdown
   - _Requirements: 5.1, 5.2_
 
-- [ ] 7.2 Integrate member autocomplete in performance review form
+- [x] 7.2 Integrate member autocomplete in performance review form
   - Replace existing Select component with MemberAutocomplete
   - Update form state management for autocomplete selection
   - Add proper validation for member selection
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.3 Add loading and error handling for member autocomplete
+- [x] 7.3 Add loading and error handling for member autocomplete
   - Display loading indicator while members are being fetched
   - Show "No members found" when search yields no results
   - Add retry functionality when member data fails to load

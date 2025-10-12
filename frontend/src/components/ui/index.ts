@@ -14,6 +14,7 @@ export { default as Switch } from './Switch';
 export { default as ToggleSwitch } from './ToggleSwitch';
 export { default as Dropdown } from './Dropdown';
 export { default as Select } from './Select';
+export { default as MemberAutocomplete } from './MemberAutocomplete';
 export { default as Menu } from './Menu';
 export { default as Sidebar } from './Sidebar';
 export { default as SidebarItem } from './SidebarItem';
