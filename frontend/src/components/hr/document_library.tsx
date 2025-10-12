@@ -200,6 +200,26 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     );
   };
 
+  // Utility function to generate a valid file path from title
+  const generateFilePath = (title: string, folderPath: string): string => {
+    // Sanitize title: remove special characters, replace spaces with underscores
+    const sanitizedTitle = title
+      .trim()
+      .replace(/[^a-zA-Z0-9-_\s]/g, '') // Remove special chars except spaces, hyphens, underscores
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+    
+    if (!sanitizedTitle) {
+      throw new Error('Title must contain at least one alphanumeric character');
+    }
+    
+    // Ensure folder path ends with /
+    const normalizedFolderPath = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+    
+    return `${normalizedFolderPath}${sanitizedTitle}.md`;
+  };
+
   const handleSaveDocument = async (content: string, metadata: {
     title: string;
     description?: string;
@@ -208,6 +228,28 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     access_roles: string[];
   }): Promise<Document> => {
     if (!spectrumId) throw new Error('Organization ID is required');
+
+    // Validate required fields for document creation
+    if (!metadata.title?.trim()) {
+      throw new Error('Document title is required');
+    }
+
+    if (metadata.title.length > 200) {
+      throw new Error('Document title cannot exceed 200 characters');
+    }
+
+    if (metadata.description && metadata.description.length > 1000) {
+      throw new Error('Document description cannot exceed 1000 characters');
+    }
+
+    if (!content?.trim()) {
+      throw new Error('Document content is required');
+    }
+
+    // Validate access roles
+    if (!metadata.access_roles || metadata.access_roles.length === 0) {
+      throw new Error('At least one access role must be selected');
+    }
 
     try {
       let savedDocument: Document;
@@ -223,13 +265,37 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
           },
         }).unwrap();
       } else {
-        // Create new document
+        // Create new document - add required backend fields for validation
+        const filePath = generateFilePath(metadata.title, metadata.folder_path);
+
+        const fileSize = new Blob([content]).size;
+        
+        // Validate file size (1MB limit as per backend validation)
+        if (fileSize < 1) {
+          throw new Error('Document content cannot be empty');
+        }
+        
+        if (fileSize > 1024 * 1024) { // 1MB limit
+          throw new Error('Document content exceeds maximum size of 1MB');
+        }
+
+        const documentData = {
+          ...metadata,
+          content,
+          // Add required fields that backend validation expects for document creation
+          // Note: These fields are required by the backend validation schema even though
+          // this is a markdown document (not a file upload). The backend expects:
+          // - file_path: string (generated from title and folder)
+          // - file_type: string (always 'text/markdown' for markdown docs)
+          // - file_size: number (calculated from content size)
+          file_path: filePath,
+          file_type: 'text/markdown',
+          file_size: fileSize,
+        };
+
         savedDocument = await createDocument({
           organizationId: spectrumId,
-          data: {
-            ...metadata,
-            content,
-          },
+          data: documentData,
         }).unwrap();
       }
 

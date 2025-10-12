@@ -2254,6 +2254,10 @@ export const apiSlice = createApi({
           folder_path: string;
           requires_acknowledgment: boolean;
           access_roles: string[];
+          // Required fields for backend validation
+          file_path: string;
+          file_type: string;
+          file_size: number;
         }
       }
     >({
